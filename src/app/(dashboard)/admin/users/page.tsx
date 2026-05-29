@@ -36,9 +36,7 @@ export default async function AdminUsersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl">Users</h1>
-        <p className="text-muted-foreground">
-          Manage member roles and access.
-        </p>
+        <p className="text-muted-foreground">Manage member roles and access.</p>
       </div>
 
       <UserTable users={users} currentUserId={current.id} />

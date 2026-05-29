@@ -23,9 +23,9 @@ export default async function AdminMinecraftPage() {
     .leftJoin(user, eq(minecraftWhitelist.userId, user.id))
     .orderBy(
       asc(
-        sql`case when ${minecraftWhitelist.status} = 'pending' then 0 else 1 end`,
+        sql`case when ${minecraftWhitelist.status} = 'pending' then 0 else 1 end`
       ),
-      desc(minecraftWhitelist.createdAt),
+      desc(minecraftWhitelist.createdAt)
     )
     .all();
 

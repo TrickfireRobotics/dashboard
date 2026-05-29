@@ -8,7 +8,7 @@ import { updateUserSchema } from "@/lib/validation";
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const admin = await getSessionUser();
   if (!admin) {
@@ -25,7 +25,7 @@ export async function PATCH(
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid input", issues: parsed.error.flatten() },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -37,7 +37,7 @@ export async function PATCH(
   ) {
     return NextResponse.json(
       { error: "You cannot change your own role or active status" },
-      { status: 400 },
+      { status: 400 }
     );
   }
 

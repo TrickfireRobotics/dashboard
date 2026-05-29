@@ -39,9 +39,7 @@ export default async function DashboardHome() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl">Welcome, {firstName}</h1>
-        <p className="text-muted-foreground">
-          Your TrickFire club dashboard.
-        </p>
+        <p className="text-muted-foreground">Your TrickFire club dashboard.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -49,9 +47,9 @@ export default async function DashboardHome() {
           const Icon = tile.icon;
           return (
             <Link key={tile.href} href={tile.href}>
-              <Card className="h-full transition-colors hover:border-primary/60">
+              <Card className="hover:border-primary/60 h-full transition-colors">
                 <CardHeader>
-                  <Icon className="size-6 text-primary" />
+                  <Icon className="text-primary size-6" />
                   <CardTitle className="mt-2">{tile.title}</CardTitle>
                   <CardDescription>{tile.description}</CardDescription>
                 </CardHeader>

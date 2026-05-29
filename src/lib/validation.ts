@@ -5,12 +5,12 @@ const emptyToUndefined = (v: unknown) =>
 
 const optionalPrice = z.preprocess(
   emptyToUndefined,
-  z.coerce.number().min(0).max(1_000_000),
+  z.coerce.number().min(0).max(1_000_000)
 );
 
 const optionalUrl = z.preprocess(
   emptyToUndefined,
-  z.string().trim().url("Enter a valid URL").max(500),
+  z.string().trim().url("Enter a valid URL").max(500)
 );
 
 // Parts orders -------------------------------------------------------------

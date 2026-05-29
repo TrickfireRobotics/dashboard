@@ -27,10 +27,10 @@ type ServerStatus = {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs tracking-wider text-muted-foreground uppercase">
+      <p className="text-muted-foreground text-xs tracking-wider uppercase">
         {label}
       </p>
-      <p className="text-lg text-foreground">{value}</p>
+      <p className="text-foreground text-lg">{value}</p>
     </div>
   );
 }
@@ -91,7 +91,7 @@ export function ServerStatusCard() {
             <Stat label="Version" value={status.version ?? "—"} />
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             The server is offline or unreachable right now.
           </p>
         )}

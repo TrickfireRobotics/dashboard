@@ -125,11 +125,11 @@ export function WhitelistManager({
       </Card>
 
       {requests.length === 0 ? (
-        <div className="rounded-lg border border-border p-10 text-center text-muted-foreground">
+        <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
           No whitelist requests yet.
         </div>
       ) : (
-        <div className="rounded-lg border border-border">
+        <div className="border-border rounded-lg border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -145,7 +145,7 @@ export function WhitelistManager({
             <TableBody>
               {requests.map((r) => (
                 <TableRow key={r.id}>
-                  <TableCell className="font-medium text-foreground">
+                  <TableCell className="text-foreground font-medium">
                     {r.username}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
@@ -154,7 +154,7 @@ export function WhitelistManager({
                   <TableCell className="text-muted-foreground">
                     {r.addedDirectly ? "Direct add" : "Member request"}
                   </TableCell>
-                  <TableCell className="max-w-40 whitespace-normal text-muted-foreground">
+                  <TableCell className="text-muted-foreground max-w-40 whitespace-normal">
                     {r.requestNote ?? r.adminNote ?? "—"}
                   </TableCell>
                   <TableCell>
@@ -183,7 +183,7 @@ export function WhitelistManager({
                         </Button>
                       </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
+                      <span className="text-muted-foreground text-xs">—</span>
                     )}
                   </TableCell>
                 </TableRow>

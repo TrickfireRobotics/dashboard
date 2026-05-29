@@ -34,16 +34,16 @@ export function TopNav({
   }
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-border px-6">
+    <header className="border-border flex h-16 items-center justify-between border-b px-6">
       <div className="flex items-center gap-2">
-        <span className="text-sm text-muted-foreground">Signed in as</span>
-        <span className="text-sm font-medium text-foreground">{name}</span>
+        <span className="text-muted-foreground text-sm">Signed in as</span>
+        <span className="text-foreground text-sm font-medium">{name}</span>
         <Badge variant={role === "admin" ? "default" : "secondary"}>
           {role}
         </Badge>
       </div>
       <div className="flex items-center gap-4">
-        <span className="hidden text-sm text-muted-foreground sm:inline">
+        <span className="text-muted-foreground hidden text-sm sm:inline">
           {email}
         </span>
         <Button

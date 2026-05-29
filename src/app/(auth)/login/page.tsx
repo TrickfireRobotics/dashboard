@@ -20,11 +20,11 @@ export default async function LoginPage({
     : undefined;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+    <div className="bg-background flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="text-4xl text-primary">TrickFire</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h1 className="text-primary text-4xl">TrickFire</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Club Management Portal
           </p>
         </div>

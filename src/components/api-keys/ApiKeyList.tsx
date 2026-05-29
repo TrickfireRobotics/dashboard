@@ -48,14 +48,14 @@ export function ApiKeyList({ keys }: { keys: ApiKeyRow[] }) {
 
   if (keys.length === 0) {
     return (
-      <div className="rounded-lg border border-border p-10 text-center text-muted-foreground">
+      <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
         No API keys yet. Create one for your sim scripts.
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-border">
+    <div className="border-border rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -70,11 +70,11 @@ export function ApiKeyList({ keys }: { keys: ApiKeyRow[] }) {
         <TableBody>
           {keys.map((k) => (
             <TableRow key={k.id}>
-              <TableCell className="font-medium text-foreground">
+              <TableCell className="text-foreground font-medium">
                 {k.name}
               </TableCell>
               <TableCell>
-                <code className="text-xs text-muted-foreground">
+                <code className="text-muted-foreground text-xs">
                   {k.keyPrefix}…
                 </code>
               </TableCell>
@@ -93,7 +93,7 @@ export function ApiKeyList({ keys }: { keys: ApiKeyRow[] }) {
               </TableCell>
               <TableCell className="text-right">
                 {k.isRevoked ? (
-                  <span className="text-xs text-muted-foreground">—</span>
+                  <span className="text-muted-foreground text-xs">—</span>
                 ) : (
                   <Button
                     size="sm"

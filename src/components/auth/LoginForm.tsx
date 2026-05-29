@@ -56,7 +56,7 @@ export function LoginForm({ notice }: { notice?: string }) {
           toast.error(ctx.error.message || "Invalid email or password");
           setSubmitting(false);
         },
-      },
+      }
     );
   }
 
@@ -68,7 +68,7 @@ export function LoginForm({ notice }: { notice?: string }) {
       </CardHeader>
       <CardContent>
         {notice ? (
-          <p className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p className="border-destructive/40 bg-destructive/10 text-destructive mb-4 rounded-md border px-3 py-2 text-sm">
             {notice}
           </p>
         ) : null}

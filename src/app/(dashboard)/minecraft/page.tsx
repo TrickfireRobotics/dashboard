@@ -67,19 +67,19 @@ export default async function MinecraftPage() {
         </CardHeader>
         <CardContent>
           {requests.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               You have not requested whitelist access yet.
             </p>
           ) : (
-            <ul className="divide-y divide-border">
+            <ul className="divide-border divide-y">
               {requests.map((r) => (
                 <li
                   key={r.id}
                   className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
                 >
                   <div>
-                    <p className="font-medium text-foreground">{r.username}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-foreground font-medium">{r.username}</p>
+                    <p className="text-muted-foreground text-xs">
                       {formatDate(r.createdAt)}
                       {r.adminNote ? ` · ${r.adminNote}` : ""}
                     </p>

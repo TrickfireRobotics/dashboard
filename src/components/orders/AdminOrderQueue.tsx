@@ -71,7 +71,9 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
         const data = await res.json().catch(() => null);
         throw new Error(data?.error ?? "Action failed");
       }
-      toast.success(`Order ${action === "ordered" ? "marked ordered" : `${action}d`}`);
+      toast.success(
+        `Order ${action === "ordered" ? "marked ordered" : `${action}d`}`
+      );
       setSelected(null);
       router.refresh();
     } catch (err) {
@@ -82,7 +84,7 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
 
   if (orders.length === 0) {
     return (
-      <div className="rounded-lg border border-border p-10 text-center text-muted-foreground">
+      <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
         No orders submitted yet.
       </div>
     );
@@ -90,7 +92,7 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
 
   return (
     <>
-      <div className="rounded-lg border border-border">
+      <div className="border-border rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -107,7 +109,7 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
           <TableBody>
             {orders.map((o) => (
               <TableRow key={o.id}>
-                <TableCell className="font-medium text-foreground">
+                <TableCell className="text-foreground font-medium">
                   {o.itemName}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
@@ -125,7 +127,11 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
                   {formatDate(o.createdAt)}
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button size="sm" variant="outline" onClick={() => openReview(o)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => openReview(o)}
+                  >
                     {o.status === "pending" ? "Review" : "Update"}
                   </Button>
                 </TableCell>
@@ -147,7 +153,10 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
               <DialogHeader>
                 <DialogTitle>{selected.itemName}</DialogTitle>
                 <DialogDescription>
-                  Requested by {selected.requesterName ?? selected.requesterEmail ?? "unknown"}
+                  Requested by{" "}
+                  {selected.requesterName ??
+                    selected.requesterEmail ??
+                    "unknown"}
                   {selected.teamName ? ` · ${selected.teamName}` : ""}
                 </DialogDescription>
               </DialogHeader>
@@ -159,7 +168,10 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
                   value={formatPriceCents(selected.unitPrice)}
                 />
                 <Detail label="Type" value={selected.partType ?? "—"} />
-                <Detail label="Part number" value={selected.partNumber ?? "—"} />
+                <Detail
+                  label="Part number"
+                  value={selected.partNumber ?? "—"}
+                />
                 <div className="col-span-2">
                   <dt className="text-muted-foreground">Vendor</dt>
                   <dd>
@@ -180,7 +192,9 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
                 {selected.description ? (
                   <div className="col-span-2">
                     <dt className="text-muted-foreground">Description</dt>
-                    <dd className="whitespace-pre-wrap">{selected.description}</dd>
+                    <dd className="whitespace-pre-wrap">
+                      {selected.description}
+                    </dd>
                   </div>
                 ) : null}
               </dl>

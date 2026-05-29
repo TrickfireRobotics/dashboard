@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   if (!limit.allowed) {
     return NextResponse.json(
       { error: "Too many requests" },
-      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
     );
   }
 
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
     .from(apiKey)
     .innerJoin(user, eq(apiKey.userId, user.id))
     .where(
-      and(eq(apiKey.keyHash, hashApiKey(provided)), eq(apiKey.isRevoked, false)),
+      and(eq(apiKey.keyHash, hashApiKey(provided)), eq(apiKey.isRevoked, false))
     )
     .get();
 

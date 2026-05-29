@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid input", issues: parsed.error.flatten() },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
@@ -34,7 +34,10 @@ export async function POST(req: NextRequest) {
     .get();
 
   // Raw key is returned exactly once; only the hash is persisted.
-  return NextResponse.json({ id: created.id, name: created.name, key: raw }, {
-    status: 201,
-  });
+  return NextResponse.json(
+    { id: created.id, name: created.name, key: raw },
+    {
+      status: 201,
+    }
+  );
 }

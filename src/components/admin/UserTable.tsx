@@ -66,7 +66,7 @@ export function UserTable({
   }
 
   return (
-    <div className="rounded-lg border border-border">
+    <div className="border-border rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -83,22 +83,22 @@ export function UserTable({
             const isSelf = u.id === currentUserId;
             return (
               <TableRow key={u.id}>
-                <TableCell className="font-medium text-foreground">
+                <TableCell className="text-foreground font-medium">
                   {u.name}
                   {isSelf ? (
-                    <span className="ml-2 text-xs text-muted-foreground">
+                    <span className="text-muted-foreground ml-2 text-xs">
                       (you)
                     </span>
                   ) : null}
                 </TableCell>
-                <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {u.email}
+                </TableCell>
                 <TableCell>
                   <Select
                     items={ROLE_ITEMS}
                     value={u.role}
-                    onValueChange={(value) =>
-                      patchUser(u.id, { role: value })
-                    }
+                    onValueChange={(value) => patchUser(u.id, { role: value })}
                     disabled={isSelf || busy === u.id}
                   >
                     <SelectTrigger size="sm" className="w-28">

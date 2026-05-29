@@ -5,7 +5,10 @@ import type { OrderStatus } from "@/lib/db/schema";
 
 const STATUS: Record<
   OrderStatus,
-  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+  }
 > = {
   pending: { label: "Pending", variant: "outline" },
   approved: { label: "Approved", variant: "default" },

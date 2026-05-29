@@ -2,7 +2,10 @@ import { desc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { OrderTable, type MemberOrderRow } from "@/components/orders/OrderTable";
+import {
+  OrderTable,
+  type MemberOrderRow,
+} from "@/components/orders/OrderTable";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { order, team } from "@/lib/db/schema";

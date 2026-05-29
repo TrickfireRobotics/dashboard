@@ -31,7 +31,7 @@ export default async function AdminOrdersPage() {
     // Pending orders first, then newest.
     .orderBy(
       asc(sql`case when ${order.status} = 'pending' then 0 else 1 end`),
-      desc(order.createdAt),
+      desc(order.createdAt)
     )
     .all();
 

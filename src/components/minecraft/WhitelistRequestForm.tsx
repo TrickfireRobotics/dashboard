@@ -87,7 +87,11 @@ export function WhitelistRequestForm() {
             <FormItem>
               <FormLabel>Note (optional)</FormLabel>
               <FormControl>
-                <Textarea rows={2} placeholder="Anything the admins should know." {...field} />
+                <Textarea
+                  rows={2}
+                  placeholder="Anything the admins should know."
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

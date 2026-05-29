@@ -28,9 +28,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body
-        className={`${barlow.variable} ${overpass.variable} antialiased`}
-      >
+      <body className={`${barlow.variable} ${overpass.variable} antialiased`}>
         {children}
         <Toaster richColors position="top-right" />
       </body>

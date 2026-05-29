@@ -29,10 +29,7 @@ export const order = sqliteTable("orders", {
   partNumber: text("part_number"),
   quantity: integer("quantity").notNull().default(1),
   unitPrice: integer("unit_price"),
-  status: text("status")
-    .$type<OrderStatus>()
-    .notNull()
-    .default("pending"),
+  status: text("status").$type<OrderStatus>().notNull().default("pending"),
   adminNote: text("admin_note"),
   reviewedBy: text("reviewed_by").references(() => user.id, {
     onDelete: "set null",
@@ -64,10 +61,7 @@ export const minecraftWhitelist = sqliteTable("minecraft_whitelist", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
   username: text("username").notNull(),
-  status: text("status")
-    .$type<WhitelistStatus>()
-    .notNull()
-    .default("pending"),
+  status: text("status").$type<WhitelistStatus>().notNull().default("pending"),
   requestNote: text("request_note"),
   adminNote: text("admin_note"),
   reviewedBy: text("reviewed_by").references(() => user.id, {
@@ -102,5 +96,5 @@ export const minecraftWhitelistRelations = relations(
       fields: [minecraftWhitelist.userId],
       references: [user.id],
     }),
-  }),
+  })
 );

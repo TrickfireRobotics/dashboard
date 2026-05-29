@@ -92,7 +92,7 @@ export function CreateKeyDialog() {
               </DialogDescription>
             </DialogHeader>
             <div className="flex items-center gap-2">
-              <code className="flex-1 overflow-x-auto rounded-md border border-border bg-muted/40 px-3 py-2 text-xs">
+              <code className="border-border bg-muted/40 flex-1 overflow-x-auto rounded-md border px-3 py-2 text-xs">
                 {createdKey}
               </code>
               <Button size="icon" variant="outline" onClick={copyKey}>

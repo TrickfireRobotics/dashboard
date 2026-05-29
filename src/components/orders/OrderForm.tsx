@@ -41,7 +41,7 @@ const formSchema = z.object({
     .optional()
     .refine(
       (v) => !v || z.string().url().safeParse(v).success,
-      "Enter a valid URL",
+      "Enter a valid URL"
     ),
   unitPrice: z
     .string()
@@ -49,7 +49,7 @@ const formSchema = z.object({
     .optional()
     .refine(
       (v) => !v || (!Number.isNaN(Number(v)) && Number(v) >= 0),
-      "Enter a valid amount",
+      "Enter a valid amount"
     ),
   partType: z.string().max(100).optional(),
   partNumber: z.string().max(100).optional(),
@@ -78,7 +78,9 @@ export function OrderForm({ teams }: { teams: Team[] }) {
     },
   });
 
-  const teamItems = Object.fromEntries(teams.map((t) => [String(t.id), t.name]));
+  const teamItems = Object.fromEntries(
+    teams.map((t) => [String(t.id), t.name])
+  );
 
   async function onSubmit(values: FormValues) {
     setSubmitting(true);
@@ -186,7 +188,9 @@ export function OrderForm({ teams }: { teams: Team[] }) {
                   value={field.value ?? ""}
                 />
               </FormControl>
-              <FormDescription>Link to the product page (optional).</FormDescription>
+              <FormDescription>
+                Link to the product page (optional).
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

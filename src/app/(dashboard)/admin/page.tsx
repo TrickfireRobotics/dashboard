@@ -10,7 +10,9 @@ import {
 import { db } from "@/lib/db";
 import { minecraftWhitelist, order, user } from "@/lib/db/schema";
 
-function countWhere(table: typeof order | typeof user | typeof minecraftWhitelist) {
+function countWhere(
+  table: typeof order | typeof user | typeof minecraftWhitelist
+) {
   return db.select({ value: count() }).from(table);
 }
 
@@ -44,9 +46,9 @@ export default function AdminOverviewPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         {stats.map((s) => (
           <Link key={s.href} href={s.href}>
-            <Card className="transition-colors hover:border-primary/60">
+            <Card className="hover:border-primary/60 transition-colors">
               <CardHeader>
-                <CardTitle className="text-4xl text-primary">
+                <CardTitle className="text-primary text-4xl">
                   {s.value}
                 </CardTitle>
                 <CardDescription>{s.label}</CardDescription>

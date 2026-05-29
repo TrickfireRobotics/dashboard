@@ -10,7 +10,7 @@ const STATUS = { approve: "approved", reject: "rejected" } as const;
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const admin = await getSessionUser();
   if (!admin) {
@@ -30,7 +30,7 @@ export async function POST(
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid input", issues: parsed.error.flatten() },
-      { status: 400 },
+      { status: 400 }
     );
   }
 

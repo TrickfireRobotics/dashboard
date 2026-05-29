@@ -27,14 +27,14 @@ export type MemberOrderRow = {
 export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
   if (orders.length === 0) {
     return (
-      <div className="rounded-lg border border-border p-10 text-center text-muted-foreground">
+      <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
         You have not submitted any orders yet.
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-border">
+    <div className="border-border rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -50,7 +50,7 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
         <TableBody>
           {orders.map((o) => (
             <TableRow key={o.id}>
-              <TableCell className="font-medium text-foreground">
+              <TableCell className="text-foreground font-medium">
                 {o.itemName}
               </TableCell>
               <TableCell>{o.teamName ?? "—"}</TableCell>
@@ -64,7 +64,7 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
               <TableCell className="text-muted-foreground">
                 {formatDate(o.createdAt)}
               </TableCell>
-              <TableCell className="max-w-50 whitespace-normal text-muted-foreground">
+              <TableCell className="text-muted-foreground max-w-50 whitespace-normal">
                 {o.adminNote ?? "—"}
               </TableCell>
             </TableRow>

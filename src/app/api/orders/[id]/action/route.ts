@@ -8,7 +8,7 @@ import { ORDER_ACTION_STATUS, orderActionSchema } from "@/lib/validation";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> },
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const user = await getSessionUser();
   if (!user) {
@@ -28,7 +28,7 @@ export async function POST(
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Invalid input", issues: parsed.error.flatten() },
-      { status: 400 },
+      { status: 400 }
     );
   }
 
