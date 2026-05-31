@@ -82,17 +82,34 @@ The external-facing REST API lives under `src/app/api/service/`. This is the end
 
 Internal data fetching uses React Server Components and server actions - there is no separate internal REST layer. Server components call the database directly via Drizzle.
 
+Internal route handlers (e.g. `GET /api/minecraft/leaderboard`) exist for data that must be fetched client-side (polled components, client-rendered cards). These require authentication - validate the session with `auth.api.getSession` before returning any data.
+
 > [!NOTE]
 > The `POST /api/service/verify` endpoint is IP-rate-limited in production via Cloudflare headers. In local dev there is no rate limiting - don't rely on that behaviour in tests.
 
+## Proxying External Services
+
+Some internal services (currently BlueMap) are proxied through the Next.js app so they are accessible via the dashboard URL without exposing a second port. The proxy lives at `src/app/bluemap/[[...path]]/route.ts` and forwards requests to `BLUEMAP_URL`.
+
+Key points:
+
+- Use a catch-all route handler (`[[...path]]`) so all sub-paths forward correctly.
+- For SPA-based services, you may need to rewrite the HTML `<base href>` tag so asset paths resolve through the proxy prefix rather than the root. The BlueMap handler does this.
+- Catch `ECONNREFUSED` / `ENOTFOUND` and return a `503` so the client component can show a graceful unavailable state instead of an unhandled error.
+
+## Shared Fetch with Multiple Grid Cards
+
+When two adjacent cards share a single data fetch (to avoid duplicate requests), wrap them in a container component that uses `className="contents"` (`display: contents`). This makes the wrapper invisible to CSS Grid, so the child cards participate in the outer grid as direct items while the fetch logic lives in one place. See `ServerStatusSection.tsx` for an example.
+
 ## Environment in Dev vs Production
 
-| Concern               | Local dev                          | Production                                 |
-| --------------------- | ---------------------------------- | ------------------------------------------ |
-| Database              | `db/dashboard.db` in repo root     | `/opt/trickfire-dashboard/db/dashboard.db` |
-| Server                | `pnpm dev` (hot reload, Turbopack) | systemd + `.next/standalone/server.js`     |
-| HTTPS                 | None (HTTP on port 3000)           | Cloudflare Tunnel provides TLS             |
-| Minecraft / Headscale | Optional - app degrades gracefully | Required - configure in `.env.local`       |
+| Concern               | Local dev                                                         | Production                                 |
+| --------------------- | ----------------------------------------------------------------- | ------------------------------------------ |
+| Database              | `db/dashboard.db` in repo root                                    | `/opt/trickfire-dashboard/db/dashboard.db` |
+| Server                | `pnpm dev` (hot reload, Turbopack)                                | systemd + `.next/standalone/server.js`     |
+| HTTPS                 | None (HTTP on port 3000)                                          | Cloudflare Tunnel provides TLS             |
+| Minecraft / Headscale | Optional - app degrades gracefully                                | Required - configure in `.env.local`       |
+| LAN access            | Set `BETTER_AUTH_TRUSTED_ORIGINS` to the LAN IP:port (see README) | Not needed - all traffic goes via Tunnel   |
 
 ## Getting Help
 

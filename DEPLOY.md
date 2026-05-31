@@ -17,9 +17,10 @@ All steps below are run **on the Xavier** unless noted otherwise. The `better-sq
 6. [Run as a systemd Service](#6-run-as-a-systemd-service)
 7. [Cloudflare Tunnel](#7-cloudflare-tunnel)
 8. [Headscale Setup](#8-headscale-setup)
-9. [Updating an Existing Deployment](#updating-an-existing-deployment)
-10. [Backups](#backups)
-11. [Troubleshooting](#troubleshooting)
+9. [BlueMap Setup](#9-bluemap-setup)
+10. [Updating an Existing Deployment](#updating-an-existing-deployment)
+11. [Backups](#backups)
+12. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -60,6 +61,34 @@ pnpm install --frozen-lockfile
     ```bash
     openssl rand -hex 32
     ```
+
+### Key values for production
+
+```env
+NEXT_PUBLIC_APP_URL=https://dashboard.trickfirerobotics.com
+BETTER_AUTH_URL=https://dashboard.trickfirerobotics.com
+BETTER_AUTH_SECRET=<generated above>
+
+DATABASE_PATH=/opt/trickfire-dashboard/db/dashboard.db
+
+# Minecraft
+MINECRAFT_SERVER_HOST=<host or LAN IP of the Minecraft server>
+MINECRAFT_SERVER_PORT=25565
+MINECRAFT_WORLD_PATH=/opt/minecraft/world
+MINECRAFT_BOT_NAMES=BotA,BotB         # comma-separated; append :SkinURL for a custom skin
+BLUEMAP_URL=http://localhost:8100
+
+# Headscale
+HEADSCALE_URL=http://localhost:50443
+HEADSCALE_API_KEY=<from headscale apikeys create>
+
+# Email
+RESEND_API_KEY=re_...
+EMAIL_FROM=TrickFire Robotics <noreply@trickfirerobotics.com>
+```
+
+> [!NOTE]
+> `BETTER_AUTH_TRUSTED_ORIGINS` is **not needed in production** - all browser traffic arrives via the Cloudflare Tunnel, which always uses `https://dashboard.trickfirerobotics.com`. It is only required when accessing the dev server from a second machine on the LAN (e.g. testing on a phone at `http://192.168.1.50:3000`).
 
 > [!CAUTION]
 > Keep `.env.local` off `git`. The `BETTER_AUTH_SECRET` value lets anyone forge session tokens. If it's ever leaked, rotate it immediately and invalidate all sessions by changing the value.
@@ -327,6 +356,36 @@ Members connecting from home then use:
 tailscale up --login-server https://headscale.trickfirerobotics.com
 ```
 
+## 9. BlueMap Setup
+
+The Minecraft page embeds the BlueMap web map. The dashboard proxies it at `/bluemap` so it is accessible via the dashboard URL without exposing BlueMap's port publicly.
+
+### Install BlueMap
+
+BlueMap is a Minecraft server-side mod/plugin. Follow the [official BlueMap docs](https://bluemap.bluecolored.de/) for your server type (Fabric, Paper, etc.). The web interface starts on port `8100` by default.
+
+### Configure the Dashboard
+
+Set `BLUEMAP_URL` in `.env.local` to the address the Xavier can reach BlueMap on. If BlueMap runs on the same machine as the Minecraft server:
+
+```env
+BLUEMAP_URL=http://<minecraft-server-ip>:8100
+```
+
+If BlueMap is on the same machine as the dashboard:
+
+```env
+BLUEMAP_URL=http://localhost:8100
+```
+
+The dashboard proxies all requests from `/bluemap/...` to `BLUEMAP_URL`. BlueMap does **not** need to be exposed on the public firewall or in the Cloudflare Tunnel config.
+
+### Firewall Note
+
+Ensure port `8100` is **not** open to the internet. The dashboard acts as the only entry point. If BlueMap is on a separate server on the LAN, the Xavier needs LAN access to port `8100` on that machine.
+
+---
+
 ## Updating an Existing Deployment
 
 ```bash
@@ -396,6 +455,29 @@ sudo systemctl restart trickfire-dashboard
 <summary><strong>Minecraft card shows "offline"</strong></summary>
 
 Verify that `MINECRAFT_SERVER_HOST` and `MINECRAFT_SERVER_PORT` are set correctly in `.env.local`, and that the Xavier can reach the Minecraft server on the LAN. The status check fails gracefully to "offline" by design - it's not a crash, just an unreachable host.
+
+</details>
+
+<details>
+<summary><strong>BlueMap map shows "map unavailable"</strong></summary>
+
+1. Confirm BlueMap is running on the Minecraft server and its web interface is up: `curl http://<bluemap-host>:8100` should return HTML.
+2. Check that `BLUEMAP_URL` in `.env.local` points to the correct host and port, and that the Xavier can reach it on the LAN.
+3. Restart the dashboard after any `.env.local` change: `sudo systemctl restart trickfire-dashboard`.
+4. If BlueMap is running but the map tiles are empty, BlueMap may still be rendering - check its logs on the Minecraft server.
+
+</details>
+
+<details>
+<summary><strong>Login freezes or returns 403 "Invalid origin" when accessed from a second machine on the LAN</strong></summary>
+
+In production this shouldn't happen (all traffic goes through the Cloudflare Tunnel). If you're testing the production build locally from another device, set `BETTER_AUTH_TRUSTED_ORIGINS` to the LAN address of the server:
+
+```env
+BETTER_AUTH_TRUSTED_ORIGINS=http://192.168.1.50:3000
+```
+
+Restart the service to pick up the change. You can specify multiple origins as a comma-separated list.
 
 </details>
 
