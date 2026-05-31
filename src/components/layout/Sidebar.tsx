@@ -13,6 +13,12 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { signOut } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+import { LogOut } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -56,11 +62,35 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
     );
 }
 
-export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
+export function Sidebar({
+    isAdmin,
+    name,
+    email,
+}: {
+    isAdmin: boolean;
+    name: string;
+    email: string;
+}) {
     const pathname = usePathname();
 
     const isActive = (href: string) =>
         pathname === href || (!EXACT.has(href) && pathname.startsWith(`${href}/`));
+
+    const router = useRouter();
+    const [loading, setLoading] = useState(false);
+
+    async function handleSignOut() {
+        setLoading(true);
+        await signOut({
+            fetchOptions: {
+                onSuccess: () => {
+                    router.push("/login");
+                    router.refresh();
+                },
+                onError: () => setLoading(false),
+            },
+        });
+    }
 
     return (
         <aside className="border-sidebar-border bg-sidebar hidden w-60 shrink-0 flex-col border-r md:flex">
@@ -90,6 +120,25 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
                     </>
                 ) : null}
             </nav>
+            <div className="border-sidebar-border flex items-center gap-3 border-t px-4 py-3">
+                <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium" title={name}>
+                        {name}
+                    </p>
+                    <p className="text-muted-foreground truncate text-xs" title={email}>
+                        {email}
+                    </p>
+                </div>
+                <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleSignOut}
+                    disabled={loading}
+                    className="h-9 w-9 shrink-0"
+                >
+                    <LogOut className="size-4" />
+                </Button>
+            </div>
         </aside>
     );
 }
