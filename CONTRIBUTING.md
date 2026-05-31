@@ -9,11 +9,11 @@
 
 ## Branch naming
 
-| Type | Pattern | Example |
-|---|---|---|
-| Feature | `feat/<short-description>` | `feat/order-export` |
-| Bug fix | `fix/<short-description>` | `fix/session-expiry` |
-| Chore / infra | `chore/<short-description>` | `chore/update-deps` |
+| Type          | Pattern                     | Example              |
+| ------------- | --------------------------- | -------------------- |
+| Feature       | `feat/<short-description>`  | `feat/order-export`  |
+| Bug fix       | `fix/<short-description>`   | `fix/session-expiry` |
+| Chore / infra | `chore/<short-description>` | `chore/update-deps`  |
 
 ## Code style
 
@@ -32,21 +32,9 @@ To auto-fix formatting:
 pnpm format
 ```
 
-## Commit messages
-
-Use the imperative mood and keep the subject under 72 characters:
-
-```
-Add Minecraft whitelist approval flow
-Fix session not expiring on logout
-Update Drizzle to 0.32
-```
-
-No ticket numbers or emoji required.
-
 ## Pull requests
 
-- Keep PRs focused — one concern per PR
+- Keep PRs focused - one concern per PR
 - Include a short description of what changed and why
 - If the PR touches the database schema, run `pnpm db:generate` and commit the resulting migration file alongside the schema change
 

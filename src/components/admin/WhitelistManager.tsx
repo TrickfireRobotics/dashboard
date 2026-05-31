@@ -149,13 +149,13 @@ export function WhitelistManager({
                     {r.username}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {r.requesterName ?? "—"}
+                    {r.requesterName ?? "-"}
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {r.addedDirectly ? "Direct add" : "Member request"}
                   </TableCell>
                   <TableCell className="text-muted-foreground max-w-40 whitespace-normal">
-                    {r.requestNote ?? r.adminNote ?? "—"}
+                    {r.requestNote ?? r.adminNote ?? "-"}
                   </TableCell>
                   <TableCell>
                     <WhitelistStatusBadge status={r.status} />
@@ -183,7 +183,7 @@ export function WhitelistManager({
                         </Button>
                       </div>
                     ) : (
-                      <span className="text-muted-foreground text-xs">—</span>
+                      <span className="text-muted-foreground text-xs">-</span>
                     )}
                   </TableCell>
                 </TableRow>

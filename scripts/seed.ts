@@ -4,7 +4,7 @@
 try {
   process.loadEnvFile(".env.local");
 } catch {
-  // No .env.local — rely on the ambient environment.
+  // No .env.local - rely on the ambient environment.
 }
 
 const TEAMS = [

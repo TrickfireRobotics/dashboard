@@ -86,9 +86,9 @@ export function ServerStatusCard() {
             />
             <Stat
               label="Latency"
-              value={status.latencyMs != null ? `${status.latencyMs} ms` : "—"}
+              value={status.latencyMs != null ? `${status.latencyMs} ms` : "-"}
             />
-            <Stat label="Version" value={status.version ?? "—"} />
+            <Stat label="Version" value={status.version ?? "-"} />
           </div>
         ) : (
           <p className="text-muted-foreground text-sm">

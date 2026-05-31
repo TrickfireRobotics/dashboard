@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { apiKey, user } from "@/lib/db/schema";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 
-// Public endpoint reachable via Cloudflare Tunnel — sim scripts authenticate
+// Public endpoint reachable via Cloudflare Tunnel - sim scripts authenticate
 // with an X-API-Key header. Rate limited per client IP.
 export async function POST(req: NextRequest) {
   const limit = rateLimit(clientIp(req));

@@ -4,7 +4,7 @@ if (!process.env.DATABASE_PATH) {
   try {
     process.loadEnvFile(".env.local");
   } catch {
-    // no .env.local — rely on process env
+    // no .env.local - rely on process env
   }
 }
 

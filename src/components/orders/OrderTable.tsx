@@ -53,7 +53,7 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
               <TableCell className="text-foreground font-medium">
                 {o.itemName}
               </TableCell>
-              <TableCell>{o.teamName ?? "—"}</TableCell>
+              <TableCell>{o.teamName ?? "-"}</TableCell>
               <TableCell className="text-right">{o.quantity}</TableCell>
               <TableCell className="text-right">
                 {formatPriceCents(o.unitPrice)}
@@ -65,7 +65,7 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
                 {formatDate(o.createdAt)}
               </TableCell>
               <TableCell className="text-muted-foreground max-w-50 whitespace-normal">
-                {o.adminNote ?? "—"}
+                {o.adminNote ?? "-"}
               </TableCell>
             </TableRow>
           ))}

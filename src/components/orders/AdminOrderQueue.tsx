@@ -113,9 +113,9 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
                   {o.itemName}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
-                  {o.requesterName ?? o.requesterEmail ?? "—"}
+                  {o.requesterName ?? o.requesterEmail ?? "-"}
                 </TableCell>
-                <TableCell>{o.teamName ?? "—"}</TableCell>
+                <TableCell>{o.teamName ?? "-"}</TableCell>
                 <TableCell className="text-right">{o.quantity}</TableCell>
                 <TableCell className="text-right">
                   {formatPriceCents(o.unitPrice)}
@@ -167,10 +167,10 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
                   label="Unit price"
                   value={formatPriceCents(selected.unitPrice)}
                 />
-                <Detail label="Type" value={selected.partType ?? "—"} />
+                <Detail label="Type" value={selected.partType ?? "-"} />
                 <Detail
                   label="Part number"
-                  value={selected.partNumber ?? "—"}
+                  value={selected.partNumber ?? "-"}
                 />
                 <div className="col-span-2">
                   <dt className="text-muted-foreground">Vendor</dt>
@@ -185,7 +185,7 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
                         {selected.vendorUrl}
                       </a>
                     ) : (
-                      "—"
+                      "-"
                     )}
                   </dd>
                 </div>

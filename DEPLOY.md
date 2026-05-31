@@ -1,17 +1,14 @@
 # Deploying the TrickFire Dashboard
 
-This portal runs on the lab's Jetson Xavier (ARM64) and is exposed at
+This portal currently runs on the lab's Jetson Xavier (ARM64) and is exposed at
 `https://dashboard.trickfirerobotics.com` through a Cloudflare Tunnel. It is a
 Next.js 15 app using `output: "standalone"` and a local SQLite database
 (`better-sqlite3`).
 
 These steps are run **on the Xavier**. The native `better-sqlite3` binary must
-be compiled on the device — a build copied from a dev machine (x86 / different
-Node) will not load.
+be compiled on the device.
 
----
-
-## 1. Prerequisites (on the Xavier)
+## 1. Setup
 
 ```bash
 # Node.js (match the major version the app was built against where possible).
@@ -40,22 +37,8 @@ pnpm install --frozen-lockfile
 
 ## 3. Configure environment
 
-Create `/opt/trickfire-dashboard/dashboard/.env.local` (see `.env.example`):
-
-```bash
-NEXT_PUBLIC_APP_URL=https://dashboard.trickfirerobotics.com
-BETTER_AUTH_URL=https://dashboard.trickfirerobotics.com
-BETTER_AUTH_SECRET=<openssl rand -hex 32>
-DATABASE_PATH=/opt/trickfire-dashboard/db/dashboard.db
-MINECRAFT_SERVER_HOST=<local IP or hostname of the MC server>
-MINECRAFT_SERVER_PORT=25565
-SEED_ADMIN_EMAIL=admin@trickfirerobotics.com
-SEED_ADMIN_PASSWORD=<strong password — change after first login>
-SEED_ADMIN_NAME=TrickFire Admin
-```
-
-Generate the auth secret with `openssl rand -hex 32`. Keep this file off git
-(`.gitignore` already excludes `.env*`).
+1. Create `/opt/trickfire-dashboard/dashboard/.env.local` (see `.env.example`). Each key is explained in the [README](README.md).
+2. Generate the auth secret with `openssl rand -hex 32`. Keep this file off `git`.
 
 ## 4. Database: migrate + seed
 
@@ -108,7 +91,6 @@ After=network.target
 
 [Service]
 Type=simple
-# Adjust User to the account that compiled better-sqlite3.
 User=trickfire
 WorkingDirectory=/opt/trickfire-dashboard/dashboard
 EnvironmentFile=/opt/trickfire-dashboard/dashboard/.env.local
@@ -123,7 +105,7 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-Bind to `127.0.0.1` — the Cloudflare Tunnel is the only thing that should reach
+Bind to `127.0.0.1` - the Cloudflare Tunnel is the only thing that should reach
 the port. Then:
 
 ```bash
@@ -193,11 +175,11 @@ sqlite3 /opt/trickfire-dashboard/db/dashboard.db ".backup '/opt/trickfire-dashbo
 
 ## Troubleshooting
 
-- **`Could not locate the bindings file` / `invalid ELF header`** —
+- **`Could not locate the bindings file` / `invalid ELF header`** -
   `better-sqlite3` was not compiled on this device. Run
   `pnpm rebuild better-sqlite3` (or reinstall) on the Xavier.
-- **Login works but assets 404** — the `cp -r .next/static …` /
+- **Login works but assets 404** - the `cp -r .next/static …` /
   `cp -r public …` step was skipped after building.
-- **Minecraft card shows "offline"** — verify `MINECRAFT_SERVER_HOST/PORT` and
+- **Minecraft card shows "offline"** - verify `MINECRAFT_SERVER_HOST/PORT` and
   that the Xavier can reach the MC server on the LAN; the status call fails
   gracefully to offline by design.

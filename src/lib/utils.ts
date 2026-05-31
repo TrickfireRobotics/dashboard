@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatPriceCents(cents: number | null | undefined): string {
-  if (cents == null) return "—";
+  if (cents == null) return "-";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -14,7 +14,7 @@ export function formatPriceCents(cents: number | null | undefined): string {
 }
 
 export function formatDate(value: Date | number | null | undefined): string {
-  if (value == null) return "—";
+  if (value == null) return "-";
   const date = value instanceof Date ? value : new Date(value);
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",

@@ -29,7 +29,7 @@ export async function PATCH(
     );
   }
 
-  // An admin cannot demote or deactivate themselves — avoids locking the club
+  // An admin cannot demote or deactivate themselves - avoids locking the club
   // out of its own admin panel.
   if (
     userId === admin.id &&
