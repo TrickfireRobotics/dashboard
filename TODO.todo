@@ -17,6 +17,6 @@ Dashboard:
     - Remove the admin overview, add the info from there into the dashboard (only if admin)
 
 Headscale:
-    - Make a headscale network tab to see if network active
-    - Think about implementation, how should this server manage it
-    - Add a tailscale styled dashboard
+    ✔ Make a headscale network tab to see if network active @done(26-05-31 09:44)
+    ✔ Think about implementation, how should this server manage it @done(26-05-31 09:44)
+    ✔ Add a tailscale styled dashboard @done(26-05-31 09:44)
