@@ -1,7 +1,9 @@
 import { desc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
-import { ServerStatusCard } from "@/components/minecraft/ServerStatusCard";
+import { BluemapEmbed } from "@/components/minecraft/BluemapEmbed";
+import { PlaytimeLeaderboard } from "@/components/minecraft/PlaytimeLeaderboard";
+import { ServerStatusSection } from "@/components/minecraft/ServerStatusSection";
 import { WhitelistRequestForm } from "@/components/minecraft/WhitelistRequestForm";
 import { WhitelistStatusBadge } from "@/components/minecraft/WhitelistStatusBadge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,55 +36,55 @@ export default async function MinecraftPage() {
                 <p className="text-muted-foreground">Club server status and whitelist requests.</p>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-                <ServerStatusCard />
+            {/*
+             * ServerStatusSection uses display:contents so its two child cards
+             * (ServerInfoCard, OnlinePlayersCard) become direct grid items,
+             * giving us 3 equal columns with a single shared fetch.
+             */}
+            <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
+                <ServerStatusSection />
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Request Whitelist</CardTitle>
-                        <CardDescription>
-                            Submit your Minecraft username to get access.
-                        </CardDescription>
+                        <CardTitle>Whitelist</CardTitle>
+                        <CardDescription>Request access to the club server.</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-4">
                         <WhitelistRequestForm />
+
+                        {requests.length > 0 && (
+                            <div className="space-y-1">
+                                <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                                    Your Requests
+                                </p>
+                                <ul className="divide-border divide-y">
+                                    {requests.map((r) => (
+                                        <li
+                                            key={r.id}
+                                            className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0"
+                                        >
+                                            <div className="min-w-0">
+                                                <p className="text-foreground truncate text-sm font-medium">
+                                                    {r.username}
+                                                </p>
+                                                <p className="text-muted-foreground truncate text-xs">
+                                                    {formatDate(r.createdAt)}
+                                                    {r.adminNote ? ` · ${r.adminNote}` : ""}
+                                                </p>
+                                            </div>
+                                            <WhitelistStatusBadge status={r.status} />
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Your Requests</CardTitle>
-                    <CardDescription>
-                        Status of whitelist requests you have submitted.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {requests.length === 0 ? (
-                        <p className="text-muted-foreground text-sm">
-                            You have not requested whitelist access yet.
-                        </p>
-                    ) : (
-                        <ul className="divide-border divide-y">
-                            {requests.map((r) => (
-                                <li
-                                    key={r.id}
-                                    className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"
-                                >
-                                    <div>
-                                        <p className="text-foreground font-medium">{r.username}</p>
-                                        <p className="text-muted-foreground text-xs">
-                                            {formatDate(r.createdAt)}
-                                            {r.adminNote ? ` · ${r.adminNote}` : ""}
-                                        </p>
-                                    </div>
-                                    <WhitelistStatusBadge status={r.status} />
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </CardContent>
-            </Card>
+            <PlaytimeLeaderboard />
+
+            <BluemapEmbed />
         </div>
     );
 }

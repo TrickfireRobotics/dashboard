@@ -9,9 +9,11 @@ API Key page:
     - Maybe add a admin page to add secrets and members can request access to specific ones if they need them?
 
 Minecraft Tab:
-    - Make the info widget better, make it look good
-    - Add online player list
-    - Add something fun, Hayden wants a leaderboard
+    ✔ Make the info widget better, make it look good @done(26-05-31)
+    ✔ Add online player list, with skin heads @done(26-05-31)
+    ✔ Add something fun, Hayden wants a leaderboard @done(26-05-31)
+    ✔ Make the whitelist request a minor element of the page, now its 2/3rds @done(26-05-31)
+    ✔ Maybe world map? Something fun @done(26-05-31)
 
 Dashboard:
     ✔ Remove the admin overview, add the info from there into the dashboard (only if admin) @done(26-05-31 09:47)

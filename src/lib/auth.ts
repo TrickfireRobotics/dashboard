@@ -6,9 +6,15 @@ import { db } from "./db";
 import * as schema from "./db/schema";
 import { sendEmail } from "./email";
 
+const extraOrigins = (process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
 export const auth = betterAuth({
     baseURL: process.env.BETTER_AUTH_URL,
     secret: process.env.BETTER_AUTH_SECRET,
+    trustedOrigins: extraOrigins,
     database: drizzleAdapter(db, {
         provider: "sqlite",
         schema,
