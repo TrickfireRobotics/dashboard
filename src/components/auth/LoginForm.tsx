@@ -11,36 +11,84 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { signIn, signUp } from "@/lib/auth-client";
+import { emailOtp, signIn, signUp } from "@/lib/auth-client";
 
-const schema = z.object({
+const credentialsSchema = z.object({
     name: z.string().optional(),
     email: z.email("Enter a valid email"),
     password: z.string().min(1, "Password is required"),
 });
 
-type FormValues = z.infer<typeof schema>;
+const otpSchema = z.object({
+    otp: z.string().length(6, "Enter the 6-digit code"),
+});
+
+const forgotSchema = z.object({
+    email: z.email("Enter a valid email"),
+});
+
+const resetSchema = z.object({
+    otp: z.string().length(6, "Enter the 6-digit code"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+type CredentialsValues = z.infer<typeof credentialsSchema>;
+type OtpValues = z.infer<typeof otpSchema>;
+type ForgotValues = z.infer<typeof forgotSchema>;
+type ResetValues = z.infer<typeof resetSchema>;
+
+type Mode = "signin" | "register";
+type Step = "credentials" | "verify" | "forgot" | "reset";
+
+function ErrorList({ messages }: { messages: string[] }) {
+    if (!messages.length) return null;
+    return (
+        <div>
+            {messages.map((msg, i) => (
+                <p key={i} className="text-destructive text-sm">
+                    {msg}
+                </p>
+            ))}
+        </div>
+    );
+}
 
 export function LoginForm({ notice }: { notice?: string }) {
     const router = useRouter();
-    const [mode, setMode] = useState<"signin" | "register">("signin");
+    const [mode, setMode] = useState<Mode>("signin");
+    const [step, setStep] = useState<Step>("credentials");
+    const [pendingEmail, setPendingEmail] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [serverError, setServerError] = useState<string | null>(null);
 
-    const form = useForm<FormValues>({
-        resolver: zodResolver(schema),
+    // One form instance per step schema
+    const credForm = useForm<CredentialsValues>({
+        resolver: zodResolver(credentialsSchema),
         defaultValues: { name: "", email: "", password: "" },
     });
+    const otpForm = useForm<OtpValues>({
+        resolver: zodResolver(otpSchema),
+        defaultValues: { otp: "" },
+    });
+    const forgotForm = useForm<ForgotValues>({
+        resolver: zodResolver(forgotSchema),
+        defaultValues: { email: "" },
+    });
+    const resetForm = useForm<ResetValues>({
+        resolver: zodResolver(resetSchema),
+        defaultValues: { otp: "", password: "" },
+    });
 
-    function switchMode(next: "signin" | "register") {
+    function switchMode(next: Mode) {
         setMode(next);
+        setStep("credentials");
         setServerError(null);
-        form.reset({ name: "", email: "", password: "" });
+        credForm.reset({ name: "", email: "", password: "" });
     }
 
-    async function onSubmit(values: FormValues) {
+    async function onCredentialsSubmit(values: CredentialsValues) {
         if (mode === "register" && !values.name?.trim()) {
-            form.setError("name", { message: "Name is required" });
+            credForm.setError("name", { message: "Name is required" });
             return;
         }
 
@@ -56,8 +104,27 @@ export function LoginForm({ notice }: { notice?: string }) {
                         router.push("/dashboard");
                         router.refresh();
                     },
-                    onError: (ctx) => {
-                        setServerError(ctx.error.message || "Invalid email or password");
+                    onError: async (ctx) => {
+                        const msg = ctx.error.message || "Invalid email or password";
+                        if (
+                            msg.toLowerCase().includes("email") &&
+                            msg.toLowerCase().includes("verif")
+                        ) {
+                            setPendingEmail(values.email);
+                            const { error } = await emailOtp.sendVerificationOtp({
+                                email: values.email,
+                                type: "email-verification",
+                            });
+                            if (error) {
+                                setServerError(
+                                    "Failed to send verification email. Please try again."
+                                );
+                            } else {
+                                setStep("verify");
+                            }
+                        } else {
+                            setServerError(msg);
+                        }
                         setSubmitting(false);
                     },
                 }
@@ -66,10 +133,20 @@ export function LoginForm({ notice }: { notice?: string }) {
             await signUp.email(
                 { name: values.name!, email: values.email, password: values.password },
                 {
-                    onSuccess: () => {
-                        toast.success("Account created");
-                        router.push("/dashboard");
-                        router.refresh();
+                    onSuccess: async () => {
+                        setPendingEmail(values.email);
+                        const { error } = await emailOtp.sendVerificationOtp({
+                            email: values.email,
+                            type: "email-verification",
+                        });
+                        if (error) {
+                            setServerError(
+                                "Account created but failed to send verification email. Please try again."
+                            );
+                        } else {
+                            setStep("verify");
+                        }
+                        setSubmitting(false);
                     },
                     onError: (ctx) => {
                         setServerError(ctx.error.message || "Registration failed");
@@ -80,13 +157,67 @@ export function LoginForm({ notice }: { notice?: string }) {
         }
     }
 
-    const { errors } = form.formState;
-    const errorMessages = [
-        mode === "register" ? errors.name?.message : undefined,
-        errors.email?.message,
-        errors.password?.message,
-        serverError,
-    ].filter(Boolean) as string[];
+    async function onOtpSubmit(values: OtpValues) {
+        setSubmitting(true);
+        setServerError(null);
+
+        const { error } = await emailOtp.verifyEmail({
+            email: pendingEmail,
+            otp: values.otp,
+        });
+
+        if (error) {
+            setServerError(error.message || "Invalid or expired code");
+            setSubmitting(false);
+            return;
+        }
+
+        toast.success("Email verified — welcome!");
+        window.location.href = "/dashboard";
+    }
+
+    async function onForgotSubmit(values: ForgotValues) {
+        setSubmitting(true);
+        setServerError(null);
+
+        const { error } = await emailOtp.sendVerificationOtp({
+            email: values.email,
+            type: "forget-password",
+        });
+
+        if (error) {
+            setServerError(error.message || "Could not send reset code");
+            setSubmitting(false);
+            return;
+        }
+
+        setPendingEmail(values.email);
+        setStep("reset");
+        setSubmitting(false);
+    }
+
+    async function onResetSubmit(values: ResetValues) {
+        setSubmitting(true);
+        setServerError(null);
+
+        const { error } = await emailOtp.resetPassword({
+            email: pendingEmail,
+            otp: values.otp,
+            password: values.password,
+        });
+
+        if (error) {
+            setServerError(error.message || "Invalid or expired code");
+            setSubmitting(false);
+            return;
+        }
+
+        toast.success("Password reset — please sign in");
+        setStep("credentials");
+        setMode("signin");
+        resetForm.reset();
+        setSubmitting(false);
+    }
 
     return (
         <Card>
@@ -96,30 +227,227 @@ export function LoginForm({ notice }: { notice?: string }) {
                         {notice}
                     </p>
                 ) : null}
-                <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        <div className="space-y-4">
-                            {mode === "register" && (
+
+                {/* ── Credentials step ── */}
+                {step === "credentials" && (
+                    <Form {...credForm}>
+                        <form
+                            onSubmit={credForm.handleSubmit(onCredentialsSubmit)}
+                            className="space-y-4"
+                        >
+                            <div className="space-y-4">
+                                {mode === "register" && (
+                                    <FormField
+                                        control={credForm.control}
+                                        name="name"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Name</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="text"
+                                                        autoComplete="name"
+                                                        placeholder="Your name"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
                                 <FormField
-                                    control={form.control}
-                                    name="name"
+                                    control={credForm.control}
+                                    name="email"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Name</FormLabel>
+                                            <FormLabel>Email</FormLabel>
                                             <FormControl>
                                                 <Input
                                                     type="text"
-                                                    autoComplete="name"
-                                                    placeholder="Your name"
+                                                    inputMode="email"
+                                                    autoComplete="email"
+                                                    placeholder="your@email.com"
                                                     {...field}
                                                 />
                                             </FormControl>
                                         </FormItem>
                                     )}
                                 />
-                            )}
+                                <FormField
+                                    control={credForm.control}
+                                    name="password"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Password</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="password"
+                                                    autoComplete={
+                                                        mode === "signin"
+                                                            ? "current-password"
+                                                            : "new-password"
+                                                    }
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <ErrorList
+                                messages={
+                                    [
+                                        mode === "register"
+                                            ? credForm.formState.errors.name?.message
+                                            : undefined,
+                                        credForm.formState.errors.email?.message,
+                                        credForm.formState.errors.password?.message,
+                                        serverError,
+                                    ].filter(Boolean) as string[]
+                                }
+                            />
+                            <Button
+                                type="submit"
+                                className="w-full"
+                                style={
+                                    mode === "register"
+                                        ? {
+                                              backgroundColor: "var(--secondary)",
+                                              color: "var(--secondary-foreground)",
+                                          }
+                                        : undefined
+                                }
+                                disabled={submitting}
+                            >
+                                {submitting
+                                    ? mode === "signin"
+                                        ? "Signing in..."
+                                        : "Registering..."
+                                    : mode === "signin"
+                                      ? "Sign in"
+                                      : "Register"}
+                            </Button>
+                            <div className="flex items-center justify-between text-sm">
+                                <p className="text-muted-foreground">
+                                    {mode === "signin" ? (
+                                        <>
+                                            No account?{" "}
+                                            <button
+                                                type="button"
+                                                onClick={() => switchMode("register")}
+                                                className="text-secondary underline-offset-4 hover:underline"
+                                            >
+                                                Register
+                                            </button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            Have an account?{" "}
+                                            <button
+                                                type="button"
+                                                onClick={() => switchMode("signin")}
+                                                className="text-foreground underline-offset-4 hover:underline"
+                                            >
+                                                Sign in
+                                            </button>
+                                        </>
+                                    )}
+                                </p>
+                                {mode === "signin" && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setStep("forgot");
+                                            setServerError(null);
+                                        }}
+                                        className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                                    >
+                                        Forgot password?
+                                    </button>
+                                )}
+                            </div>
+                        </form>
+                    </Form>
+                )}
+
+                {/* ── Verify step ── */}
+                {step === "verify" && (
+                    <Form {...otpForm}>
+                        <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="space-y-4">
+                            <div className="space-y-1">
+                                <p className="text-foreground text-sm font-medium">
+                                    Check your email
+                                </p>
+                                <p className="text-muted-foreground text-sm">
+                                    We sent a 6-digit code to{" "}
+                                    <span className="text-foreground">{pendingEmail}</span>
+                                </p>
+                            </div>
                             <FormField
-                                control={form.control}
+                                control={otpForm.control}
+                                name="otp"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Verification code</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="text"
+                                                inputMode="numeric"
+                                                maxLength={6}
+                                                placeholder="000000"
+                                                className="text-center text-lg tracking-widest"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                    </FormItem>
+                                )}
+                            />
+                            <ErrorList
+                                messages={
+                                    [otpForm.formState.errors.otp?.message, serverError].filter(
+                                        Boolean
+                                    ) as string[]
+                                }
+                            />
+                            <Button type="submit" className="w-full" disabled={submitting}>
+                                {submitting ? "Verifying..." : "Verify email"}
+                            </Button>
+                            <p className="text-muted-foreground text-center text-sm">
+                                <button
+                                    type="button"
+                                    onClick={async () => {
+                                        await emailOtp.sendVerificationOtp({
+                                            email: pendingEmail,
+                                            type: "email-verification",
+                                        });
+                                        toast.info("Code resent");
+                                    }}
+                                    className="hover:text-foreground underline-offset-4 hover:underline"
+                                >
+                                    Resend code
+                                </button>
+                            </p>
+                        </form>
+                    </Form>
+                )}
+
+                {/* ── Forgot step ── */}
+                {step === "forgot" && (
+                    <Form {...forgotForm}>
+                        <form
+                            onSubmit={forgotForm.handleSubmit(onForgotSubmit)}
+                            className="space-y-4"
+                        >
+                            <div className="space-y-1">
+                                <p className="text-foreground text-sm font-medium">
+                                    Reset your password
+                                </p>
+                                <p className="text-muted-foreground text-sm">
+                                    Enter your email and we&apos;ll send a reset code.
+                                </p>
+                            </div>
+                            <FormField
+                                control={forgotForm.control}
                                 name="email"
                                 render={({ field }) => (
                                     <FormItem>
@@ -129,91 +457,120 @@ export function LoginForm({ notice }: { notice?: string }) {
                                                 type="text"
                                                 inputMode="email"
                                                 autoComplete="email"
-                                                placeholder="you@trickfirerobotics.com"
+                                                placeholder="your@email.com"
                                                 {...field}
                                             />
                                         </FormControl>
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={form.control}
-                                name="password"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Password</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                type="password"
-                                                autoComplete={
-                                                    mode === "signin"
-                                                        ? "current-password"
-                                                        : "new-password"
-                                                }
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                    </FormItem>
-                                )}
+                            <ErrorList
+                                messages={
+                                    [
+                                        forgotForm.formState.errors.email?.message,
+                                        serverError,
+                                    ].filter(Boolean) as string[]
+                                }
                             />
-                        </div>
-                        {errorMessages.length > 0 && (
-                            <div>
-                                {errorMessages.map((msg, i) => (
-                                    <p key={i} className="text-destructive text-sm">
-                                        {msg}
-                                    </p>
-                                ))}
-                            </div>
-                        )}
-                        <Button
-                            type="submit"
-                            className="w-full"
-                            style={
-                                mode === "register"
-                                    ? {
-                                          backgroundColor: "var(--secondary)",
-                                          color: "var(--secondary-foreground)",
-                                      }
-                                    : undefined
-                            }
-                            disabled={submitting}
+                            <Button type="submit" className="w-full" disabled={submitting}>
+                                {submitting ? "Sending..." : "Send reset code"}
+                            </Button>
+                            <p className="text-muted-foreground text-center text-sm">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setStep("credentials");
+                                        setServerError(null);
+                                    }}
+                                    className="hover:text-foreground underline-offset-4 hover:underline"
+                                >
+                                    Back to sign in
+                                </button>
+                            </p>
+                        </form>
+                    </Form>
+                )}
+
+                {/* ── Reset step ── */}
+                {step === "reset" && (
+                    <Form {...resetForm}>
+                        <form
+                            onSubmit={resetForm.handleSubmit(onResetSubmit)}
+                            className="space-y-4"
                         >
-                            {submitting
-                                ? mode === "signin"
-                                    ? "Signing in..."
-                                    : "Registering..."
-                                : mode === "signin"
-                                  ? "Sign in"
-                                  : "Register"}
-                        </Button>
-                        <p className="text-muted-foreground text-center text-sm">
-                            {mode === "signin" ? (
-                                <>
-                                    No account?{" "}
-                                    <button
-                                        type="button"
-                                        onClick={() => switchMode("register")}
-                                        className="text-secondary underline-offset-4 hover:underline"
-                                    >
-                                        Register
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    Already a member?{" "}
-                                    <button
-                                        type="button"
-                                        onClick={() => switchMode("signin")}
-                                        className="text-foreground underline-offset-4 hover:underline"
-                                    >
-                                        Sign in
-                                    </button>
-                                </>
-                            )}
-                        </p>
-                    </form>
-                </Form>
+                            <div className="space-y-1">
+                                <p className="text-foreground text-sm font-medium">
+                                    Enter your new password
+                                </p>
+                                <p className="text-muted-foreground text-sm">
+                                    Check <span className="text-foreground">{pendingEmail}</span>{" "}
+                                    for the 6-digit code.
+                                </p>
+                            </div>
+                            <div className="space-y-4">
+                                <FormField
+                                    control={resetForm.control}
+                                    name="otp"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Reset code</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    maxLength={6}
+                                                    placeholder="000000"
+                                                    className="text-center text-lg tracking-widest"
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={resetForm.control}
+                                    name="password"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>New password</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="password"
+                                                    autoComplete="new-password"
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+                            <ErrorList
+                                messages={
+                                    [
+                                        resetForm.formState.errors.otp?.message,
+                                        resetForm.formState.errors.password?.message,
+                                        serverError,
+                                    ].filter(Boolean) as string[]
+                                }
+                            />
+                            <Button type="submit" className="w-full" disabled={submitting}>
+                                {submitting ? "Resetting..." : "Reset password"}
+                            </Button>
+                            <p className="text-muted-foreground text-center text-sm">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setStep("credentials");
+                                        setServerError(null);
+                                    }}
+                                    className="hover:text-foreground underline-offset-4 hover:underline"
+                                >
+                                    Back to sign in
+                                </button>
+                            </p>
+                        </form>
+                    </Form>
+                )}
             </CardContent>
         </Card>
     );
