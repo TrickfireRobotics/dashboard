@@ -5,6 +5,7 @@ import {
     Gamepad2,
     KeyRound,
     LayoutDashboard,
+    Network,
     Package,
     Server,
     Shield,
@@ -33,6 +34,7 @@ const memberNav: NavItem[] = [
     { href: "/orders", label: "Orders", icon: Package },
     { href: "/api-keys", label: "API Keys", icon: KeyRound },
     { href: "/minecraft", label: "Minecraft", icon: Gamepad2 },
+    { href: "/headscale", label: "Network", icon: Network },
 ];
 
 const adminNav: NavItem[] = [
@@ -40,6 +42,7 @@ const adminNav: NavItem[] = [
     { href: "/admin/orders", label: "Order Queue", icon: ClipboardList },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/minecraft", label: "Whitelist", icon: Server },
+    { href: "/admin/headscale", label: "Network", icon: Network },
 ];
 
 const EXACT = new Set(["/dashboard", "/admin"]);

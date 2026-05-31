@@ -64,6 +64,19 @@ export const whitelistDirectAddSchema = z.object({
     adminNote: z.string().trim().max(500).optional(),
 });
 
+// Headscale join requests --------------------------------------------------
+
+export const joinRequestSchema = z.object({
+    deviceName: z.string().trim().min(1, "Device name is required").max(100),
+    machineKey: z.string().trim().max(200).optional(),
+    requestNote: z.string().trim().max(500).optional(),
+});
+
+export const joinRequestActionSchema = z.object({
+    action: z.enum(["approve", "reject"]),
+    adminNote: z.string().trim().max(500).optional(),
+});
+
 // Admin user management ----------------------------------------------------
 
 export const updateUserSchema = z

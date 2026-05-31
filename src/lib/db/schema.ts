@@ -8,6 +8,7 @@ const now = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
 
 export type OrderStatus = "pending" | "approved" | "rejected" | "ordered";
 export type WhitelistStatus = "pending" | "approved" | "rejected";
+export type JoinRequestStatus = "pending" | "approved" | "rejected";
 
 export const team = sqliteTable("team", {
     id: integer("id").primaryKey({ autoIncrement: true }),
@@ -66,6 +67,19 @@ export const minecraftWhitelist = sqliteTable("minecraft_whitelist", {
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
 });
 
+export const headscaleJoinRequest = sqliteTable("headscale_join_request", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    deviceName: text("device_name").notNull(),
+    machineKey: text("machine_key"),
+    requestNote: text("request_note"),
+    adminNote: text("admin_note"),
+    status: text("status").$type<JoinRequestStatus>().notNull().default("pending"),
+    reviewedBy: text("reviewed_by").references(() => user.id, { onDelete: "set null" }),
+    reviewedAt: integer("reviewed_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+});
+
 export const orderRelations = relations(order, ({ one }) => ({
     user: one(user, { fields: [order.userId], references: [user.id] }),
     team: one(team, { fields: [order.teamId], references: [team.id] }),
@@ -82,6 +96,17 @@ export const apiKeyRelations = relations(apiKey, ({ one }) => ({
 export const minecraftWhitelistRelations = relations(minecraftWhitelist, ({ one }) => ({
     user: one(user, {
         fields: [minecraftWhitelist.userId],
+        references: [user.id],
+    }),
+}));
+
+export const headscaleJoinRequestRelations = relations(headscaleJoinRequest, ({ one }) => ({
+    user: one(user, {
+        fields: [headscaleJoinRequest.userId],
+        references: [user.id],
+    }),
+    reviewer: one(user, {
+        fields: [headscaleJoinRequest.reviewedBy],
         references: [user.id],
     }),
 }));

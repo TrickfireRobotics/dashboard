@@ -44,6 +44,7 @@ export const config = {
         "/orders/:path*",
         "/api-keys/:path*",
         "/minecraft/:path*",
+        "/headscale/:path*",
         "/admin/:path*",
     ],
 };
