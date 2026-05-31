@@ -5,9 +5,7 @@ Production runs on the lab's **Jetson Xavier (ARM64)** at `https://dashboard.tri
 All steps below are run **on the Xavier** unless noted otherwise. The `better-sqlite3` native binary must be compiled on the device.
 
 > [!IMPORTANT]
-> The Xavier is ARM64. Any native dependency compiled on a dev machine (x86/ARM Mac) won't work here — always install and build directly on the device.
-
----
+> The Xavier is ARM64. Any native dependency compiled on a dev machine (x86/ARM Mac) won't work here - always install and build directly on the device.
 
 ## Table of Contents
 
@@ -28,10 +26,10 @@ All steps below are run **on the Xavier** unless noted otherwise. The `better-sq
 ## 1. Initial Setup
 
 ```bash
-# Confirm Node.js is installed — match the major version the app targets where possible
+# Confirm Node.js is installed, match the major version the app targets where possible
 node --version
 
-# Enable pnpm via corepack (no global install needed)
+# Enable pnpm via corepack
 corepack enable pnpm
 pnpm --version
 
@@ -39,8 +37,6 @@ pnpm --version
 sudo apt-get update
 sudo apt-get install -y build-essential python3
 ```
-
----
 
 ## 2. Get the Code
 
@@ -55,11 +51,9 @@ cd /opt/trickfire-dashboard/dashboard
 pnpm install --frozen-lockfile
 ```
 
----
-
 ## 3. Configure Environment
 
-1. Create `/opt/trickfire-dashboard/dashboard/.env.local` — use `.env.example` as the template.
+1. Create `/opt/trickfire-dashboard/dashboard/.env.local` - use `.env.example` as the template.
 2. See [Environment Variables in README.md](README.md#environment-variables) for descriptions of every key.
 3. Generate the auth secret:
 
@@ -70,8 +64,6 @@ pnpm install --frozen-lockfile
 > [!CAUTION]
 > Keep `.env.local` off `git`. The `BETTER_AUTH_SECRET` value lets anyone forge session tokens. If it's ever leaked, rotate it immediately and invalidate all sessions by changing the value.
 
----
-
 ## 4. Database: Migrate and Seed
 
 ```bash
@@ -80,17 +72,12 @@ mkdir -p /opt/trickfire-dashboard/db
 # Apply schema migrations
 pnpm exec drizzle-kit migrate
 
-# Seed the 6 teams and admin user
-# IMPORTANT: run via tsx, NOT node scripts/seed.ts
-# Node's --experimental-strip-types can't handle all TypeScript constructs;
-# tsx does a full transform reliably.
-pnpm exec tsx scripts/seed.ts
+# Seed the database
+pnpm db:seed
 ```
 
 > [!NOTE]
-> The seed is idempotent — safe to run again without creating duplicates. Teams use `ON CONFLICT DO NOTHING`; the admin account is only created if the email doesn't already exist, then forced to `role = admin, isActive = true`.
-
----
+> The seed is idempotent - safe to run again without creating duplicates. Teams use `ON CONFLICT DO NOTHING`; the admin account is only created if the email doesn't already exist, then forced to `role = admin, isActive = true`.
 
 ## 5. Build
 
@@ -111,9 +98,7 @@ cp -r public        .next/standalone/public
 The entrypoint is `.next/standalone/server.js`.
 
 > [!NOTE]
-> `better-sqlite3` is declared as `serverExternalPackages` in `next.config.ts`, so it loads from `node_modules` at runtime instead of being bundled. Keep `node_modules` present alongside the standalone output — the clone directory already has it.
-
----
+> `better-sqlite3` is declared as `serverExternalPackages` in `next.config.ts`, so it loads from `node_modules` at runtime instead of being bundled. Keep `node_modules` present alongside the standalone output - the clone directory already has it.
 
 ## 6. Run as a systemd Service
 
@@ -149,10 +134,8 @@ Enable and start:
 sudo systemctl daemon-reload
 sudo systemctl enable --now trickfire-dashboard
 sudo systemctl status trickfire-dashboard
-journalctl -u trickfire-dashboard -f        # tail logs
+journalctl -u trickfire-dashboard -f
 ```
-
----
 
 ## 7. Cloudflare Tunnel
 
@@ -185,8 +168,6 @@ sudo systemctl enable --now cloudflared
 
 > [!NOTE]
 > The service API endpoint (`POST /api/service/verify`, used by simulation Python scripts) is reachable through the same tunnel and is IP-rate-limited via `x-forwarded-for` / `cf-connecting-ip` headers injected by Cloudflare.
-
----
 
 ## 8. Headscale Setup
 
@@ -255,13 +236,13 @@ Headscale organises devices into users (called namespaces in older versions). Cr
 
 ```bash
 headscale users create trickfire
-headscale users list                 # verify
+headscale users list
 ```
 
 ### Generate an API Key for the Dashboard
 
 ```bash
-# Creates a key expiring in 1 year — adjust as needed
+# Creates a key expiring in 1 year
 headscale apikeys create --expiration 8760h
 ```
 
@@ -279,19 +260,11 @@ headscale apikeys create --expiration 8760h
 
 Devices use the standard Tailscale client pointed at your Headscale server.
 
-**macOS / Linux:**
-
 ```bash
 sudo tailscale up --login-server https://headscale.trickfirerobotics.com
 ```
 
-**Windows** (admin PowerShell):
-
-```powershell
-tailscale up --login-server https://headscale.trickfirerobotics.com
-```
-
-This prints a registration URL — copy it.
+This prints a registration URL - copy it.
 
 ### Approve the Device on the Server
 
@@ -300,7 +273,7 @@ After a device runs `tailscale up`, it appears as a pending registration:
 ```bash
 headscale nodes list
 
-# Approve the node — machine key is printed by tailscale up on the client
+# Approve the node - machine key is printed by tailscale up on the client
 headscale nodes register --user trickfire --key <mkey:...>
 ```
 
@@ -335,9 +308,9 @@ headscale nodes list
 | View logs         | `journalctl -u headscale -f`                 |
 | Reload config     | `systemctl restart headscale`                |
 
-### Expose Headscale Publicly (optional)
+### Expose Headscale Publicly
 
-If members need to connect from outside the lab, add a second ingress rule in `~/.cloudflared/config.yml`:
+To make the headscale network work outside of the lab, add a second ingress rule in `~/.cloudflared/config.yml`:
 
 ```yaml
 ingress:
@@ -353,8 +326,6 @@ Members connecting from home then use:
 ```bash
 tailscale up --login-server https://headscale.trickfirerobotics.com
 ```
-
----
 
 ## Updating an Existing Deployment
 
@@ -376,8 +347,6 @@ sudo systemctl restart trickfire-dashboard
 > [!TIP]
 > Check `journalctl -u trickfire-dashboard -f` immediately after restarting to catch any startup errors before declaring the deploy successful.
 
----
-
 ## Backups
 
 The entire application state is the SQLite file. Back it up with the WAL checkpointed to avoid backing up a partial transaction:
@@ -387,9 +356,7 @@ sqlite3 /opt/trickfire-dashboard/db/dashboard.db \
   ".backup '/opt/trickfire-dashboard/backups/dashboard-$(date +%F).db'"
 ```
 
-Automate with a cron job or systemd timer. The backup file is a standalone SQLite database — no restore tooling needed, just copy it back and restart the service.
-
----
+Automate with a cron job or systemd timer. The backup file is a standalone SQLite database - no restore tooling needed, just copy it back and restart the service.
 
 ## Troubleshooting
 
@@ -428,7 +395,7 @@ sudo systemctl restart trickfire-dashboard
 <details>
 <summary><strong>Minecraft card shows "offline"</strong></summary>
 
-Verify that `MINECRAFT_SERVER_HOST` and `MINECRAFT_SERVER_PORT` are set correctly in `.env.local`, and that the Xavier can reach the Minecraft server on the LAN. The status check fails gracefully to "offline" by design — it's not a crash, just an unreachable host.
+Verify that `MINECRAFT_SERVER_HOST` and `MINECRAFT_SERVER_PORT` are set correctly in `.env.local`, and that the Xavier can reach the Minecraft server on the LAN. The status check fails gracefully to "offline" by design - it's not a crash, just an unreachable host.
 
 </details>
 
@@ -436,14 +403,14 @@ Verify that `MINECRAFT_SERVER_HOST` and `MINECRAFT_SERVER_PORT` are set correctl
 <summary><strong>Network tab shows an error / Headscale unreachable</strong></summary>
 
 1. Confirm Headscale is running: `systemctl status headscale`
-2. Check `HEADSCALE_URL` in `.env.local` — it must match the `listen_addr` in Headscale's config.
+2. Check `HEADSCALE_URL` in `.env.local` - it must match the `listen_addr` in Headscale's config.
 3. Check the API key hasn't expired: `headscale apikeys list`
 4. Look at Headscale logs: `journalctl -u headscale -f`
 
 </details>
 
 <details>
-<summary><strong>Service fails to start — checking logs</strong></summary>
+<summary><strong>Service fails to start - checking logs</strong></summary>
 
 ```bash
 journalctl -u trickfire-dashboard -n 100 --no-pager

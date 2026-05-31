@@ -2,31 +2,27 @@
 
 Internal portal for [TrickFire Robotics](https://trickfirerobotics.com). Members submit part orders and Minecraft whitelist requests; admins review and action them. A service API used by simulation scripts is also exposed through the same server.
 
-**Production:** `https://dashboard.trickfirerobotics.com` — runs on the lab's Jetson Xavier (ARM64) behind a Cloudflare Tunnel.
-
----
+**Production:** `https://dashboard.trickfirerobotics.com` - runs a server in our lab room behind a Cloudflare Tunnel.
 
 ## Tech Stack
 
-| Layer           | Choice                                                                       |
-| --------------- | ---------------------------------------------------------------------------- |
-| Framework       | Next.js 15 — App Router, React Server Components, `output: "standalone"`     |
-| Database        | SQLite via [Drizzle ORM](https://orm.drizzle.team) + `better-sqlite3`        |
-| Auth            | [better-auth](https://www.better-auth.com) — email/password, session cookies |
-| UI              | Tailwind CSS v4, [shadcn/ui](https://ui.shadcn.com), Lucide icons            |
-| Email           | [Resend](https://resend.com)                                                 |
-| Network         | [Headscale](https://headscale.net) — self-hosted Tailscale control server    |
-| Package manager | pnpm                                                                         |
-
----
+| Layer           | Choice                                                                                                               |
+| --------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Framework       | [Next.js 15](https://nextjs.org/) - App Router, React Server Components, `output: "standalone"`                      |
+| Database        | SQLite via [Drizzle ORM](https://orm.drizzle.team) + [`better-sqlite3`](https://github.com/WiseLibs/better-sqlite3)  |
+| Auth            | [better-auth](https://www.better-auth.com) - email/password, session cookies                                         |
+| UI              | [Tailwind CSS v4](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com), [Lucide icons](https://lucide.dev/) |
+| Email           | [Resend](https://resend.com)                                                                                         |
+| Network         | [Headscale](https://headscale.net) self-hosted Tailscale control server                                              |
+| Package manager | [`pnpm`](https://pnpm.io/)                                                                                           |
 
 ## Local Development
 
 ### Prerequisites
 
 - Node.js ≥ 20
-- pnpm (`corepack enable pnpm`)
-- A C++ build toolchain — only needed if `better-sqlite3` has no prebuilt for your platform (`build-essential` + `python3` on Debian/Ubuntu)
+- `pnpm` package manager
+- A C++ build toolchain (only if `better-sqlite3` has no prebuilt for your platform)
 
 ### 1. Install dependencies
 
@@ -42,15 +38,15 @@ cp .env.example .env.local
 
 Open `.env.local` and fill in values. For local dev you only strictly need `BETTER_AUTH_SECRET`; everything else has a workable default or degrades gracefully. See [Environment Variables](#environment-variables) for the full reference.
 
-### 3. Initialise the database
+### 3. Initialize the database
 
 ```bash
 pnpm db:migrate   # apply schema migrations
-pnpm db:seed      # create the 6 teams + admin account
+pnpm db:seed      # seed base database
 ```
 
 > [!NOTE]
-> The seed is safe to run multiple times — teams use `ON CONFLICT DO NOTHING` and the admin account is only created if the email doesn't already exist.
+> The seed is safe to run multiple times - teams use `ON CONFLICT DO NOTHING` and the admin account is only created if the email doesn't already exist.
 
 ### 4. Start the dev server
 
@@ -60,14 +56,12 @@ pnpm dev
 
 Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*` in your `.env.local`.
 
----
-
 ## Environment Variables
 
 | Variable                | Description                                                                                |
 | ----------------------- | ------------------------------------------------------------------------------------------ |
 | `NEXT_PUBLIC_APP_URL`   | Public origin of the app, e.g. `http://localhost:3000`                                     |
-| `BETTER_AUTH_SECRET`    | Random secret for signing sessions — generate with `openssl rand -hex 32`                  |
+| `BETTER_AUTH_SECRET`    | Random secret for signing sessions - generate with `openssl rand -hex 32`                  |
 | `BETTER_AUTH_URL`       | Same value as `NEXT_PUBLIC_APP_URL`                                                        |
 | `DATABASE_PATH`         | Path to the SQLite file, e.g. `db/dashboard.db`                                            |
 | `SEED_ADMIN_EMAIL`      | Email for the seeded admin account                                                         |
@@ -81,19 +75,17 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 | `HEADSCALE_API_KEY`     | API key generated by Headscale                                                             |
 
 > [!TIP]
-> `MINECRAFT_SERVER_HOST`, `RESEND_API_KEY`, and `HEADSCALE_*` are optional for local dev. The app handles unreachable services gracefully — the Minecraft card shows "offline", email features are skipped, and the Network tab shows an error state.
+> `MINECRAFT_SERVER_HOST`, `RESEND_API_KEY`, and `HEADSCALE_*` are optional for local dev. The app handles unreachable services gracefully - the Minecraft card shows "offline", email features are skipped, and the Network tab shows an error state.
 
 > [!CAUTION]
-> Never commit `.env.local` or any file containing `BETTER_AUTH_SECRET`. It must stay off `git` — anyone who has it can forge session tokens.
-
----
+> Never commit `.env.local` or any file containing `BETTER_AUTH_SECRET`. It must stay off `git` - anyone who has it can forge session tokens.
 
 ## Project Structure
 
 ```
 dashboard/
 ├── src/
-│   ├── app/                    # Next.js App Router — pages and API routes
+│   ├── app/                    # Next.js App Router - pages and API routes
 │   │   ├── (auth)/             # Login / register pages (unauthenticated layout)
 │   │   ├── (dashboard)/        # Authenticated dashboard pages + shared layout
 │   │   │   ├── layout.tsx      # Auth gate + sidebar/topnav shell
@@ -111,35 +103,33 @@ dashboard/
 │   └── lib/
 │       ├── db/
 │       │   ├── schema.ts       # Application tables (edit this for schema changes)
-│       │   └── auth-schema.ts  # better-auth managed tables — do not edit
+│       │   └── auth-schema.ts  # better-auth managed tables - do not edit
 │       ├── auth.ts             # better-auth server configuration
 │       └── auth-client.ts      # better-auth browser client
-├── drizzle/                    # Auto-generated migration files — do not edit by hand
+├── drizzle/                    # Auto-generated migration files - do not edit by hand
 ├── scripts/
 │   └── seed.ts                 # Database seed (teams + admin)
 └── public/                     # Static assets served as-is
 ```
 
 > [!CAUTION]
-> `src/lib/db/auth-schema.ts` is owned by better-auth. Do **not** edit it directly — your changes will be overwritten the next time better-auth regenerates it. To customise auth-related columns, go through `src/lib/auth.ts`.
-
----
+> `src/lib/db/auth-schema.ts` is owned by better-auth. Do **not** edit it directly - your changes will be overwritten the next time better-auth regenerates it. To customize auth-related columns, go through `src/lib/auth.ts`.
 
 ## Database
 
-The app uses a **single SQLite file** on disk. All queries go through [Drizzle ORM](https://orm.drizzle.team) — there is no separate database server to manage.
+The app uses a **single SQLite file** on disk. All queries go through [Drizzle ORM](https://orm.drizzle.team) - there is no separate database server to manage.
 
 ### Schema overview
 
 | Table                    | Description                                                                                                                     |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
 | `user`                   | Registered members. `role` is `"admin"` or `"member"`. `isActive = false` blocks dashboard access without deleting the account. |
-| `session`                | Active auth sessions — managed by better-auth, don't touch.                                                                     |
-| `account`                | Auth provider records — managed by better-auth, don't touch.                                                                    |
-| `verification`           | Email verification tokens — managed by better-auth, don't touch.                                                                |
+| `session`                | Active auth sessions - managed by better-auth, don't touch.                                                                     |
+| `account`                | Auth provider records - managed by better-auth, don't touch.                                                                    |
+| `verification`           | Email verification tokens - managed by better-auth, don't touch.                                                                |
 | `team`                   | The 6 robot sub-teams. Seeded once; not user-editable through the UI.                                                           |
 | `orders`                 | Part order requests. Status flows: `pending → approved / rejected → ordered`.                                                   |
-| `api_key`                | Hashed service API keys issued to members. Only the prefix and hash are stored — the raw key is shown once on creation.         |
+| `api_key`                | Hashed service API keys issued to members. Only the prefix and hash are stored - the raw key is shown once on creation.         |
 | `minecraft_whitelist`    | Minecraft username whitelist requests. `addedDirectly` marks entries added by admins without a member request.                  |
 | `headscale_join_request` | Requests to join the VPN. Approved requests still require manual action in Headscale CLI.                                       |
 
@@ -177,8 +167,6 @@ pnpm db:migrate
 > [!WARNING]
 > Never edit files inside `drizzle/` after they have been committed. Drizzle checksums each file and will refuse to run migrations if it detects manual edits.
 
----
-
 ## Scripts
 
 | Command             | Description                                            |
@@ -193,13 +181,9 @@ pnpm db:migrate
 | `pnpm db:migrate`   | Apply all pending migrations                           |
 | `pnpm db:seed`      | Seed the 6 teams + admin user (idempotent)             |
 
----
-
 ## Deployment
 
-See **[DEPLOY.md](DEPLOY.md)** for full production setup — Jetson Xavier (ARM64), systemd service, Cloudflare Tunnel, and Headscale configuration.
-
----
+See **[DEPLOY.md](DEPLOY.md)** for full production setup - Jetson Xavier (ARM64), systemd service, Cloudflare Tunnel, and Headscale configuration.
 
 ## Contributing
 
