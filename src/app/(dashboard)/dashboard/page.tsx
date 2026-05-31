@@ -45,17 +45,11 @@ export default async function DashboardHome() {
     let adminStats: { label: string; value: number; href: string }[] = [];
     if (isAdmin) {
         const pendingOrders =
-            db
-                .select({ value: count() })
-                .from(order)
-                .where(eq(order.status, "pending"))
-                .get()?.value ?? 0;
+            db.select({ value: count() }).from(order).where(eq(order.status, "pending")).get()
+                ?.value ?? 0;
         const activeMembers =
-            db
-                .select({ value: count() })
-                .from(user)
-                .where(eq(user.isActive, true))
-                .get()?.value ?? 0;
+            db.select({ value: count() }).from(user).where(eq(user.isActive, true)).get()?.value ??
+            0;
         const openWhitelist =
             db
                 .select({ value: count() })
@@ -109,7 +103,9 @@ export default async function DashboardHome() {
                 <div className="space-y-4">
                     <div>
                         <h2 className="text-xl font-medium">Admin Overview</h2>
-                        <p className="text-muted-foreground text-sm">Club-wide stats at a glance.</p>
+                        <p className="text-muted-foreground text-sm">
+                            Club-wide stats at a glance.
+                        </p>
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         {adminStats.map((s) => (

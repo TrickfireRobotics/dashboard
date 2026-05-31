@@ -18,11 +18,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="flex min-h-screen">
             <Sidebar isAdmin={isAdmin} name={session.user.name} email={session.user.email} />
             <div className="flex min-w-0 flex-1 flex-col">
-                <TopNav
-                    name={session.user.name}
-                    email={session.user.email}
-                    role={session.user.role ?? "member"}
-                />
+                <TopNav />
                 <main className="flex-1 p-6">{children}</main>
             </div>
         </div>
