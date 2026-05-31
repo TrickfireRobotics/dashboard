@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 import { emailOtp, signIn, signUp } from "@/lib/auth-client";
 
 // Allow bare usernames (e.g. "admin") — the form appends @admin.local before
@@ -22,7 +23,32 @@ const credentialsSchema = z.object({
     name: z.string().optional(),
     email: z.string().min(1, "Enter your email or username"),
     password: z.string().min(1, "Password is required"),
+    confirmPassword: z.string().optional(),
 });
+
+const PASSWORD_RULES = [
+    { label: "8+ characters",       test: (p: string) => p.length >= 8 },
+    { label: "Uppercase letter",    test: (p: string) => /[A-Z]/.test(p) },
+    { label: "Lowercase letter",    test: (p: string) => /[a-z]/.test(p) },
+    { label: "Number",              test: (p: string) => /[0-9]/.test(p) },
+    { label: "Special character",   test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+] as const;
+
+function PasswordChecklist({ password }: { password: string }) {
+    return (
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1 pt-1">
+            {PASSWORD_RULES.map(({ label, test }) => {
+                const met = password.length > 0 && test(password);
+                return (
+                    <div key={label} className={cn("flex items-center gap-1.5 text-xs transition-colors", met ? "text-primary" : "text-muted-foreground")}>
+                        <div className={cn("size-1.5 rounded-full shrink-0 transition-colors", met ? "bg-primary" : "bg-muted-foreground/40")} />
+                        {label}
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
 
 const otpSchema = z.object({
     otp: z.string().length(6, "Enter the 6-digit code"),
@@ -69,8 +95,9 @@ export function LoginForm({ notice }: { notice?: string }) {
     // One form instance per step schema
     const credForm = useForm<CredentialsValues>({
         resolver: zodResolver(credentialsSchema),
-        defaultValues: { name: "", email: "", password: "" },
+        defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
     });
+    const watchedPassword = credForm.watch("password");
     const otpForm = useForm<OtpValues>({
         resolver: zodResolver(otpSchema),
         defaultValues: { otp: "" },
@@ -88,7 +115,7 @@ export function LoginForm({ notice }: { notice?: string }) {
         setMode(next);
         setStep("credentials");
         setServerError(null);
-        credForm.reset({ name: "", email: "", password: "" });
+        credForm.reset({ name: "", email: "", password: "", confirmPassword: "" });
     }
 
     async function onCredentialsSubmit(values: CredentialsValues) {
@@ -99,6 +126,17 @@ export function LoginForm({ notice }: { notice?: string }) {
         if (mode === "register" && !z.email().safeParse(values.email).success) {
             credForm.setError("email", { message: "Enter a valid email" });
             return;
+        }
+        if (mode === "register") {
+            const p = values.password;
+            if (p.length < 8 || !/[A-Z]/.test(p) || !/[a-z]/.test(p) || !/[0-9]/.test(p) || !/[^A-Za-z0-9]/.test(p)) {
+                credForm.setError("password", { message: "Password does not meet all requirements" });
+                return;
+            }
+            if (values.password !== values.confirmPassword) {
+                credForm.setError("confirmPassword", { message: "Passwords do not match" });
+                return;
+            }
         }
 
         setSubmitting(true);
@@ -304,7 +342,29 @@ export function LoginForm({ notice }: { notice?: string }) {
                                         </FormItem>
                                     )}
                                 />
+                                {mode === "register" && (
+                                    <FormField
+                                        control={credForm.control}
+                                        name="confirmPassword"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Confirm password</FormLabel>
+                                                <FormControl>
+                                                    <Input
+                                                        type="password"
+                                                        autoComplete="new-password"
+                                                        {...field}
+                                                        value={field.value ?? ""}
+                                                    />
+                                                </FormControl>
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
                             </div>
+                            {mode === "register" && (
+                                <PasswordChecklist password={watchedPassword ?? ""} />
+                            )}
                             <ErrorList
                                 messages={
                                     [
@@ -313,6 +373,9 @@ export function LoginForm({ notice }: { notice?: string }) {
                                             : undefined,
                                         credForm.formState.errors.email?.message,
                                         credForm.formState.errors.password?.message,
+                                        mode === "register"
+                                            ? credForm.formState.errors.confirmPassword?.message
+                                            : undefined,
                                         serverError,
                                     ].filter(Boolean) as string[]
                                 }
