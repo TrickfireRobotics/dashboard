@@ -13,9 +13,14 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { Input } from "@/components/ui/input";
 import { emailOtp, signIn, signUp } from "@/lib/auth-client";
 
+// Allow bare usernames (e.g. "admin") — the form appends @admin.local before
+// sending to Better Auth so the server's email validator accepts it.
+const toAuthEmail = (value: string) =>
+    value.includes("@") ? value : `${value}@admin.local`;
+
 const credentialsSchema = z.object({
     name: z.string().optional(),
-    email: z.email("Enter a valid email"),
+    email: z.string().min(1, "Enter your email or username"),
     password: z.string().min(1, "Password is required"),
 });
 
@@ -91,13 +96,19 @@ export function LoginForm({ notice }: { notice?: string }) {
             credForm.setError("name", { message: "Name is required" });
             return;
         }
+        if (mode === "register" && !z.email().safeParse(values.email).success) {
+            credForm.setError("email", { message: "Enter a valid email" });
+            return;
+        }
 
         setSubmitting(true);
         setServerError(null);
 
+        const authEmail = toAuthEmail(values.email);
+
         if (mode === "signin") {
             await signIn.email(
-                { email: values.email, password: values.password },
+                { email: authEmail, password: values.password },
                 {
                     onSuccess: () => {
                         toast.success("Welcome back");
@@ -110,9 +121,9 @@ export function LoginForm({ notice }: { notice?: string }) {
                             msg.toLowerCase().includes("email") &&
                             msg.toLowerCase().includes("verif")
                         ) {
-                            setPendingEmail(values.email);
+                            setPendingEmail(authEmail);
                             const { error } = await emailOtp.sendVerificationOtp({
-                                email: values.email,
+                                email: authEmail,
                                 type: "email-verification",
                             });
                             if (error) {
@@ -131,12 +142,12 @@ export function LoginForm({ notice }: { notice?: string }) {
             );
         } else {
             await signUp.email(
-                { name: values.name!, email: values.email, password: values.password },
+                { name: values.name!, email: authEmail, password: values.password },
                 {
                     onSuccess: async () => {
-                        setPendingEmail(values.email);
+                        setPendingEmail(authEmail);
                         const { error } = await emailOtp.sendVerificationOtp({
-                            email: values.email,
+                            email: authEmail,
                             type: "email-verification",
                         });
                         if (error) {
@@ -266,7 +277,7 @@ export function LoginForm({ notice }: { notice?: string }) {
                                                     type="text"
                                                     inputMode="email"
                                                     autoComplete="email"
-                                                    placeholder="your@email.com"
+                                                    placeholder="your@email.com or username"
                                                     {...field}
                                                 />
                                             </FormControl>
