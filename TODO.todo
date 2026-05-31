@@ -1,0 +1,22 @@
+Order Que:
+    - Talk to Parik about what should the end goal of the order be (document, just an item to approve etc.)
+    - Add sorting to the Admin order que list (sort by date, status, etc.)
+    - Add a filter to the Admin order que list (filter by date, status, etc.)
+    - Add a search function to the Admin order que list (search by customer name, order number, etc.)
+
+API Key page:
+    - Think about the implementation
+    - Maybe add a admin page to add secrets and members can request access to specific ones if they need them?
+
+Minecraft Tab:
+    - Make the info widget better, make it look good
+    - Add online player list
+    - Add something fun, Hayden wants a leaderboard
+
+Dashboard:
+    - Remove the admin overview, add the info from there into the dashboard (only if admin)
+
+Headscale:
+    - Make a headscale network tab to see if network active
+    - Think about implementation, how should this server manage it
+    - Add a tailscale styled dashboard
