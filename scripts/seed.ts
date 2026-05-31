@@ -32,8 +32,6 @@ async function main() {
     console.log(`Seeded ${TEAMS.length} teams.`);
 
     const rawEmail = process.env.SEED_ADMIN_EMAIL;
-    // Allow bare usernames like "admin" — store as "admin@admin.local" so
-    // Better Auth's email validator accepts it while keeping sign-in simple.
     const email = rawEmail?.includes("@") ? rawEmail : `${rawEmail}@admin.local`;
     const password = process.env.SEED_ADMIN_PASSWORD;
     const name = process.env.SEED_ADMIN_NAME ?? "TrickFire Admin";

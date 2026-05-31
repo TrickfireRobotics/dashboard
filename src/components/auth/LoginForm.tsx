@@ -14,10 +14,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { emailOtp, signIn, signUp } from "@/lib/auth-client";
 
-// Allow bare usernames (e.g. "admin") — the form appends @admin.local before
-// sending to Better Auth so the server's email validator accepts it.
-const toAuthEmail = (value: string) =>
-    value.includes("@") ? value : `${value}@admin.local`;
+const toAuthEmail = (value: string) => (value.includes("@") ? value : `${value}@admin.local`);
 
 const credentialsSchema = z.object({
     name: z.string().optional(),
@@ -27,11 +24,11 @@ const credentialsSchema = z.object({
 });
 
 const PASSWORD_RULES = [
-    { label: "8+ characters",       test: (p: string) => p.length >= 8 },
-    { label: "Uppercase letter",    test: (p: string) => /[A-Z]/.test(p) },
-    { label: "Lowercase letter",    test: (p: string) => /[a-z]/.test(p) },
-    { label: "Number",              test: (p: string) => /[0-9]/.test(p) },
-    { label: "Special character",   test: (p: string) => /[^A-Za-z0-9]/.test(p) },
+    { label: "8+ characters", test: (p: string) => p.length >= 8 },
+    { label: "Uppercase letter", test: (p: string) => /[A-Z]/.test(p) },
+    { label: "Lowercase letter", test: (p: string) => /[a-z]/.test(p) },
+    { label: "Number", test: (p: string) => /[0-9]/.test(p) },
+    { label: "Special character", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
 ] as const;
 
 function PasswordChecklist({ password }: { password: string }) {
@@ -40,8 +37,19 @@ function PasswordChecklist({ password }: { password: string }) {
             {PASSWORD_RULES.map(({ label, test }) => {
                 const met = password.length > 0 && test(password);
                 return (
-                    <div key={label} className={cn("flex items-center gap-1.5 text-xs transition-colors", met ? "text-primary" : "text-muted-foreground")}>
-                        <div className={cn("size-1.5 rounded-full shrink-0 transition-colors", met ? "bg-primary" : "bg-muted-foreground/40")} />
+                    <div
+                        key={label}
+                        className={cn(
+                            "flex items-center gap-1.5 text-xs transition-colors",
+                            met ? "text-primary" : "text-muted-foreground"
+                        )}
+                    >
+                        <div
+                            className={cn(
+                                "size-1.5 shrink-0 rounded-full transition-colors",
+                                met ? "bg-primary" : "bg-muted-foreground/40"
+                            )}
+                        />
                         {label}
                     </div>
                 );
@@ -129,8 +137,16 @@ export function LoginForm({ notice }: { notice?: string }) {
         }
         if (mode === "register") {
             const p = values.password;
-            if (p.length < 8 || !/[A-Z]/.test(p) || !/[a-z]/.test(p) || !/[0-9]/.test(p) || !/[^A-Za-z0-9]/.test(p)) {
-                credForm.setError("password", { message: "Password does not meet all requirements" });
+            if (
+                p.length < 8 ||
+                !/[A-Z]/.test(p) ||
+                !/[a-z]/.test(p) ||
+                !/[0-9]/.test(p) ||
+                !/[^A-Za-z0-9]/.test(p)
+            ) {
+                credForm.setError("password", {
+                    message: "Password does not meet all requirements",
+                });
                 return;
             }
             if (values.password !== values.confirmPassword) {
@@ -221,7 +237,7 @@ export function LoginForm({ notice }: { notice?: string }) {
             return;
         }
 
-        toast.success("Email verified — welcome!");
+        toast.success("Email verified - welcome!");
         window.location.href = "/dashboard";
     }
 
@@ -261,7 +277,7 @@ export function LoginForm({ notice }: { notice?: string }) {
             return;
         }
 
-        toast.success("Password reset — please sign in");
+        toast.success("Password reset - please sign in");
         setStep("credentials");
         setMode("signin");
         resetForm.reset();
