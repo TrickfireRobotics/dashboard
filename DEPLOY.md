@@ -131,9 +131,9 @@ tunnel: <tunnel-uuid>
 credentials-file: /home/trickfire/.cloudflared/<tunnel-uuid>.json
 
 ingress:
-  - hostname: dashboard.trickfirerobotics.com
-    service: http://127.0.0.1:3000
-  - service: http_status:404
+    - hostname: dashboard.trickfirerobotics.com
+      service: http://127.0.0.1:3000
+    - service: http_status:404
 ```
 
 Route DNS and run the tunnel as a service:

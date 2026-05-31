@@ -6,47 +6,44 @@ import { auth } from "@/lib/auth";
 // to enforce the deactivated-user check on every protected request.
 export const runtime = "nodejs";
 
-const SESSION_COOKIES = [
-  "better-auth.session_token",
-  "__Secure-better-auth.session_token",
-];
+const SESSION_COOKIES = ["better-auth.session_token", "__Secure-better-auth.session_token"];
 
 function redirectToLogin(req: NextRequest, deactivated = false) {
-  const url = new URL("/login", req.url);
-  if (deactivated) {
-    url.searchParams.set("deactivated", "1");
-  }
-  const res = NextResponse.redirect(url);
-  if (deactivated) {
-    for (const name of SESSION_COOKIES) {
-      res.cookies.delete(name);
+    const url = new URL("/login", req.url);
+    if (deactivated) {
+        url.searchParams.set("deactivated", "1");
     }
-  }
-  return res;
+    const res = NextResponse.redirect(url);
+    if (deactivated) {
+        for (const name of SESSION_COOKIES) {
+            res.cookies.delete(name);
+        }
+    }
+    return res;
 }
 
 export async function middleware(req: NextRequest) {
-  const session = await auth.api.getSession({ headers: req.headers });
+    const session = await auth.api.getSession({ headers: req.headers });
 
-  if (!session?.user) {
-    return redirectToLogin(req);
-  }
+    if (!session?.user) {
+        return redirectToLogin(req);
+    }
 
-  // `isActive` is fetched fresh from the DB by getSession, so a member
-  // deactivated mid-session is caught here on their next request.
-  if (session.user.isActive === false) {
-    return redirectToLogin(req, true);
-  }
+    // `isActive` is fetched fresh from the DB by getSession, so a member
+    // deactivated mid-session is caught here on their next request.
+    if (session.user.isActive === false) {
+        return redirectToLogin(req, true);
+    }
 
-  return NextResponse.next();
+    return NextResponse.next();
 }
 
 export const config = {
-  matcher: [
-    "/dashboard/:path*",
-    "/orders/:path*",
-    "/api-keys/:path*",
-    "/minecraft/:path*",
-    "/admin/:path*",
-  ],
+    matcher: [
+        "/dashboard/:path*",
+        "/orders/:path*",
+        "/api-keys/:path*",
+        "/minecraft/:path*",
+        "/admin/:path*",
+    ],
 };
