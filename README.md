@@ -24,13 +24,13 @@ Internal portal for [TrickFire Robotics](https://trickfirerobotics.com). Members
 - `pnpm` package manager
 - A C++ build toolchain (only if `better-sqlite3` has no prebuilt for your platform)
 
-### 1. Install dependencies
+#### 1. Install dependencies
 
 ```bash
 pnpm install
 ```
 
-### 2. Configure environment
+#### 2. Configure environment
 
 ```bash
 cp .env.example .env.local
@@ -38,7 +38,7 @@ cp .env.example .env.local
 
 Open `.env.local` and fill in values. For local dev you only strictly need `BETTER_AUTH_SECRET`; everything else has a workable default or degrades gracefully. See [Environment Variables](#environment-variables) for the full reference.
 
-### 3. Initialize the database
+#### 3. Initialize the database
 
 ```bash
 pnpm db:migrate   # apply schema migrations
@@ -48,7 +48,7 @@ pnpm db:seed      # seed base database
 > [!NOTE]
 > The seed is safe to run multiple times - teams use `ON CONFLICT DO NOTHING` and the admin account is only created if the email doesn't already exist.
 
-### 4. Start the dev server
+#### 4. Start the dev server
 
 ```bash
 pnpm dev
