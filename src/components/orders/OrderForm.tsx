@@ -114,7 +114,7 @@ export function OrderForm({ teams }: { teams: Team[] }) {
                         <FormItem>
                             <FormLabel>Item name</FormLabel>
                             <FormControl>
-                                <Input placeholder="e.g. NEMA 17 stepper motor" {...field} />
+                                <Input placeholder="e.g. Amazing part 17" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>

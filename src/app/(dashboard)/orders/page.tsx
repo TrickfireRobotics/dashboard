@@ -38,7 +38,9 @@ export default async function OrdersPage() {
                         Your submitted parts orders and their review status.
                     </p>
                 </div>
-                <Button render={<Link href="/orders/new" />}>Order a part</Button>
+                <Button nativeButton={false} render={<Link href="/orders/new" />}>
+                    Order a part
+                </Button>
             </div>
 
             <OrderTable orders={rows} />

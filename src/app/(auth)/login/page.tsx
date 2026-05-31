@@ -30,7 +30,6 @@ export default async function LoginPage({
                         className="h-35 w-auto object-contain"
                         priority
                     />
-                    <p className="text-muted-foreground text-sm">Club Management Portal</p>
                 </div>
                 <LoginForm notice={notice} />
             </div>
