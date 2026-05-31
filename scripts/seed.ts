@@ -7,7 +7,18 @@ try {
     // No .env.local - rely on the ambient environment.
 }
 
-const TEAMS = ["Mechanical", "Electrical", "Software", "Systems", "Science", "Autonomy"];
+const TEAMS = [
+    "Arm",
+    "Autonomous",
+    "Chassis",
+    "Drivebase",
+    "Drone",
+    "Science",
+    "Simulation",
+    "Mission Control",
+    "Power Delivery",
+    "Business & Marketing",
+];
 
 async function main() {
     const { auth } = await import("../src/lib/auth");
@@ -35,7 +46,10 @@ async function main() {
         console.log(`Created admin user: ${email}`);
     }
 
-    db.update(user).set({ role: "admin", isActive: true }).where(eq(user.email, email)).run();
+    db.update(user)
+        .set({ role: "admin", isActive: true, emailVerified: true })
+        .where(eq(user.email, email))
+        .run();
 
     console.log(`Ensured ${email} has role=admin, isActive=true.`);
     console.log("Seed complete.");
