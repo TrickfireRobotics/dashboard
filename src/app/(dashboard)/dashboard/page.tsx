@@ -1,9 +1,12 @@
-import { Gamepad2, KeyRound, Package } from "lucide-react";
-import { headers } from "next/headers";
+import { count, eq } from "drizzle-orm";
+import { Gamepad2, KeyRound, Network, Package } from "lucide-react";
 import Link from "next/link";
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { headscaleJoinRequest, minecraftWhitelist, order, user } from "@/lib/db/schema";
+import { getSessionUser } from "@/lib/session";
+import { redirect } from "next/navigation";
 
 const tiles = [
     {
@@ -24,20 +27,68 @@ const tiles = [
         description: "Server status and whitelist requests.",
         icon: Gamepad2,
     },
+    {
+        href: "/headscale",
+        title: "Network",
+        description: "Private network status and access.",
+        icon: Network,
+    },
 ];
 
 export default async function DashboardHome() {
-    const session = await auth.api.getSession({ headers: await headers() });
-    const firstName = session?.user.name?.split(" ")[0] ?? "there";
+    const sessionUser = await getSessionUser();
+    if (!sessionUser) redirect("/login");
+
+    const firstName = sessionUser.name?.split(" ")[0] ?? "there";
+    const isAdmin = sessionUser.role === "admin";
+
+    let adminStats: { label: string; value: number; href: string }[] = [];
+    if (isAdmin) {
+        const pendingOrders =
+            db
+                .select({ value: count() })
+                .from(order)
+                .where(eq(order.status, "pending"))
+                .get()?.value ?? 0;
+        const activeMembers =
+            db
+                .select({ value: count() })
+                .from(user)
+                .where(eq(user.isActive, true))
+                .get()?.value ?? 0;
+        const openWhitelist =
+            db
+                .select({ value: count() })
+                .from(minecraftWhitelist)
+                .where(eq(minecraftWhitelist.status, "pending"))
+                .get()?.value ?? 0;
+        const pendingNetworkRequests =
+            db
+                .select({ value: count() })
+                .from(headscaleJoinRequest)
+                .where(eq(headscaleJoinRequest.status, "pending"))
+                .get()?.value ?? 0;
+
+        adminStats = [
+            { label: "Pending orders", value: pendingOrders, href: "/admin/orders" },
+            { label: "Active members", value: activeMembers, href: "/admin/users" },
+            { label: "Open whitelist requests", value: openWhitelist, href: "/admin/minecraft" },
+            {
+                label: "Network join requests",
+                value: pendingNetworkRequests,
+                href: "/admin/headscale",
+            },
+        ];
+    }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             <div>
                 <h1 className="text-3xl">Welcome, {firstName}</h1>
                 <p className="text-muted-foreground">Your TrickFire club dashboard.</p>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {tiles.map((tile) => {
                     const Icon = tile.icon;
                     return (
@@ -53,6 +104,29 @@ export default async function DashboardHome() {
                     );
                 })}
             </div>
+
+            {isAdmin && (
+                <div className="space-y-4">
+                    <div>
+                        <h2 className="text-xl font-medium">Admin Overview</h2>
+                        <p className="text-muted-foreground text-sm">Club-wide stats at a glance.</p>
+                    </div>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {adminStats.map((s) => (
+                            <Link key={s.href} href={s.href}>
+                                <Card className="hover:border-primary/60 transition-colors">
+                                    <CardHeader>
+                                        <CardTitle className="text-primary text-4xl">
+                                            {s.value}
+                                        </CardTitle>
+                                        <CardDescription>{s.label}</CardDescription>
+                                    </CardHeader>
+                                </Card>
+                            </Link>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

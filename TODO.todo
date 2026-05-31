@@ -14,9 +14,13 @@ Minecraft Tab:
     - Add something fun, Hayden wants a leaderboard
 
 Dashboard:
-    - Remove the admin overview, add the info from there into the dashboard (only if admin)
+    ✔ Remove the admin overview, add the info from there into the dashboard (only if admin) @done(26-05-31 09:47)
+    - Make the dashboard look better (long term goal)
 
 Headscale:
     ✔ Make a headscale network tab to see if network active @done(26-05-31 09:44)
     ✔ Think about implementation, how should this server manage it @done(26-05-31 09:44)
     ✔ Add a tailscale styled dashboard @done(26-05-31 09:44)
+
+Other:
+    ✔ Add a 404 page that matches with our page to replace the default next.js page @done(26-05-31 09:52)

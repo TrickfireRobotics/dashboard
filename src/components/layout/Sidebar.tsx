@@ -8,7 +8,6 @@ import {
     Network,
     Package,
     Server,
-    Shield,
     Users,
 } from "lucide-react";
 import Image from "next/image";
@@ -38,7 +37,6 @@ const memberNav: NavItem[] = [
 ];
 
 const adminNav: NavItem[] = [
-    { href: "/admin", label: "Overview", icon: Shield },
     { href: "/admin/orders", label: "Order Queue", icon: ClipboardList },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/minecraft", label: "Whitelist", icon: Server },
