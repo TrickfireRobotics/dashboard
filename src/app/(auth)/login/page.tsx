@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -20,9 +21,16 @@ export default async function LoginPage({
     return (
         <div className="bg-background flex min-h-screen items-center justify-center p-4">
             <div className="w-full max-w-sm">
-                <div className="mb-8 text-center">
-                    <h1 className="text-primary text-4xl">TrickFire</h1>
-                    <p className="text-muted-foreground mt-1 text-sm">Club Management Portal</p>
+                <div className="mb-8 flex flex-col items-center gap-2">
+                    <Image
+                        src="/logo.png"
+                        alt="TrickFire Robotics"
+                        width={220}
+                        height={56}
+                        className="h-35 w-auto object-contain"
+                        priority
+                    />
+                    <p className="text-muted-foreground text-sm">Club Management Portal</p>
                 </div>
                 <LoginForm notice={notice} />
             </div>

@@ -10,6 +10,7 @@ import {
     Shield,
     Users,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -64,7 +65,14 @@ export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
     return (
         <aside className="border-sidebar-border bg-sidebar hidden w-60 shrink-0 flex-col border-r md:flex">
             <div className="border-sidebar-border flex h-16 items-center border-b px-5">
-                <span className="text-primary text-2xl">TrickFire</span>
+                <Image
+                    src="/logo.png"
+                    alt="TrickFire Robotics"
+                    width={160}
+                    height={40}
+                    className="object-contain"
+                    priority
+                />
             </div>
             <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
                 {memberNav.map((item) => (
