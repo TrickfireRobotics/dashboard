@@ -4,7 +4,13 @@ import Link from "next/link";
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
-import { headscaleJoinRequest, minecraftWhitelist, order, user, userFeature } from "@/lib/db/schema";
+import {
+    headscaleJoinRequest,
+    minecraftWhitelist,
+    order,
+    user,
+    userFeature,
+} from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/session";
 import { redirect } from "next/navigation";
 
@@ -51,11 +57,17 @@ export default async function DashboardHome() {
             db.select({ value: count() }).from(user).where(eq(user.approved, false)).get()?.value ??
             0;
         const activeMembers =
-            db.select({ value: count() }).from(user).where(and(eq(user.isActive, true), eq(user.approved, true))).get()?.value ??
-            0;
+            db
+                .select({ value: count() })
+                .from(user)
+                .where(and(eq(user.isActive, true), eq(user.approved, true)))
+                .get()?.value ?? 0;
         const pendingFeatureRequests =
-            db.select({ value: count() }).from(userFeature).where(eq(userFeature.status, "pending")).get()?.value ??
-            0;
+            db
+                .select({ value: count() })
+                .from(userFeature)
+                .where(eq(userFeature.status, "pending"))
+                .get()?.value ?? 0;
         const openWhitelist =
             db
                 .select({ value: count() })
