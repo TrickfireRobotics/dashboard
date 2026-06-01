@@ -3,6 +3,7 @@
 import {
     ClipboardList,
     Gamepad2,
+    GitBranch,
     KeyRound,
     LayoutDashboard,
     Network,
@@ -42,6 +43,7 @@ const adminNav: NavItem[] = [
     { href: "/admin/minecraft", label: "Whitelist", icon: Server },
     { href: "/admin/server", label: "Server", icon: Gamepad2 },
     { href: "/admin/headscale", label: "Network", icon: Network },
+    { href: "/admin/github", label: "GitHub", icon: GitBranch },
 ];
 
 const EXACT = new Set(["/dashboard", "/admin"]);
