@@ -15,9 +15,9 @@ jobs:
 
         steps:
             - name: Pull latest changes
-              working-directory: /opt/trickfire-dashboard/dashboard
+              working-directory: /home/trickfire/dashboard
               run: git pull
 
             - name: Run deploy script
-              working-directory: /opt/trickfire-dashboard/dashboard
+              working-directory: /home/trickfire/dashboard
               run: bash scripts/deploy.sh

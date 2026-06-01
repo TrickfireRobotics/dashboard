@@ -43,11 +43,8 @@ sudo apt-get install -y build-essential python3
 ## 2. Get the Code
 
 ```bash
-sudo mkdir -p /opt/trickfire-dashboard
-sudo chown "$USER" /opt/trickfire-dashboard
-
-git clone <repo-url> /opt/trickfire-dashboard
-cd /opt/trickfire-dashboard/dashboard
+git clone <repo-url> /home/trickfire/dashboard
+cd /home/trickfire/dashboard
 
 # Installs deps and compiles better-sqlite3 against the Xavier's Node + ARM64
 pnpm install --frozen-lockfile
@@ -55,7 +52,7 @@ pnpm install --frozen-lockfile
 
 ## 3. Configure Environment
 
-1. Create `/opt/trickfire-dashboard/dashboard/.env.local` - use `.env.example` as the template.
+1. Create `/home/trickfire/dashboard/.env.local` - use `.env.example` as the template.
 2. See [Environment Variables in README.md](README.md#environment-variables) for descriptions of every key.
 3. Generate the auth secret:
 
@@ -70,7 +67,7 @@ NEXT_PUBLIC_APP_URL=https://dashboard.trickfirerobotics.com
 BETTER_AUTH_URL=https://dashboard.trickfirerobotics.com
 BETTER_AUTH_SECRET=<generated above>
 
-DATABASE_PATH=/opt/trickfire-dashboard/db/dashboard.db
+DATABASE_PATH=/home/trickfire/db/dashboard.db
 
 # Minecraft
 MINECRAFT_SERVER_HOST=<host or LAN IP of the Minecraft server>
@@ -97,7 +94,7 @@ EMAIL_FROM=TrickFire Robotics <noreply@trickfirerobotics.com>
 ## 4. Database: Migrate and Seed
 
 ```bash
-mkdir -p /opt/trickfire-dashboard/db
+mkdir -p /home/trickfire/db
 
 # Apply schema migrations
 pnpm exec drizzle-kit migrate
@@ -142,12 +139,12 @@ After=network.target
 [Service]
 Type=simple
 User=trickfire
-WorkingDirectory=/opt/trickfire-dashboard/dashboard
-EnvironmentFile=/opt/trickfire-dashboard/dashboard/.env.local
+WorkingDirectory=/home/trickfire/dashboard
+EnvironmentFile=/home/trickfire/dashboard/.env.local
 Environment=NODE_ENV=production
 Environment=PORT=3000
 Environment=HOSTNAME=127.0.0.1
-ExecStart=/usr/bin/node /opt/trickfire-dashboard/dashboard/.next/standalone/server.js
+ExecStart=/usr/bin/node /home/trickfire/dashboard/.next/standalone/server.js
 Restart=on-failure
 RestartSec=5
 
@@ -180,8 +177,8 @@ The runner must run as the `trickfire` user so it has access to the deployment d
 sudo -u trickfire -s
 
 # Create a directory for the runner
-mkdir -p /opt/trickfire-dashboard/actions-runner
-cd /opt/trickfire-dashboard/actions-runner
+mkdir -p /home/trickfire/actions-runner
+cd /home/trickfire/actions-runner
 ```
 
 Go to your GitHub repo → **Settings → Actions → Runners → New self-hosted runner**, select **Linux / ARM64**, and follow the download and configure commands shown there. They look like:
@@ -457,10 +454,9 @@ Ensure port `8100` is **not** open to the internet. The dashboard acts as the on
 ## Updating an Existing Deployment
 
 ```bash
-cd /opt/trickfire-dashboard
+cd /home/trickfire/dashboard
 git pull
 
-cd dashboard
 pnpm install --frozen-lockfile      # recompiles native deps if versions changed
 pnpm exec drizzle-kit migrate       # apply any new schema migrations
 pnpm build
@@ -479,8 +475,8 @@ sudo systemctl restart trickfire-dashboard
 The entire application state is the SQLite file. Back it up with the WAL checkpointed to avoid backing up a partial transaction:
 
 ```bash
-sqlite3 /opt/trickfire-dashboard/db/dashboard.db \
-  ".backup '/opt/trickfire-dashboard/backups/dashboard-$(date +%F).db'"
+sqlite3 /home/trickfire/db/dashboard.db \
+  ".backup '/home/trickfire/backups/dashboard-$(date +%F).db'"
 ```
 
 Automate with a cron job or systemd timer. The backup file is a standalone SQLite database - no restore tooling needed, just copy it back and restart the service.
@@ -493,7 +489,7 @@ Automate with a cron job or systemd timer. The backup file is a standalone SQLit
 `better-sqlite3` was compiled on a different machine or architecture. Recompile it on the Xavier:
 
 ```bash
-cd /opt/trickfire-dashboard/dashboard
+cd /home/trickfire/dashboard
 pnpm rebuild better-sqlite3
 ```
 
