@@ -20,7 +20,8 @@
         ".next": true,
         "node_modules": true,
         "tsconfig.tsbuildinfo": true,
-        "next-env.d.ts": true
+        "next-env.d.ts": true,
+        ".husky/_*": true
     },
     "cSpell.words": ["apikey", "cloudflared", "headscale", "trickfire", "trickfirerobotics"]
 }

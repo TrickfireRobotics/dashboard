@@ -19,6 +19,37 @@ If you haven't set up the project yet, start with the [Local Development section
 | Bug fix       | `fix/<short-description>`   | `fix/session-expiry` |
 | Chore / infra | `chore/<short-description>` | `chore/update-deps`  |
 
+## Commit Messages
+
+Commit messages must follow the [Conventional Commits](https://www.conventionalcommits.org/) format. A git hook enforces this automatically & bad commits are blocked before they land.
+
+```
+<type>: <short description>
+```
+
+| Type       | When to use                                     |
+| ---------- | ----------------------------------------------- |
+| `feat`     | New feature or behaviour                        |
+| `fix`      | Bug fix                                         |
+| `chore`    | Maintenance, deps, config — no behaviour change |
+| `docs`     | Documentation only                              |
+| `style`    | Formatting, whitespace — no logic change        |
+| `refactor` | Code restructure with no feature or fix         |
+| `perf`     | Performance improvement                         |
+| `ci`       | CI/CD changes                                   |
+| `revert`   | Reverts a previous commit                       |
+
+Examples:
+
+```
+feat: add export button to orders page
+fix: resolve session expiry on mobile Safari
+chore: update drizzle-orm to 0.46
+docs: document proxy setup in CONTRIBUTING
+```
+
+The hook is installed automatically when you run `pnpm install`. If you want to skip it in a one-off emergency, use `git commit --no-verify` but please don't make it a habit.
+
 ## Code Style
 
 ESLint and Prettier are configured. Both run in CI and on save in VS Code (with the recommended extensions).

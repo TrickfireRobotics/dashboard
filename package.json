@@ -16,7 +16,8 @@
         "db:reset": "rm -f db/dashboard.db && pnpm db:migrate && pnpm db:seed",
         "setup": "pnpm db:migrate && pnpm db:seed",
         "deploy": "bash scripts/deploy.sh",
-        "auth:generate": "pnpm dlx @better-auth/cli@latest generate --config src/lib/auth.ts --output src/lib/db/auth-schema.ts -y"
+        "auth:generate": "pnpm dlx @better-auth/cli@latest generate --config src/lib/auth.ts --output src/lib/db/auth-schema.ts -y",
+        "prepare": "husky"
     },
     "dependencies": {
         "@base-ui/react": "^1.5.0",
@@ -42,6 +43,8 @@
         "zod": "^4.4.3"
     },
     "devDependencies": {
+        "@commitlint/cli": "^21.0.2",
+        "@commitlint/config-conventional": "^21.0.2",
         "@eslint/eslintrc": "^3",
         "@tailwindcss/postcss": "^4",
         "@types/better-sqlite3": "^7.6.13",
@@ -52,6 +55,7 @@
         "eslint": "^9",
         "eslint-config-next": "15.5.18",
         "eslint-config-prettier": "^10.1.8",
+        "husky": "^9.1.7",
         "prettier": "^3.8.3",
         "prettier-plugin-tailwindcss": "^0.8.0",
         "shadcn": "^4.8.2",
