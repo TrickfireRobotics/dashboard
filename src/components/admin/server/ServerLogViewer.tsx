@@ -7,6 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
+const BRACKET_COLORS = [
+    "text-cyan-300",
+    "text-amber-300",
+    "text-lime-300",
+    "text-fuchsia-300",
+    "text-sky-300",
+    "text-rose-300",
+];
+
 const COMMANDS = [
     "stop",
     "op <player>",
@@ -173,6 +182,57 @@ export function ServerLogViewer() {
         }
     }
 
+    function renderLogLine(line: string) {
+        if (/^>\s?/.test(line)) {
+            const command = line.replace(/^>\s?/, "");
+            return (
+                <>
+                    <span className="text-emerald-300">&gt; </span>
+                    <span className="text-emerald-200">{command}</span>
+                </>
+            );
+        }
+
+        const pieces: Array<{ text: string; bracketIndex: number | null }> = [];
+        const bracketRegex = /\[[^\]]*\]/g;
+        let last = 0;
+        let bracketIndex = 0;
+
+        for (const match of line.matchAll(bracketRegex)) {
+            const start = match.index ?? 0;
+            if (start > last) {
+                pieces.push({ text: line.slice(last, start), bracketIndex: null });
+            }
+            pieces.push({ text: match[0], bracketIndex });
+            bracketIndex += 1;
+            last = start + match[0].length;
+        }
+
+        if (last < line.length) {
+            pieces.push({ text: line.slice(last), bracketIndex: null });
+        }
+
+        if (pieces.length === 0) {
+            return <>{line}</>;
+        }
+
+        return (
+            <>
+                {pieces.map((piece, idx) => {
+                    if (piece.bracketIndex === null) {
+                        return <span key={idx}>{piece.text}</span>;
+                    }
+                    const color = BRACKET_COLORS[piece.bracketIndex % BRACKET_COLORS.length];
+                    return (
+                        <span key={idx} className={color}>
+                            {piece.text}
+                        </span>
+                    );
+                })}
+            </>
+        );
+    }
+
     return (
         <Card className="flex flex-1 flex-col">
             <CardHeader>
@@ -190,7 +250,7 @@ export function ServerLogViewer() {
                     ) : (
                         lines.map((l, i) => (
                             <div key={i} className="break-all whitespace-pre-wrap">
-                                {l}
+                                {renderLogLine(l)}
                             </div>
                         ))
                     )}
