@@ -32,7 +32,7 @@ All steps below are run **on the Xavier** unless noted otherwise. The `better-sq
 node --version
 
 # Enable pnpm via corepack
-corepack enable pnpm
+sudo corepack enable pnpm
 pnpm --version
 
 # Build toolchain for compiling better-sqlite3's native addon on ARM64
@@ -228,8 +228,6 @@ journalctl -u trickfire-dashboard -f
 
 > [!NOTE]
 > Deploys are serialised — if two merges land in quick succession, the second waits for the first to finish rather than running concurrently.
-
----
 
 ## 8. Cloudflare Tunnel
 

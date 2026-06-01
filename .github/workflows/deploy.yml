@@ -2,7 +2,7 @@ name: Deploy
 
 on:
     push:
-        branches: [main-disabled]
+        branches: [main]
 
 concurrency:
     group: deploy
@@ -11,7 +11,7 @@ concurrency:
 jobs:
     deploy:
         name: Deploy to Xavier
-        runs-on: self-hosted
+        runs-on: [self-hosted, xavier]
 
         steps:
             - name: Pull latest changes
