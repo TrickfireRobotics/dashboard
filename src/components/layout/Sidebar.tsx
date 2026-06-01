@@ -1,6 +1,7 @@
 "use client";
 
 import {
+    Boxes,
     ClipboardList,
     Gamepad2,
     KeyRound,
@@ -42,6 +43,7 @@ const adminNav: NavItem[] = [
     { href: "/admin/minecraft", label: "Whitelist", icon: Server },
     { href: "/admin/server", label: "Server", icon: Gamepad2 },
     { href: "/admin/headscale", label: "Network", icon: Network },
+    { href: "/admin/onshape", label: "Onshape", icon: Boxes },
 ];
 
 const EXACT = new Set(["/dashboard", "/admin"]);
