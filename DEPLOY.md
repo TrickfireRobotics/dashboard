@@ -18,8 +18,9 @@ All steps below are run **on the Xavier** unless noted otherwise. The `better-sq
 7. [Automated Deploys (GitHub Actions)](#7-automated-deploys-github-actions)
 8. [Cloudflare Tunnel](#8-cloudflare-tunnel)
 9. [Headscale Setup](#9-headscale-setup)
-10. [BlueMap Setup](#10-bluemap-setup)
-11. [Updating an Existing Deployment](#updating-an-existing-deployment)
+10. [Minecraft Server Setup](#10-minecraft-server-setup)
+11. [BlueMap Setup](#11-bluemap-setup)
+12. [Updating an Existing Deployment](#updating-an-existing-deployment)
 12. [Backups](#backups)
 13. [Troubleshooting](#troubleshooting)
 
@@ -205,16 +206,18 @@ sudo systemctl status actions.runner.*
 
 ### Allow the runner to restart the service
 
-The deploy script calls `sudo systemctl restart trickfire-dashboard`. Grant the `trickfire` user passwordless sudo for that one command:
+The deploy script calls `sudo systemctl restart trickfire-dashboard`. The dashboard also needs to start and stop the Minecraft service. Grant the `trickfire` user passwordless sudo for all three commands:
 
 ```bash
 sudo visudo -f /etc/sudoers.d/trickfire-runner
 ```
 
-Add this line:
+Add these lines:
 
 ```
-trickfire ALL=(ALL) NOPASSWD: /bin/systemctl restart trickfire-dashboard
+trickfire ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart trickfire-dashboard
+trickfire ALL=(ALL) NOPASSWD: /usr/bin/systemctl start minecraft
+trickfire ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop minecraft
 ```
 
 ### Verify
@@ -419,7 +422,92 @@ Members connecting from home then use:
 tailscale up --login-server https://headscale.trickfirerobotics.com
 ```
 
-## 10. BlueMap Setup
+## 10. Minecraft Server Setup
+
+The Minecraft server runs as an independent systemd service (`minecraft.service`) managed by [Azalea](https://github.com/matejstastny/azalea). The dashboard can start and stop it, stream its logs, and send console commands via RCON — all without the server depending on the dashboard process.
+
+### Install Azalea
+
+Azalea requires Python 3.9+. Ubuntu 20.04 ships Python 3.8, so install 3.9 first:
+
+```bash
+sudo apt-get install -y python3.9 python3.9-venv
+python3.9 -m pip install --user git+https://github.com/matejstastny/azalea.git
+sudo ln -sf /home/trickfire/.local/bin/azalea /usr/local/bin/azalea
+azalea --version  # verify
+```
+
+### Create the systemd service
+
+Create `/etc/systemd/system/minecraft.service`:
+
+```ini
+[Unit]
+Description=Minecraft Server
+After=network.target
+
+[Service]
+Type=simple
+User=trickfire
+WorkingDirectory=/home/trickfire/minecraft
+ExecStart=/usr/local/bin/azalea server run
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable it (but don't start it yet — the dashboard controls that):
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable minecraft
+```
+
+### Configure RCON
+
+The dashboard sends console commands to the server via RCON. Enable it in `/home/trickfire/minecraft/server.properties`:
+
+```properties
+enable-rcon=true
+rcon.port=25575
+rcon.password=<generate with: openssl rand -hex 16>
+```
+
+Then add the matching values to `/home/trickfire/dashboard/.env.local`:
+
+```env
+MINECRAFT_RCON_PORT=25575
+MINECRAFT_RCON_PASSWORD=<same password as above>
+```
+
+Restart the dashboard to pick up the new vars:
+
+```bash
+sudo systemctl restart trickfire-dashboard
+```
+
+> [!NOTE]
+> The Minecraft server must be restarted after changing `server.properties` for RCON changes to take effect.
+
+### Environment variables summary
+
+Add these to `.env.local` for the full Minecraft integration:
+
+```env
+MINECRAFT_SERVER_HOST=localhost
+MINECRAFT_SERVER_PORT=25565
+MINECRAFT_RCON_PORT=25575
+MINECRAFT_RCON_PASSWORD=<password>
+MINECRAFT_SERVER_PATH=/home/trickfire/minecraft
+MINECRAFT_WORLD_PATH=/home/trickfire/minecraft/world
+MINECRAFT_BOT_NAMES=BotA,BotB   # append :SkinURL for a custom skin
+```
+
+---
+
+## 11. BlueMap Setup
 
 The Minecraft page embeds the BlueMap web map. The dashboard proxies it at `/bluemap` so it is accessible via the dashboard URL without exposing BlueMap's port publicly.
 

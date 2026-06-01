@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from "child_process";
+import { execSync, spawn } from "child_process";
 import {
     appendFileSync,
     closeSync,
@@ -7,22 +7,17 @@ import {
     readFileSync,
     readSync,
     statSync,
-    truncateSync,
-    unlinkSync,
     writeFileSync,
 } from "fs";
 import { createInterface } from "readline";
 import * as path from "path";
+import { RCON } from "minecraft-server-util";
 
-let proc: ChildProcess | null = null;
-const logBuffer: string[] = [];
-const MAX_LINES = 500;
-type LogEvent = { type: "line"; line: string } | { type: "reset" };
-const listeners = new Set<(event: LogEvent) => void>();
-let commandRelayInterval: NodeJS.Timeout | null = null;
-let commandQueueCursor = 0;
-let commandQueuePartial = "";
-export type { LogEvent };
+export type LogEvent = { type: "line"; line: string } | { type: "reset" };
+
+const dashboardLogBuffer: string[] = [];
+const MAX_DASHBOARD_LINES = 200;
+const dashboardListeners = new Set<(event: LogEvent) => void>();
 
 function serverDir() {
     return process.env.MINECRAFT_SERVER_PATH ?? "";
@@ -32,186 +27,26 @@ function configPath() {
     return path.join(serverDir(), "azalea-server.json");
 }
 
-function pidFile() {
-    return path.join(serverDir(), ".azalea-dashboard.pid");
+function serverLogFile() {
+    return path.join(serverDir(), "logs", "latest.log");
 }
 
-function dashboardLogFile() {
-    return path.join(serverDir(), ".azalea-dashboard.log");
+function rconHost() {
+    return process.env.MINECRAFT_SERVER_HOST ?? "localhost";
 }
 
-function commandQueueFile() {
-    return path.join(serverDir(), ".azalea-dashboard.commands");
+function rconPort() {
+    return Number(process.env.MINECRAFT_RCON_PORT ?? 25575);
 }
 
-function readPidFromFile(): number | null {
-    const pf = pidFile();
-    if (!existsSync(pf)) return null;
-    const pid = parseInt(readFileSync(pf, "utf-8").trim(), 10);
-    return Number.isFinite(pid) && pid > 0 ? pid : null;
+function rconPassword() {
+    return process.env.MINECRAFT_RCON_PASSWORD ?? "";
 }
 
-function clearPidFile() {
-    const pf = pidFile();
-    if (!existsSync(pf)) return;
-    try {
-        unlinkSync(pf);
-    } catch {}
-}
-
-function signalProcessTree(pid: number, signal: NodeJS.Signals): boolean {
-    try {
-        // On Unix, a negative PID targets the entire process group.
-        process.kill(-pid, signal);
-        return true;
-    } catch {}
-    try {
-        process.kill(pid, signal);
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-function isProcessTreeAlive(pid: number): boolean {
-    try {
-        process.kill(-pid, 0);
-        return true;
-    } catch {}
-    try {
-        process.kill(pid, 0);
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-function clearLogs() {
-    logBuffer.length = 0;
-    const dir = serverDir();
-    if (dir) {
-        const logFile = dashboardLogFile();
-        try {
-            if (existsSync(logFile)) {
-                truncateSync(logFile, 0);
-            } else {
-                writeFileSync(logFile, "");
-            }
-        } catch {}
-    }
-    listeners.forEach((fn) => {
-        try {
-            fn({ type: "reset" });
-        } catch {}
-    });
-}
-
-function clearCommandQueue() {
-    const dir = serverDir();
-    if (!dir) return;
-    const queueFile = commandQueueFile();
-    try {
-        if (existsSync(queueFile)) {
-            truncateSync(queueFile, 0);
-        } else {
-            writeFileSync(queueFile, "");
-        }
-    } catch {}
-    commandQueueCursor = 0;
-    commandQueuePartial = "";
-}
-
-function enqueueCommand(cmd: string): boolean {
-    const dir = serverDir();
-    if (!dir) return false;
-    try {
-        appendFileSync(commandQueueFile(), `${JSON.stringify({ cmd })}\n`, "utf-8");
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-function stopCommandRelay() {
-    if (commandRelayInterval) {
-        clearInterval(commandRelayInterval);
-        commandRelayInterval = null;
-    }
-}
-
-function startCommandRelay() {
-    stopCommandRelay();
-
-    const dir = serverDir();
-    if (!dir) return;
-    const queueFile = commandQueueFile();
-    if (!existsSync(queueFile)) {
-        try {
-            writeFileSync(queueFile, "");
-        } catch {
-            return;
-        }
-    }
-
-    try {
-        commandQueueCursor = statSync(queueFile).size;
-    } catch {
-        commandQueueCursor = 0;
-    }
-    commandQueuePartial = "";
-
-    commandRelayInterval = setInterval(() => {
-        if (!proc?.stdin || proc.killed) return;
-        try {
-            const size = statSync(queueFile).size;
-            if (size < commandQueueCursor) {
-                commandQueueCursor = 0;
-                commandQueuePartial = "";
-            }
-            if (size <= commandQueueCursor) return;
-
-            const length = size - commandQueueCursor;
-            const fd = openSync(queueFile, "r");
-            const chunk = Buffer.alloc(length);
-            try {
-                const bytesRead = readSync(fd, chunk, 0, length, commandQueueCursor);
-                commandQueueCursor = size;
-                if (bytesRead <= 0) return;
-
-                const text = `${commandQueuePartial}${chunk.toString("utf-8", 0, bytesRead)}`;
-                const lines = text.split(/\r?\n/);
-                commandQueuePartial = lines.pop() ?? "";
-
-                for (const raw of lines) {
-                    const line = raw.trim();
-                    if (!line) continue;
-                    try {
-                        const item = JSON.parse(line) as { cmd?: string };
-                        const cmd = typeof item.cmd === "string" ? item.cmd.trim() : "";
-                        if (!cmd) continue;
-                        proc.stdin.write(cmd + "\n");
-                        pushLog(`> ${cmd}`);
-                    } catch {}
-                }
-            } finally {
-                closeSync(fd);
-            }
-        } catch {}
-    }, 200);
-}
-
-function pushLog(line: string) {
-    logBuffer.push(line);
-    if (logBuffer.length > MAX_LINES) logBuffer.shift();
-
-    const dir = serverDir();
-    if (dir) {
-        try {
-            appendFileSync(dashboardLogFile(), `${line}\n`, "utf-8");
-        } catch {}
-    }
-
-    listeners.forEach((fn) => {
+function pushDashboardLog(line: string) {
+    dashboardLogBuffer.push(line);
+    if (dashboardLogBuffer.length > MAX_DASHBOARD_LINES) dashboardLogBuffer.shift();
+    dashboardListeners.forEach((fn) => {
         try {
             fn({ type: "line", line });
         } catch {}
@@ -219,187 +54,98 @@ function pushLog(line: string) {
 }
 
 export function isRunning(): boolean {
-    if (proc && !proc.killed) {
-        try {
-            process.kill(proc.pid!, 0);
-            return true;
-        } catch {}
-    }
-    const pid = readPidFromFile();
-    if (pid && isProcessTreeAlive(pid)) {
+    try {
+        execSync("systemctl is-active --quiet minecraft");
         return true;
+    } catch {
+        return false;
     }
-    clearPidFile();
-    return false;
 }
 
 export function startServer(): { ok: boolean; error?: string } {
+    if (!isConfigured()) return { ok: false, error: "Server is not configured" };
     if (isRunning()) return { ok: false, error: "Server is already running" };
-    const dir = serverDir();
-    if (!dir) return { ok: false, error: "MINECRAFT_SERVER_PATH is not configured" };
-
-    clearLogs();
-    clearCommandQueue();
-    pushLog("[dashboard] Starting server…");
-
-    proc = spawn("azalea", ["server", "run"], {
-        cwd: dir,
-        stdio: ["pipe", "pipe", "pipe"],
-        detached: true,
-    });
-
-    writeFileSync(pidFile(), String(proc.pid));
-
-    const rl = createInterface({ input: proc.stdout! });
-    rl.on("line", pushLog);
-
-    const re = createInterface({ input: proc.stderr! });
-    re.on("line", (l) => pushLog(`[err] ${l}`));
-
-    startCommandRelay();
-
-    proc.on("exit", (code) => {
-        const exitedPid = proc?.pid;
-        pushLog(`[dashboard] Server exited (code ${code ?? "unknown"})`);
-        proc = null;
-        stopCommandRelay();
-        if (exitedPid && !isProcessTreeAlive(exitedPid)) {
-            clearPidFile();
-        }
-    });
-
-    return { ok: true };
+    try {
+        execSync("sudo systemctl start minecraft");
+        return { ok: true };
+    } catch (e) {
+        return { ok: false, error: String(e) };
+    }
 }
 
 export function stopServer(): { ok: boolean; error?: string } {
     if (!isRunning()) return { ok: false, error: "Server is not running" };
-
-    pushLog("[dashboard] Sending stop command…");
-
-    if (proc?.stdin) {
-        proc.stdin.write("stop\n");
-
-        const targetPid = proc.pid;
-        setTimeout(() => {
-            if (targetPid && isProcessTreeAlive(targetPid)) {
-                pushLog("[dashboard] Server still running; sending SIGINT to process tree…");
-                signalProcessTree(targetPid, "SIGINT");
-            }
-        }, 10_000);
-
-        setTimeout(() => {
-            if (targetPid && isProcessTreeAlive(targetPid)) {
-                pushLog("[dashboard] Force killing server process tree (SIGTERM)…");
-                signalProcessTree(targetPid, "SIGTERM");
-            }
-        }, 20_000);
-
-        setTimeout(() => {
-            if (targetPid && isProcessTreeAlive(targetPid)) {
-                pushLog("[dashboard] Force killing server process tree (SIGKILL)…");
-                signalProcessTree(targetPid, "SIGKILL");
-            }
-        }, 30_000);
-    } else {
-        const pid = readPidFromFile();
-        if (!pid) return { ok: false, error: "Server PID not found" };
-        if (!signalProcessTree(pid, "SIGTERM")) {
-            return { ok: false, error: "Failed to signal server process" };
-        }
-    }
-
-    return { ok: true };
-}
-
-export function sendCommand(cmd: string): { ok: boolean; error?: string } {
-    if (proc?.stdin && !proc.killed) {
-        proc.stdin.write(cmd + "\n");
-        pushLog(`> ${cmd}`);
+    try {
+        execSync("sudo systemctl stop minecraft");
         return { ok: true };
+    } catch (e) {
+        return { ok: false, error: String(e) };
     }
-
-    if (!isRunning()) {
-        return {
-            ok: false,
-            error: "Server is not running",
-        };
-    }
-
-    if (!enqueueCommand(cmd)) {
-        return {
-            ok: false,
-            error: "Unable to enqueue command for running server",
-        };
-    }
-
-    return { ok: true };
 }
 
-export function getLogBuffer(): string[] {
-    return [...logBuffer];
+export async function sendCommand(cmd: string): Promise<{ ok: boolean; error?: string }> {
+    if (!isRunning()) return { ok: false, error: "Server is not running" };
+    const password = rconPassword();
+    if (!password) return { ok: false, error: "MINECRAFT_RCON_PASSWORD is not configured" };
+
+    const client = new RCON();
+    try {
+        await client.connect(rconHost(), rconPort());
+        await client.login(password);
+        await client.execute(cmd);
+        return { ok: true };
+    } catch (e) {
+        return { ok: false, error: String(e) };
+    } finally {
+        try {
+            client.close();
+        } catch {}
+    }
 }
 
 export function getRecentLogs(): string[] {
     const dir = serverDir();
     if (!dir) return [];
-    const logFile = path.join(dir, "logs", "latest.log");
-    if (!existsSync(logFile)) return [];
+    const file = serverLogFile();
+    if (!existsSync(file)) return [];
     try {
-        const content = readFileSync(logFile, "utf-8");
-        return content.split("\n").filter(Boolean).slice(-100);
+        const content = readFileSync(file, "utf-8");
+        return content.split("\n").filter(Boolean).slice(-200);
     } catch {
         return [];
     }
 }
 
-export function subscribeLogs(fn: (event: LogEvent) => void): () => void {
-    listeners.add(fn);
-    return () => listeners.delete(fn);
+export function getDashboardLogBuffer(): string[] {
+    return [...dashboardLogBuffer];
 }
 
-export function hasProcessHandle(): boolean {
-    if (!proc?.pid || proc.killed) return false;
-    return isProcessTreeAlive(proc.pid);
-}
-
-export function getRecentCapturedLogs(): string[] {
-    const dir = serverDir();
-    if (!dir) return [];
-    const logFile = dashboardLogFile();
-    if (!existsSync(logFile)) return [];
-
-    try {
-        const content = readFileSync(logFile, "utf-8");
-        return content.split(/\r?\n/).filter(Boolean).slice(-500);
-    } catch {
-        return [];
-    }
-}
-
-export function subscribeCapturedLogTail(fn: (event: LogEvent) => void): () => void {
+// Tails logs/latest.log in real time.
+export function subscribeServerLogTail(fn: (event: LogEvent) => void): () => void {
     const dir = serverDir();
     if (!dir) return () => {};
 
-    const logFile = dashboardLogFile();
+    const file = serverLogFile();
     let cursor = 0;
     let partial = "";
 
-    if (existsSync(logFile)) {
+    if (existsSync(file)) {
         try {
-            cursor = statSync(logFile).size;
+            cursor = statSync(file).size;
         } catch {}
     }
 
     const interval = setInterval(() => {
         try {
-            if (!existsSync(logFile)) {
+            if (!existsSync(file)) {
                 cursor = 0;
                 partial = "";
                 return;
             }
 
-            const size = statSync(logFile).size;
+            const size = statSync(file).size;
             if (size < cursor) {
+                // File was rotated/truncated.
                 cursor = 0;
                 partial = "";
                 fn({ type: "reset" });
@@ -407,7 +153,7 @@ export function subscribeCapturedLogTail(fn: (event: LogEvent) => void): () => v
             if (size <= cursor) return;
 
             const length = size - cursor;
-            const fd = openSync(logFile, "r");
+            const fd = openSync(file, "r");
             const chunk = Buffer.alloc(length);
             try {
                 const bytesRead = readSync(fd, chunk, 0, length, cursor);
@@ -432,6 +178,41 @@ export function subscribeCapturedLogTail(fn: (event: LogEvent) => void): () => v
     return () => clearInterval(interval);
 }
 
+// Subscribes to in-memory dashboard/update log messages.
+export function subscribeDashboardLogs(fn: (event: LogEvent) => void): () => void {
+    dashboardListeners.add(fn);
+    return () => dashboardListeners.delete(fn);
+}
+
+export function updateServer(): { ok: boolean; error?: string } {
+    const dir = serverDir();
+    if (!dir) return { ok: false, error: "MINECRAFT_SERVER_PATH is not configured" };
+
+    pushDashboardLog("[dashboard] Running azalea server update…");
+
+    const child = spawn("azalea", ["server", "update"], {
+        cwd: dir,
+        stdio: ["ignore", "pipe", "pipe"],
+    });
+
+    const rl = createInterface({ input: child.stdout! });
+    rl.on("line", pushDashboardLog);
+
+    const re = createInterface({ input: child.stderr! });
+    re.on("line", (l) => pushDashboardLog(`[err] ${l}`));
+
+    child.on("exit", (code) => {
+        pushDashboardLog(`[dashboard] Update finished (code ${code ?? "unknown"})`);
+    });
+
+    return { ok: true };
+}
+
+export function isConfigured(): boolean {
+    const dir = serverDir();
+    return !!dir && existsSync(configPath());
+}
+
 export type AzaleaConfig = {
     source: string;
     pinned_tag: string | null;
@@ -453,11 +234,6 @@ export type AzaleaConfig = {
     };
 };
 
-export function isConfigured(): boolean {
-    const dir = serverDir();
-    return !!dir && existsSync(configPath());
-}
-
 export function readConfig(): AzaleaConfig {
     return JSON.parse(readFileSync(configPath(), "utf-8"));
 }
@@ -466,26 +242,9 @@ export function writeConfig(config: AzaleaConfig): void {
     writeFileSync(configPath(), JSON.stringify(config, null, 2));
 }
 
-export function updateServer(): { ok: boolean; error?: string } {
-    const dir = serverDir();
-    if (!dir) return { ok: false, error: "MINECRAFT_SERVER_PATH is not configured" };
-
-    pushLog("[dashboard] Running azalea server update…");
-
-    const child = spawn("azalea", ["server", "update"], {
-        cwd: dir,
-        stdio: ["ignore", "pipe", "pipe"],
-    });
-
-    const rl = createInterface({ input: child.stdout! });
-    rl.on("line", pushLog);
-
-    const re = createInterface({ input: child.stderr! });
-    re.on("line", (l) => pushLog(`[err] ${l}`));
-
-    child.on("exit", (code) => {
-        pushLog(`[dashboard] Update finished (code ${code ?? "unknown"})`);
-    });
-
-    return { ok: true };
+// Keep for any callers that append directly to the log stream.
+export function appendLog(line: string) {
+    try {
+        appendFileSync(serverLogFile(), `${line}\n`, "utf-8");
+    } catch {}
 }
