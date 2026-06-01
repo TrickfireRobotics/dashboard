@@ -109,14 +109,16 @@ export function Sidebar({
     return (
         <aside className="border-sidebar-border bg-sidebar hidden w-60 shrink-0 flex-col border-r md:flex">
             <div className="border-sidebar-border flex h-16 items-center border-b px-5">
-                <Image
-                    src="/logo.png"
-                    alt="TrickFire Robotics"
-                    width={160}
-                    height={40}
-                    className="object-contain"
-                    priority
-                />
+                <Link href="/dashboard" className="transition-opacity hover:opacity-80">
+                    <Image
+                        src="/logo.png"
+                        alt="TrickFire Robotics"
+                        width={160}
+                        height={40}
+                        className="cursor-pointer object-contain"
+                        priority
+                    />
+                </Link>
             </div>
             <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
                 {baseNav.map((item) => (
