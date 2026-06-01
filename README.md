@@ -18,7 +18,13 @@ Internal portal for [TrickFire Robotics](https://trickfirerobotics.com). Members
 
 ## Local Development
 
-### Prerequisites
+### Dev Container
+
+Open the project in [VS Code](https://code.visualstudio.com/) with the [Dev Containers](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) extension installed, then run **Dev Containers: Reopen in Container** from the command palette. The container automatically installs dependencies, copies `.env.example` → `.env.local`, and seeds the database. Once it finishes, run `pnpm dev` and open `http://localhost:3000`.
+
+### Local Setup
+
+#### Prerequisites
 
 - Node.js ≥ 20
 - `pnpm` package manager
