@@ -6,14 +6,19 @@ import { db } from "@/lib/db";
 import { userFeature } from "@/lib/db/schema";
 import { FEATURE_ROUTES } from "@/lib/features";
 
-// Run on the Node.js runtime so the better-sqlite3-backed auth/db can be used
-// to enforce the deactivated-user check on every protected request.
 export const runtime = "nodejs";
 
 const SESSION_COOKIES = ["better-auth.session_token", "__Secure-better-auth.session_token"];
 
+function resolveUrl(req: NextRequest, path: string): URL {
+    const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+    const proto = req.headers.get("x-forwarded-proto") ?? "http";
+    if (host) return new URL(path, `${proto}://${host}`);
+    return new URL(path, req.url);
+}
+
 function redirectToLogin(req: NextRequest, deactivated = false) {
-    const url = new URL("/login", req.url);
+    const url = resolveUrl(req, "/login");
     if (deactivated) {
         url.searchParams.set("deactivated", "1");
     }
@@ -33,15 +38,12 @@ export async function middleware(req: NextRequest) {
         return redirectToLogin(req);
     }
 
-    // `isActive` is fetched fresh from the DB by getSession, so a member
-    // deactivated mid-session is caught here on their next request.
     if (session.user.isActive === false) {
         return redirectToLogin(req, true);
     }
 
-    // Unapproved users land on the pending page until an admin approves them.
     if (!session.user.approved) {
-        return NextResponse.redirect(new URL("/pending", req.url));
+        return NextResponse.redirect(resolveUrl(req, "/pending"));
     }
 
     // Admins bypass per-feature checks.
@@ -61,7 +63,7 @@ export async function middleware(req: NextRequest) {
                     )
                     .get();
                 if (!granted) {
-                    const url = new URL("/features", req.url);
+                    const url = resolveUrl(req, "/features");
                     url.searchParams.set("denied", featureKey);
                     return NextResponse.redirect(url);
                 }
