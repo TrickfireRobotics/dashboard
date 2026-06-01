@@ -15,12 +15,13 @@ All steps below are run **on the Xavier** unless noted otherwise. The `better-sq
 4. [Database: Migrate and Seed](#4-database-migrate-and-seed)
 5. [Build](#5-build)
 6. [Run as a systemd Service](#6-run-as-a-systemd-service)
-7. [Cloudflare Tunnel](#7-cloudflare-tunnel)
-8. [Headscale Setup](#8-headscale-setup)
-9. [BlueMap Setup](#9-bluemap-setup)
-10. [Updating an Existing Deployment](#updating-an-existing-deployment)
-11. [Backups](#backups)
-12. [Troubleshooting](#troubleshooting)
+7. [Automated Deploys (GitHub Actions)](#7-automated-deploys-github-actions)
+8. [Cloudflare Tunnel](#8-cloudflare-tunnel)
+9. [Headscale Setup](#9-headscale-setup)
+10. [BlueMap Setup](#10-bluemap-setup)
+11. [Updating an Existing Deployment](#updating-an-existing-deployment)
+12. [Backups](#backups)
+13. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -166,7 +167,74 @@ sudo systemctl status trickfire-dashboard
 journalctl -u trickfire-dashboard -f
 ```
 
-## 7. Cloudflare Tunnel
+## 7. Automated Deploys (GitHub Actions)
+
+Every merge to `main` automatically runs `deploy.sh` on the Xavier via a self-hosted GitHub Actions runner. This replaces the manual steps in [Updating an Existing Deployment](#updating-an-existing-deployment) for day-to-day releases.
+
+### Install the runner
+
+The runner must run as the `trickfire` user so it has access to the deployment directory.
+
+```bash
+# Switch to the trickfire user
+sudo -u trickfire -s
+
+# Create a directory for the runner
+mkdir -p /opt/trickfire-dashboard/actions-runner
+cd /opt/trickfire-dashboard/actions-runner
+```
+
+Go to your GitHub repo → **Settings → Actions → Runners → New self-hosted runner**, select **Linux / ARM64**, and follow the download and configure commands shown there. They look like:
+
+```bash
+# Download (use the exact URL and token from GitHub — they are one-time)
+curl -o actions-runner-linux-arm64.tar.gz -L <url-from-github>
+tar xzf actions-runner-linux-arm64.tar.gz
+
+# Configure (use the token and URL from GitHub)
+./config.sh --url https://github.com/<org>/<repo> --token <token>
+```
+
+When prompted for labels, add `self-hosted` (the default). When prompted for the runner group, accept the default.
+
+Install and start it as a systemd service:
+
+```bash
+# Still as the trickfire user
+sudo ./svc.sh install trickfire
+sudo ./svc.sh start
+sudo systemctl status actions.runner.*
+```
+
+### Allow the runner to restart the service
+
+The deploy script calls `sudo systemctl restart trickfire-dashboard`. Grant the `trickfire` user passwordless sudo for that one command:
+
+```bash
+sudo visudo -f /etc/sudoers.d/trickfire-runner
+```
+
+Add this line:
+
+```
+trickfire ALL=(ALL) NOPASSWD: /bin/systemctl restart trickfire-dashboard
+```
+
+### Verify
+
+Push any commit to `main` (or merge a PR) and watch the Actions tab on GitHub. The **Deploy** workflow should appear, run on the Xavier, and complete in roughly the same time as a manual deploy. Check the service afterwards:
+
+```bash
+sudo systemctl status trickfire-dashboard
+journalctl -u trickfire-dashboard -f
+```
+
+> [!NOTE]
+> Deploys are serialised — if two merges land in quick succession, the second waits for the first to finish rather than running concurrently.
+
+---
+
+## 8. Cloudflare Tunnel
 
 Install `cloudflared` and authenticate (one-time, opens a browser):
 
@@ -198,7 +266,7 @@ sudo systemctl enable --now cloudflared
 > [!NOTE]
 > The service API endpoint (`POST /api/service/verify`, used by simulation Python scripts) is reachable through the same tunnel and is IP-rate-limited via `x-forwarded-for` / `cf-connecting-ip` headers injected by Cloudflare.
 
-## 8. Headscale Setup
+## 9. Headscale Setup
 
 Headscale is the self-hosted Tailscale control server that backs the Network tab in the dashboard. It runs alongside the dashboard on the Xavier.
 
@@ -356,7 +424,7 @@ Members connecting from home then use:
 tailscale up --login-server https://headscale.trickfirerobotics.com
 ```
 
-## 9. BlueMap Setup
+## 10. BlueMap Setup
 
 The Minecraft page embeds the BlueMap web map. The dashboard proxies it at `/bluemap` so it is accessible via the dashboard URL without exposing BlueMap's port publicly.
 

@@ -1,0 +1,23 @@
+name: Deploy
+
+on:
+    push:
+        branches: [main-disabled]
+
+concurrency:
+    group: deploy
+    cancel-in-progress: false
+
+jobs:
+    deploy:
+        name: Deploy to Xavier
+        runs-on: self-hosted
+
+        steps:
+            - name: Pull latest changes
+              working-directory: /opt/trickfire-dashboard/dashboard
+              run: git pull
+
+            - name: Run deploy script
+              working-directory: /opt/trickfire-dashboard/dashboard
+              run: bash scripts/deploy.sh
