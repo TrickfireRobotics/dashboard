@@ -34,3 +34,6 @@ jobs:
 
             - name: Run Prettier check
               run: pnpm format:check
+
+            - name: Run TypeScript check
+              run: pnpm tsc --noEmit
