@@ -17,7 +17,7 @@ export function OnlinePlayersCard({ status, loading }: Props) {
     const isOnline = status?.online ?? false;
 
     return (
-        <Card>
+        <Card className="h-full">
             <CardHeader>
                 <CardTitle>Online Now</CardTitle>
                 <CardDescription>
