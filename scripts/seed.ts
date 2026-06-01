@@ -48,11 +48,11 @@ async function main() {
     }
 
     db.update(user)
-        .set({ role: "admin", isActive: true, emailVerified: true })
+        .set({ role: "admin", isActive: true, emailVerified: true, approved: true })
         .where(eq(user.email, email))
         .run();
 
-    console.log(`Ensured ${email} has role=admin, isActive=true.`);
+    console.log(`Ensured ${email} has role=admin, isActive=true, approved=true.`);
     console.log("Seed complete.");
 }
 

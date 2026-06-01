@@ -15,6 +15,13 @@
       "when": 1780244319850,
       "tag": "0001_dizzy_karma",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1780298934954,
+      "tag": "0002_thick_riptide",
+      "breakpoints": true
     }
   ]
 }

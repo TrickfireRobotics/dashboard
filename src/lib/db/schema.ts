@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export * from "./auth-schema";
 import { user } from "./auth-schema";
@@ -9,6 +9,7 @@ const now = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
 export type OrderStatus = "pending" | "approved" | "rejected" | "ordered";
 export type WhitelistStatus = "pending" | "approved" | "rejected";
 export type JoinRequestStatus = "pending" | "approved" | "rejected";
+export type FeatureStatus = "pending" | "granted" | "rejected";
 
 export const team = sqliteTable("team", {
     id: integer("id").primaryKey({ autoIncrement: true }),
@@ -109,4 +110,30 @@ export const headscaleJoinRequestRelations = relations(headscaleJoinRequest, ({ 
         fields: [headscaleJoinRequest.reviewedBy],
         references: [user.id],
     }),
+}));
+
+export const userFeature = sqliteTable(
+    "user_feature",
+    {
+        id: integer("id").primaryKey({ autoIncrement: true }),
+        userId: text("user_id")
+            .notNull()
+            .references(() => user.id, { onDelete: "cascade" }),
+        featureKey: text("feature_key").notNull(),
+        status: text("status").$type<FeatureStatus>().notNull().default("pending"),
+        requestNote: text("request_note"),
+        adminNote: text("admin_note"),
+        reviewedBy: text("reviewed_by").references(() => user.id, { onDelete: "set null" }),
+        reviewedAt: integer("reviewed_at", { mode: "timestamp_ms" }),
+        requestedAt: integer("requested_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    },
+    (table) => [
+        uniqueIndex("user_feature_unique").on(table.userId, table.featureKey),
+        index("user_feature_userId_idx").on(table.userId),
+    ]
+);
+
+export const userFeatureRelations = relations(userFeature, ({ one }) => ({
+    user: one(user, { fields: [userFeature.userId], references: [user.id] }),
+    reviewer: one(user, { fields: [userFeature.reviewedBy], references: [user.id] }),
 }));
