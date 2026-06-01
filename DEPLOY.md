@@ -21,8 +21,8 @@ All steps below are run **on the Xavier** unless noted otherwise. The `better-sq
 10. [Minecraft Server Setup](#10-minecraft-server-setup)
 11. [BlueMap Setup](#11-bluemap-setup)
 12. [Updating an Existing Deployment](#updating-an-existing-deployment)
-12. [Backups](#backups)
-13. [Troubleshooting](#troubleshooting)
+13. [Backups](#backups)
+14. [Troubleshooting](#troubleshooting)
 
 ---
 
