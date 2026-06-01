@@ -28,7 +28,7 @@ export function OnlinePlayersCard({ status, loading }: Props) {
                         : "Server is offline."}
                 </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-1 flex-col items-center justify-center">
                 {loading && !status ? (
                     <div className="space-y-2">
                         {Array.from({ length: 3 }).map((_, i) => (
