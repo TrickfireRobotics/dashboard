@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
-import { addOnshapeMember, getOnshapeMembers } from "@/lib/onshape";
+import { addOnshapeMember, getOnshapeMembers, OnshapeError } from "@/lib/onshape";
 import { getSessionUser } from "@/lib/session";
 
 export async function GET() {
@@ -9,10 +9,15 @@ export async function GET() {
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if (user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const members = await getOnshapeMembers();
-    if (!members) return NextResponse.json({ members: [] });
-
-    return NextResponse.json({ members });
+    try {
+        const members = await getOnshapeMembers();
+        // null means Onshape isn't configured; an empty company is `[]`.
+        return NextResponse.json({ members: members ?? [] });
+    } catch (err) {
+        const status = err instanceof OnshapeError ? 502 : 500;
+        const message = err instanceof Error ? err.message : "Failed to load members";
+        return NextResponse.json({ error: message }, { status });
+    }
 }
 
 const addMemberSchema = z.object({
@@ -37,8 +42,12 @@ export async function POST(req: NextRequest) {
     }
 
     const { email, ...opts } = parsed.data;
-    const ok = await addOnshapeMember(email, opts);
-    if (!ok) return NextResponse.json({ error: "Failed to add member" }, { status: 502 });
-
-    return NextResponse.json({ success: true }, { status: 201 });
+    try {
+        await addOnshapeMember(email, opts);
+        return NextResponse.json({ success: true }, { status: 201 });
+    } catch (err) {
+        const status = err instanceof OnshapeError ? 502 : 500;
+        const message = err instanceof Error ? err.message : "Failed to add member";
+        return NextResponse.json({ error: message }, { status });
+    }
 }

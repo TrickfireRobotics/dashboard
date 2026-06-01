@@ -43,6 +43,7 @@ function MemberTypeBadges({
 
 function MembersTab() {
     const [members, setMembers] = useState<OnshapeMember[] | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState<string | null>(null);
     const [email, setEmail] = useState("");
@@ -50,9 +51,17 @@ function MembersTab() {
     const [adding, setAdding] = useState(false);
 
     const load = useCallback(async () => {
+        setError(null);
         try {
             const res = await fetch("/api/admin/onshape/members", { cache: "no-store" });
-            if (res.ok) setMembers((await res.json()).members ?? []);
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                setError(data?.error ?? "Failed to load members");
+                return;
+            }
+            setMembers(data?.members ?? []);
+        } catch {
+            setError("Failed to load members");
         } finally {
             setLoading(false);
         }
@@ -167,6 +176,8 @@ function MembersTab() {
                     <Skeleton className="h-10" />
                     <Skeleton className="h-10" />
                 </div>
+            ) : error ? (
+                <p className="text-destructive text-sm">{error}</p>
             ) : !members || members.length === 0 ? (
                 <p className="text-muted-foreground text-sm">No company members found.</p>
             ) : (
@@ -222,28 +233,44 @@ function MembersTab() {
 
 function TeamsTab() {
     const [teams, setTeams] = useState<OnshapeTeam[] | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState<OnshapeTeam | null>(null);
     const [teamMembers, setTeamMembers] = useState<OnshapeTeamMember[] | null>(null);
+    const [membersError, setMembersError] = useState<string | null>(null);
     const [membersLoading, setMembersLoading] = useState(false);
 
     useEffect(() => {
         fetch("/api/admin/onshape/teams", { cache: "no-store" })
-            .then((r) => r.json())
-            .then((d) => setTeams(d.teams ?? []))
-            .catch(() => {})
+            .then(async (r) => {
+                const data = await r.json().catch(() => null);
+                if (!r.ok) {
+                    setError(data?.error ?? "Failed to load teams");
+                    return;
+                }
+                setTeams(data?.teams ?? []);
+            })
+            .catch(() => setError("Failed to load teams"))
             .finally(() => setLoading(false));
     }, []);
 
     async function viewMembers(team: OnshapeTeam) {
         setSelected(team);
         setTeamMembers(null);
+        setMembersError(null);
         setMembersLoading(true);
         try {
             const res = await fetch(`/api/admin/onshape/teams/${team.id}/members`, {
                 cache: "no-store",
             });
-            if (res.ok) setTeamMembers((await res.json()).members ?? []);
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                setMembersError(data?.error ?? "Failed to load members");
+                return;
+            }
+            setTeamMembers(data?.members ?? []);
+        } catch {
+            setMembersError("Failed to load members");
         } finally {
             setMembersLoading(false);
         }
@@ -256,6 +283,7 @@ function TeamsTab() {
                 <Skeleton className="h-10" />
             </div>
         );
+    if (error) return <p className="text-destructive text-sm">{error}</p>;
     if (!teams || teams.length === 0)
         return <p className="text-muted-foreground text-sm">No teams found.</p>;
 
@@ -310,6 +338,8 @@ function TeamsTab() {
                         <Skeleton className="h-8" />
                         <Skeleton className="h-8" />
                     </div>
+                ) : membersError ? (
+                    <p className="text-destructive text-sm">{membersError}</p>
                 ) : !teamMembers || teamMembers.length === 0 ? (
                     <p className="text-muted-foreground text-sm">No members in {selected.name}.</p>
                 ) : (

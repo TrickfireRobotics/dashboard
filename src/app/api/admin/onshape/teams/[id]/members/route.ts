@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getOnshapeTeamMembers } from "@/lib/onshape";
+import { getOnshapeTeamMembers, OnshapeError } from "@/lib/onshape";
 import { getSessionUser } from "@/lib/session";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -9,8 +9,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { id } = await params;
-    const members = await getOnshapeTeamMembers(id);
-    if (!members) return NextResponse.json({ members: [] });
-
-    return NextResponse.json({ members });
+    try {
+        const members = await getOnshapeTeamMembers(id);
+        return NextResponse.json({ members: members ?? [] });
+    } catch (err) {
+        const status = err instanceof OnshapeError ? 502 : 500;
+        const message = err instanceof Error ? err.message : "Failed to load team members";
+        return NextResponse.json({ error: message }, { status });
+    }
 }

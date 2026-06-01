@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { removeOnshapeMember } from "@/lib/onshape";
+import { OnshapeError, removeOnshapeMember } from "@/lib/onshape";
 import { getSessionUser } from "@/lib/session";
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ uid: string }> }) {
@@ -9,8 +9,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ u
     if (user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { uid } = await params;
-    const ok = await removeOnshapeMember(uid);
-    if (!ok) return NextResponse.json({ error: "Failed to remove member" }, { status: 502 });
-
-    return NextResponse.json({ success: true });
+    try {
+        await removeOnshapeMember(uid);
+        return NextResponse.json({ success: true });
+    } catch (err) {
+        const status = err instanceof OnshapeError ? 502 : 500;
+        const message = err instanceof Error ? err.message : "Failed to remove member";
+        return NextResponse.json({ error: message }, { status });
+    }
 }
