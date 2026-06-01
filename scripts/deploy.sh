@@ -9,6 +9,7 @@ echo "==> Running database migrations..."
 pnpm exec drizzle-kit migrate
 
 echo "==> Building..."
+rm -rf .next
 pnpm build
 
 echo "==> Copying static assets into standalone output..."
