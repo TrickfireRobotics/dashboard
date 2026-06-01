@@ -15,7 +15,10 @@ const nameCache = new LRUCache<string, string>({ max: 500, ttl: 24 * 60 * 60 * 1
 
 function parsedBots(): Map<string, string | undefined> {
     const map = new Map<string, string | undefined>();
-    for (const entry of (process.env.MINECRAFT_BOT_NAMES ?? "").split(",").map((s) => s.trim()).filter(Boolean)) {
+    for (const entry of (process.env.MINECRAFT_BOT_NAMES ?? "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)) {
         const i = entry.indexOf(":");
         if (i === -1) map.set(entry, undefined);
         else map.set(entry.slice(0, i).trim(), entry.slice(i + 1).trim() || undefined);

@@ -37,8 +37,7 @@ export default async function AdminServerPage() {
                     {config && <RunSettingsCard initial={config} />}
                     {!configured && (
                         <div className="border-border text-muted-foreground rounded-lg border p-6 text-center text-sm">
-                            Set{" "}
-                            <code className="font-mono">MINECRAFT_SERVER_PATH</code> to enable
+                            Set <code className="font-mono">MINECRAFT_SERVER_PATH</code> to enable
                             configuration.
                         </div>
                     )}
@@ -46,8 +45,8 @@ export default async function AdminServerPage() {
                 {/* relative+self-stretch makes this column stretch to the left column's height.
                     The inner absolute div fills that height without contributing to row sizing,
                     so the grid row height is driven only by the left column. */}
-                <div className="lg:col-span-2 lg:relative lg:self-stretch">
-                    <div className="flex flex-col min-h-96 lg:absolute lg:inset-0">
+                <div className="lg:relative lg:col-span-2 lg:self-stretch">
+                    <div className="flex min-h-96 flex-col lg:absolute lg:inset-0">
                         <ServerLogViewer />
                     </div>
                 </div>

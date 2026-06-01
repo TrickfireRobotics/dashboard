@@ -8,7 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlayerHead } from "./PlayerHead";
 
-type Entry = { uuid: string; name: string; playTimeSeconds: number; isBot: boolean; skinSource?: string };
+type Entry = {
+    uuid: string;
+    name: string;
+    playTimeSeconds: number;
+    isBot: boolean;
+    skinSource?: string;
+};
 
 function formatTime(seconds: number): string {
     const h = Math.floor(seconds / 3600);

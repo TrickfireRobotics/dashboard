@@ -17,7 +17,7 @@ function InfoRow({ label, value }: { label: string; value: string | null }) {
     return (
         <div className="flex items-start justify-between gap-4 py-1.5">
             <span className="text-muted-foreground shrink-0 text-sm">{label}</span>
-            <span className="text-foreground break-all text-right font-mono text-sm">
+            <span className="text-foreground text-right font-mono text-sm break-all">
                 {value ?? <span className="text-muted-foreground italic">none</span>}
             </span>
         </div>
@@ -43,7 +43,7 @@ function ScrollableMods({ entries }: { entries: [string, string][] }) {
     return (
         <div className="relative">
             <div
-                className={`pointer-events-none absolute inset-x-0 top-0 h-8 bg-gradient-to-b from-card to-transparent z-10 transition-opacity duration-150 ${showTop ? "opacity-100" : "opacity-0"}`}
+                className={`from-card pointer-events-none absolute inset-x-0 top-0 z-10 h-8 bg-gradient-to-b to-transparent transition-opacity duration-150 ${showTop ? "opacity-100" : "opacity-0"}`}
             />
             <div
                 ref={ref}
@@ -61,7 +61,7 @@ function ScrollableMods({ entries }: { entries: [string, string][] }) {
                 ))}
             </div>
             <div
-                className={`pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-card to-transparent z-10 transition-opacity duration-150 ${showBottom ? "opacity-100" : "opacity-0"}`}
+                className={`from-card pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-gradient-to-t to-transparent transition-opacity duration-150 ${showBottom ? "opacity-100" : "opacity-0"}`}
             />
         </div>
     );
@@ -96,7 +96,7 @@ export function ServerConfigEditor({ initial }: { initial: AzaleaConfig }) {
                 </div>
 
                 <SectionLabel>Mods ({modEntries.length})</SectionLabel>
-                <div className="border-border rounded-md border overflow-hidden">
+                <div className="border-border overflow-hidden rounded-md border">
                     <div className="border-border grid grid-cols-[1fr_auto] border-b px-3 py-2">
                         <span className="text-muted-foreground text-xs font-medium">Mod ID</span>
                         <span className="text-muted-foreground text-xs font-medium">Version</span>

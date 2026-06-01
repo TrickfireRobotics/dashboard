@@ -1,12 +1,11 @@
 import type { NextRequest } from "next/server";
 
 const UPSTREAM =
-    process.env.BLUEMAP_URL ??
-    `http://${process.env.MINECRAFT_SERVER_HOST ?? "localhost"}:8100`;
+    process.env.BLUEMAP_URL ?? `http://${process.env.MINECRAFT_SERVER_HOST ?? "localhost"}:8100`;
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: Promise<{ path?: string[] }> },
+    { params }: { params: Promise<{ path?: string[] }> }
 ) {
     const { path } = await params;
     const subpath = path?.length ? "/" + path.join("/") : "/";

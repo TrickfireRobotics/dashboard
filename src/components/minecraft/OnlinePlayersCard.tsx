@@ -44,7 +44,10 @@ export function OnlinePlayersCard({ status, loading }: Props) {
                     <ul className="space-y-1">
                         {players.map((p) => (
                             <li key={p.uuid} className="flex items-center gap-2.5 py-0.5">
-                                <PlayerHead name={p.name} skinSource={p.isBot ? p.skinSource : undefined} />
+                                <PlayerHead
+                                    name={p.name}
+                                    skinSource={p.isBot ? p.skinSource : undefined}
+                                />
                                 <span className="text-foreground text-sm">{p.name}</span>
                                 {p.isBot && (
                                     <Badge variant="secondary" className="text-xs">

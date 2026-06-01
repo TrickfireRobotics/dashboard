@@ -103,10 +103,7 @@ export function RunSettingsCard({ initial }: { initial: AzaleaConfig }) {
     const [run, setRun] = useState(initial.run);
     const [saving, setSaving] = useState(false);
 
-    function setField<K extends keyof AzaleaConfig["run"]>(
-        key: K,
-        value: AzaleaConfig["run"][K]
-    ) {
+    function setField<K extends keyof AzaleaConfig["run"]>(key: K, value: AzaleaConfig["run"][K]) {
         setRun((r) => ({ ...r, [key]: value }));
     }
 
@@ -135,7 +132,7 @@ export function RunSettingsCard({ initial }: { initial: AzaleaConfig }) {
                 <CardDescription>Applied on the next server start.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="grid gap-3 grid-cols-1">
+                <div className="grid grid-cols-1 gap-3">
                     <EditField
                         label="RAM"
                         value={run.ram}
