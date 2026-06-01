@@ -151,10 +151,17 @@ export function ServerLogViewer() {
         } else if (e.key === "ArrowUp") {
             e.preventDefault();
             setSelectedSuggestion((i) => Math.max(i - 1, -1));
-        } else if (e.key === "Tab" || e.key === "Enter") {
+        } else if (e.key === "Tab") {
             e.preventDefault();
             const idx = selectedSuggestion >= 0 ? selectedSuggestion : 0;
             applySuggestion(suggestions[idx]);
+        } else if (e.key === "Enter") {
+            if (selectedSuggestion >= 0) {
+                e.preventDefault();
+                applySuggestion(suggestions[selectedSuggestion]);
+            } else {
+                sendCmd();
+            }
         } else if (e.key === "Escape") {
             setSuggestions([]);
             setSelectedSuggestion(-1);

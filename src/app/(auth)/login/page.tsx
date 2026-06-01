@@ -30,7 +30,6 @@ export default async function LoginPage({
                         className="h-35 w-auto object-contain"
                         priority
                     />
-                    meow meow
                 </div>
                 <LoginForm notice={notice} />
             </div>
