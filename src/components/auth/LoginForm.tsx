@@ -330,7 +330,7 @@ export function LoginForm({ notice }: { notice?: string }) {
                                                 <Input
                                                     type="text"
                                                     inputMode="email"
-                                                    autoComplete="email"
+                                                    autoComplete="username"
                                                     placeholder="your@email.com or username"
                                                     {...field}
                                                 />
