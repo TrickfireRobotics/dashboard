@@ -11,6 +11,7 @@ const routeLabels: Record<string, string> = {
     "/admin/orders": "Order Queue",
     "/admin/users": "Users",
     "/admin/minecraft": "Whitelist",
+    "/admin/server": "Server",
     "/admin/headscale": "Network",
 };
 
