@@ -297,7 +297,13 @@ export function LoginForm({ notice }: { notice?: string }) {
                 {step === "credentials" && (
                     <Form {...credForm}>
                         <form
-                            onSubmit={credForm.handleSubmit(onCredentialsSubmit)}
+                            onSubmit={(e) => e.preventDefault()}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey && !submitting) {
+                                    e.preventDefault();
+                                    credForm.handleSubmit(onCredentialsSubmit)();
+                                }
+                            }}
                             className="space-y-4"
                         >
                             <div className="space-y-4">
@@ -397,7 +403,8 @@ export function LoginForm({ notice }: { notice?: string }) {
                                 }
                             />
                             <Button
-                                type="submit"
+                                type="button"
+                                onClick={() => credForm.handleSubmit(onCredentialsSubmit)()}
                                 className="w-full"
                                 style={
                                     mode === "register"
