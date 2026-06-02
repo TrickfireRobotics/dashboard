@@ -364,7 +364,9 @@ function TeamsTab() {
                         {teams.map((t) => (
                             <TableRow
                                 key={t.id}
-                                className={selected?.id === t.id ? "bg-sidebar-accent/40" : undefined}
+                                className={
+                                    selected?.id === t.id ? "bg-sidebar-accent/40" : undefined
+                                }
                             >
                                 <TableCell>
                                     <p className="font-medium">{t.name}</p>
@@ -436,7 +438,12 @@ export function AdminGithubManager({ org }: { org: GithubOrg | null }) {
                 <Card>
                     <CardHeader>
                         <CardTitle>
-                            <a href={org.htmlUrl} target="_blank" rel="noreferrer" className="hover:underline">
+                            <a
+                                href={org.htmlUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="hover:underline"
+                            >
                                 {org.name ?? org.login}
                             </a>
                         </CardTitle>
