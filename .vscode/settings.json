@@ -23,5 +23,12 @@
         "next-env.d.ts": true,
         ".husky/_*": true
     },
-    "cSpell.words": ["apikey", "cloudflared", "headscale", "trickfire", "trickfirerobotics"]
+    "cSpell.words": [
+        "apikey",
+        "cloudflared",
+        "headscale",
+        "Onshape",
+        "trickfire",
+        "trickfirerobotics"
+    ]
 }
