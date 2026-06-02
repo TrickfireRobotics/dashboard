@@ -22,5 +22,12 @@
         "tsconfig.tsbuildinfo": true,
         "next-env.d.ts": true
     },
-    "cSpell.words": ["apikey", "cloudflared", "headscale", "trickfire", "trickfirerobotics"]
+    "cSpell.words": [
+        "apikey",
+        "cloudflared",
+        "headscale",
+        "Onshape",
+        "trickfire",
+        "trickfirerobotics"
+    ]
 }
