@@ -13,6 +13,7 @@ const routeLabels: Record<string, string> = {
     "/admin/minecraft": "Whitelist",
     "/admin/server": "Server",
     "/admin/headscale": "Network",
+    "/admin/onshape": "Onshape",
 };
 
 function getPageTitle(pathname: string): string {
