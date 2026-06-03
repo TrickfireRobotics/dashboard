@@ -13,6 +13,7 @@
         "db:migrate": "drizzle-kit migrate",
         "db:seed": "tsx scripts/seed.ts",
         "db:studio": "drizzle-kit studio",
+        "predb:reset": "node -e \"if(process.env.NODE_ENV==='production'){process.stderr.write('\\x1b[31mERROR: db:reset is disabled in production.\\x1b[0m\\n');process.exit(1)}\"",
         "db:reset": "rm -f db/dashboard.db && pnpm db:migrate && pnpm db:seed",
         "setup": "pnpm db:migrate && pnpm db:seed",
         "deploy": "bash scripts/deploy.sh",
