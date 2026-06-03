@@ -13,7 +13,7 @@ Internal portal for [TrickFire Robotics](https://trickfirerobotics.com). Members
 | Auth            | [better-auth](https://www.better-auth.com) - email/password, session cookies                                         |
 | UI              | [Tailwind CSS v4](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com), [Lucide icons](https://lucide.dev/) |
 | Email           | [Resend](https://resend.com)                                                                                         |
-| Network         | [Headscale](https://headscale.net) self-hosted Tailscale control server                                              |
+| Network         | [Tailscale](https://tailscale.com) — shared tailnet, managed via Tailscale API                                       |
 | Package manager | [`pnpm`](https://pnpm.io/)                                                                                           |
 
 ## Local Development
@@ -67,28 +67,35 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 | Variable                      | Description                                                                                                                                                           |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `NEXT_PUBLIC_APP_URL`         | Public origin of the app, e.g. `http://localhost:3000`                                                                                                                |
-| `BETTER_AUTH_SECRET`          | Random secret for signing sessions - generate with `openssl rand -hex 32`                                                                                             |
+| `BETTER_AUTH_SECRET`          | Random secret for signing sessions — generate with `openssl rand -hex 32`                                                                                             |
 | `BETTER_AUTH_URL`             | Same value as `NEXT_PUBLIC_APP_URL`                                                                                                                                   |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated extra origins allowed to make auth requests, e.g. `http://192.168.1.50:3000`. Required when accessing the dev server from another machine on the LAN. |
-| `DATABASE_PATH`               | Path to the SQLite file, e.g. `db/dashboard.db`                                                                                                                       |
+| `DATABASE_PATH`               | Path to the SQLite file, e.g. `./db/dashboard.db`                                                                                                                     |
+| `RESEND_API_KEY`              | API key from [Resend](https://resend.com) for transactional email                                                                                                     |
+| `EMAIL_FROM`                  | Sender shown in outgoing emails, e.g. `TrickFire Robotics <noreply@trickfirerobotics.com>`                                                                            |
+| `MINECRAFT_SERVER_HOST`       | Hostname/IP of the Minecraft server (default `localhost`)                                                                                                             |
+| `MINECRAFT_SERVER_PORT`       | Query port of the Minecraft server (default `25565`)                                                                                                                  |
+| `MINECRAFT_SERVER_PATH`       | Absolute path to the Minecraft server directory — used to detect if the server is installed                                                                           |
+| `MINECRAFT_WORLD_PATH`        | Absolute path to the Minecraft world directory. Used to read per-player stat files for the playtime leaderboard.                                                      |
+| `MINECRAFT_RCON_PORT`         | RCON port (default `25575`). Must match `rcon.port` in `server.properties`.                                                                                           |
+| `MINECRAFT_RCON_PASSWORD`     | RCON password. Must match `rcon.password` in `server.properties`.                                                                                                     |
+| `MINECRAFT_BOT_NAMES`         | Comma-separated list of carpet bot names, optionally with a custom skin URL: `BotA:https://s.namemc.com/i/abc123.png`. Bots are tagged in the UI.                     |
+| `BLUEMAP_URL`                 | Internal URL of the BlueMap web server, e.g. `http://localhost:8100`. The dashboard proxies this at `/bluemap` so it's accessible without exposing a second port.     |
+| `TAILSCALE_API_KEY`           | API key from the Tailscale admin console (Settings → Keys). Powers the Network tab.                                                                                   |
+| `TAILSCALE_TAILNET`           | Tailnet name, e.g. `trickfirerobotics.com`. Use `-` to default to the tailnet that owns the API key.                                                                  |
+| `ONSHAPE_BASE_URL`            | OnShape API base URL, e.g. `https://cad.onshape.com/api`                                                                                                              |
+| `ONSHAPE_ACCESS_KEY`          | OnShape API access key                                                                                                                                                |
+| `ONSHAPE_SECRET_KEY`          | OnShape API secret key                                                                                                                                                |
+| `ONSHAPE_COMPANY_ID`          | Optional. Pin requests to a specific OnShape company — auto-detected from the access key if omitted.                                                                  |
 | `SEED_ADMIN_EMAIL`            | Email for the seeded admin account                                                                                                                                    |
 | `SEED_ADMIN_PASSWORD`         | Password for the seeded admin account                                                                                                                                 |
 | `SEED_ADMIN_NAME`             | Display name for the seeded admin                                                                                                                                     |
-| `MINECRAFT_SERVER_HOST`       | Hostname/IP of the Minecraft server                                                                                                                                   |
-| `MINECRAFT_SERVER_PORT`       | Port of the Minecraft server (default `25565`)                                                                                                                        |
-| `MINECRAFT_WORLD_PATH`        | Absolute path to the Minecraft world directory, e.g. `/opt/minecraft/world`. Used to read per-player stat files for the playtime leaderboard.                         |
-| `MINECRAFT_BOT_NAMES`         | Comma-separated list of carpet bot names, optionally with a custom skin source: `BotA:Steve,BotB:https://s.namemc.com/i/abc123.png`. Bots are tagged in the UI.       |
-| `BLUEMAP_URL`                 | Internal URL of the BlueMap web server, e.g. `http://localhost:8100`. The dashboard proxies this at `/bluemap` so it's accessible without exposing a second port.     |
-| `RESEND_API_KEY`              | API key from [Resend](https://resend.com) for transactional email                                                                                                     |
-| `EMAIL_FROM`                  | Sender shown in outgoing emails, e.g. `TrickFire Robotics <noreply@trickfirerobotics.com>`                                                                            |
-| `HEADSCALE_URL`               | Base URL of the Headscale REST API, e.g. `http://localhost:50443`                                                                                                     |
-| `HEADSCALE_API_KEY`           | API key generated by Headscale                                                                                                                                        |
 
 > [!TIP]
-> `MINECRAFT_SERVER_HOST`, `MINECRAFT_WORLD_PATH`, `BLUEMAP_URL`, `RESEND_API_KEY`, and `HEADSCALE_*` are optional for local dev. The app handles unreachable services gracefully - the Minecraft card shows "offline", the leaderboard and map show an unavailable state, email features are skipped, and the Network tab shows an error state.
+> Most variables are optional for local dev. The app degrades gracefully: Minecraft cards show "offline", the leaderboard and map show an unavailable state, email is skipped, and the Network tab shows an error state. The only var you strictly need to set is `BETTER_AUTH_SECRET`.
 
 > [!CAUTION]
-> Never commit `.env.local` or any file containing `BETTER_AUTH_SECRET`. It must stay off `git` - anyone who has it can forge session tokens.
+> Never commit `.env.local` or `.env.production`. The `BETTER_AUTH_SECRET` value lets anyone forge session tokens — if it leaks, rotate it immediately by changing the value and restarting the server (all existing sessions are invalidated).
 
 ## Project Structure
 
@@ -146,7 +153,7 @@ The app uses a **single SQLite file** on disk. All queries go through [Drizzle O
 | `orders`                 | Part order requests. Status flows: `pending → approved / rejected → ordered`.                                                   |
 | `api_key`                | Hashed service API keys issued to members. Only the prefix and hash are stored - the raw key is shown once on creation.         |
 | `minecraft_whitelist`    | Minecraft username whitelist requests. `addedDirectly` marks entries added by admins without a member request.                  |
-| `headscale_join_request` | Requests to join the VPN. Approved requests still require manual action in Headscale CLI.                                       |
+| `headscale_join_request` | Requests to join the Tailscale network. Approved requests still require manual action in the Tailscale admin console.           |
 
 ### Inspecting the database
 
@@ -192,10 +199,11 @@ pnpm db:migrate
 | `pnpm lint`         | Run ESLint                                               |
 | `pnpm format`       | Auto-format all files with Prettier                      |
 | `pnpm format:check` | Check formatting without writing (used in CI)            |
-| `pnpm db:generate`  | Generate migrations from schema changes                  |
-| `pnpm db:migrate`   | Apply all pending migrations                             |
-| `pnpm db:seed`      | Seed the 6 teams + admin user (idempotent)               |
-| `pnpm db:studio`    | Open Drizzle Studio — visual database browser (dev only) |
+| `pnpm db:generate`  | Generate migrations from schema changes                                    |
+| `pnpm db:migrate`   | Apply all pending migrations                                               |
+| `pnpm db:seed`      | Seed the 6 teams + admin user (idempotent)                                 |
+| `pnpm db:reset`     | Drop and recreate the local database. **Blocked in production** by a guard |
+| `pnpm db:studio`    | Open Drizzle Studio — visual database browser (dev only)                   |
 
 ## Deployment
 

@@ -22,7 +22,8 @@ All steps below are run **on the Xavier** unless noted otherwise. The `better-sq
 11. [BlueMap Setup](#11-bluemap-setup)
 12. [Updating an Existing Deployment](#updating-an-existing-deployment)
 13. [Backups](#backups)
-14. [Troubleshooting](#troubleshooting)
+14. [Database Safety](#database-safety)
+15. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -53,9 +54,8 @@ pnpm install --frozen-lockfile
 
 ## 3. Configure Environment
 
-1. Create `/home/trickfire/dashboard/.env.local` - use `.env.example` as the template.
-2. See [Environment Variables in README.md](README.md#environment-variables) for descriptions of every key.
-3. Generate the auth secret:
+1. Create `/home/trickfire/dashboard/.env.production` — use `.env.example` as the template.
+2. Generate the auth secret:
 
     ```bash
     openssl rand -hex 32
@@ -73,13 +73,13 @@ DATABASE_PATH=/home/trickfire/db/dashboard.db
 # Minecraft
 MINECRAFT_SERVER_HOST=<host or LAN IP of the Minecraft server>
 MINECRAFT_SERVER_PORT=25565
-MINECRAFT_WORLD_PATH=/opt/minecraft/world
+MINECRAFT_WORLD_PATH=/home/trickfire/minecraft/world
 MINECRAFT_BOT_NAMES=BotA,BotB         # comma-separated; append :SkinURL for a custom skin
 BLUEMAP_URL=http://localhost:8100
 
-# Headscale
-HEADSCALE_URL=http://localhost:50443
-HEADSCALE_API_KEY=<from headscale apikeys create>
+# Tailscale
+TAILSCALE_API_KEY=<from Tailscale admin console → Settings → Keys>
+TAILSCALE_TAILNET=-
 
 # Email
 RESEND_API_KEY=re_...
@@ -87,10 +87,13 @@ EMAIL_FROM=TrickFire Robotics <noreply@trickfirerobotics.com>
 ```
 
 > [!NOTE]
-> `BETTER_AUTH_TRUSTED_ORIGINS` is **not needed in production** - all browser traffic arrives via the Cloudflare Tunnel, which always uses `https://dashboard.trickfirerobotics.com`. It is only required when accessing the dev server from a second machine on the LAN (e.g. testing on a phone at `http://192.168.1.50:3000`).
+> `NODE_ENV=production` is set directly in the systemd service file — do **not** add it to `.env.production`. Next.js uses it to decide which env files to load; putting it inside the file it is trying to load creates a circular dependency.
+
+> [!NOTE]
+> `BETTER_AUTH_TRUSTED_ORIGINS` is **not needed in production** — all browser traffic arrives via the Cloudflare Tunnel, which always uses `https://dashboard.trickfirerobotics.com`. It is only required when accessing the dev server from a second machine on the LAN (e.g. testing on a phone at `http://192.168.1.50:3000`).
 
 > [!CAUTION]
-> Keep `.env.local` off `git`. The `BETTER_AUTH_SECRET` value lets anyone forge session tokens. If it's ever leaked, rotate it immediately and invalidate all sessions by changing the value.
+> Keep `.env.production` off `git`. The `BETTER_AUTH_SECRET` value lets anyone forge session tokens. If it's ever leaked, rotate it immediately and invalidate all sessions by changing the value.
 
 ## 4. Database: Migrate and Seed
 
@@ -141,7 +144,7 @@ After=network.target
 Type=simple
 User=trickfire
 WorkingDirectory=/home/trickfire/dashboard
-EnvironmentFile=/home/trickfire/dashboard/.env.local
+EnvironmentFile=/home/trickfire/dashboard/.env.production
 Environment=NODE_ENV=production
 Environment=PORT=3000
 Environment=HOSTNAME=127.0.0.1
@@ -264,163 +267,62 @@ sudo systemctl enable --now cloudflared
 > [!NOTE]
 > The service API endpoint (`POST /api/service/verify`, used by simulation Python scripts) is reachable through the same tunnel and is IP-rate-limited via `x-forwarded-for` / `cf-connecting-ip` headers injected by Cloudflare.
 
-## 9. Headscale Setup
+## 9. Tailscale Setup
 
-Headscale is the self-hosted Tailscale control server that backs the Network tab in the dashboard. It runs alongside the dashboard on the Xavier.
+Tailscale backs the Network tab in the dashboard. The club uses a shared Tailscale account so all devices belong to one tailnet.
 
-### Install Headscale
-
-Headscale ships as a single binary. Get the ARM64 `.deb` release:
+### Install Tailscale on the Xavier
 
 ```bash
-# Check https://github.com/juanfont/headscale/releases for the latest version
-HEADSCALE_VERSION="0.25.1"
-
-wget -O headscale.deb \
-  "https://github.com/juanfont/headscale/releases/download/v${HEADSCALE_VERSION}/headscale_${HEADSCALE_VERSION}_linux_arm64.deb"
-
-sudo dpkg -i headscale.deb
-rm headscale.deb
-
-headscale version   # verify
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
 ```
 
-### Configure Headscale
+Follow the login URL printed by `tailscale up` to authenticate with the club Tailscale account.
 
-Edit `/etc/headscale/config.yaml`:
+### Connect Other Devices
 
-```yaml
-# Public URL that devices will connect to
-server_url: https://headscale.trickfirerobotics.com:443
-
-# REST API + gRPC listen address (the dashboard talks to this)
-listen_addr: 0.0.0.0:50443
-metrics_listen_addr: 0.0.0.0:9090
-
-database:
-    type: sqlite
-    sqlite:
-        path: /var/lib/headscale/db.sqlite
-
-dns:
-    magic_dns: true
-    base_domain: trickfire # devices get names like laptop.trickfire
-
-ip_prefixes:
-    - fd7a:115c:a1e0::/48 # IPv6
-    - 100.64.0.0/10 # IPv4 (Tailscale CGNAT range)
-```
-
-> [!TIP]
-> If Headscale stays on the same machine as the dashboard and doesn't need to be publicly accessible, use `server_url: http://localhost:50443` and `listen_addr: 127.0.0.1:50443` instead. This keeps the control server off the internet entirely.
-
-### Start the Service
-
-Headscale installs a systemd unit automatically:
+On any device you want on the network:
 
 ```bash
-sudo systemctl enable headscale
-sudo systemctl start headscale
-sudo systemctl status headscale
-journalctl -u headscale -f          # tail logs
+sudo tailscale up
 ```
 
-### Create a User
-
-Headscale organises devices into users (called namespaces in older versions). Create one for the club:
-
-```bash
-headscale users create trickfire
-headscale users list
-```
+Log in with the club Tailscale account. The device will appear in the Tailscale admin console and in the dashboard Network tab.
 
 ### Generate an API Key for the Dashboard
 
-```bash
-# Creates a key expiring in 1 year
-headscale apikeys create --expiration 8760h
+1. Go to the Tailscale admin console → **Settings → Keys → Generate access token**
+2. Give it a description (e.g. `dashboard`) and set an expiry
+3. Copy the key and add it to `.env.production`:
+
+```env
+TAILSCALE_API_KEY=<paste here>
+TAILSCALE_TAILNET=-
 ```
+
+> [!NOTE]
+> `TAILSCALE_TAILNET=-` is a special value meaning "the tailnet that owns this API key". You can also use your tailnet name (e.g. `trickfirerobotics.com`) explicitly.
 
 > [!CAUTION]
-> The key is printed exactly once. Copy it immediately and add it to `.env.local`:
->
-> ```env
-> HEADSCALE_URL=http://localhost:50443
-> HEADSCALE_API_KEY=<paste here>
-> ```
->
-> Then restart the dashboard service so it picks up the new value.
+> The key is shown once. Store it securely. If it leaks, rotate it immediately in the Tailscale admin console and update `.env.production`.
 
-### Connect a Device
-
-Devices use the standard Tailscale client pointed at your Headscale server.
+Then restart the dashboard to pick up the new values:
 
 ```bash
-sudo tailscale up --login-server https://headscale.trickfirerobotics.com
+sudo systemctl restart trickfire-dashboard
 ```
 
-This prints a registration URL - copy it.
+### Quick Reference
 
-### Approve the Device on the Server
-
-After a device runs `tailscale up`, it appears as a pending registration:
-
-```bash
-headscale nodes list
-
-# Approve the node - machine key is printed by tailscale up on the client
-headscale nodes register --user trickfire --key <mkey:...>
-```
-
-Once approved, the device gets an IP and can reach other nodes on the network.
-
-### Verify the Connection
-
-On the connected device:
-
-```bash
-tailscale ip                    # shows the Headscale-assigned IP (100.x.x.x or fd7a::...)
-ping xavier.trickfire           # MagicDNS
-```
-
-On the server:
-
-```bash
-headscale nodes list
-```
-
-### Headscale Quick Reference
-
-| Task              | Command                                      |
-| ----------------- | -------------------------------------------- |
-| List all nodes    | `headscale nodes list`                       |
-| Delete a node     | `headscale nodes delete --identifier <id>`   |
-| Expire a node key | `headscale nodes expire --identifier <id>`   |
-| List routes       | `headscale routes list`                      |
-| Enable a route    | `headscale routes enable --route <id>`       |
-| List API keys     | `headscale apikeys list`                     |
-| Expire an API key | `headscale apikeys expire --prefix <prefix>` |
-| View logs         | `journalctl -u headscale -f`                 |
-| Reload config     | `systemctl restart headscale`                |
-
-### Expose Headscale Publicly
-
-To make the headscale network work outside of the lab, add a second ingress rule in `~/.cloudflared/config.yml`:
-
-```yaml
-ingress:
-    - hostname: dashboard.trickfirerobotics.com
-      service: http://127.0.0.1:3000
-    - hostname: headscale.trickfirerobotics.com
-      service: http://127.0.0.1:50443
-    - service: http_status:404
-```
-
-Members connecting from home then use:
-
-```bash
-tailscale up --login-server https://headscale.trickfirerobotics.com
-```
+| Task                   | Command / Location                                  |
+| ---------------------- | --------------------------------------------------- |
+| Check status           | `tailscale status`                                  |
+| Get device IP          | `tailscale ip`                                      |
+| List devices           | Tailscale admin console → Machines                  |
+| Remove a device        | Tailscale admin console → Machines → … → Remove     |
+| Rotate API key         | Tailscale admin console → Settings → Keys           |
+| View logs              | `journalctl -u tailscaled -f`                       |
 
 ## 10. Minecraft Server Setup
 
@@ -475,7 +377,7 @@ rcon.port=25575
 rcon.password=<generate with: openssl rand -hex 16>
 ```
 
-Then add the matching values to `/home/trickfire/dashboard/.env.local`:
+Then add the matching values to `/home/trickfire/dashboard/.env.production`:
 
 ```env
 MINECRAFT_RCON_PORT=25575
@@ -493,7 +395,7 @@ sudo systemctl restart trickfire-dashboard
 
 ### Environment variables summary
 
-Add these to `.env.local` for the full Minecraft integration:
+Add these to `.env.production` for the full Minecraft integration:
 
 ```env
 MINECRAFT_SERVER_HOST=localhost
@@ -517,7 +419,7 @@ BlueMap is a Minecraft server-side mod/plugin. Follow the [official BlueMap docs
 
 ### Configure the Dashboard
 
-Set `BLUEMAP_URL` in `.env.local` to the address the Xavier can reach BlueMap on. If BlueMap runs on the same machine as the Minecraft server:
+Set `BLUEMAP_URL` in `.env.production` to the address the Xavier can reach BlueMap on. If BlueMap runs on the same machine as the Minecraft server:
 
 ```env
 BLUEMAP_URL=http://<minecraft-server-ip>:8100
@@ -558,14 +460,38 @@ sudo systemctl restart trickfire-dashboard
 
 ## Backups
 
-The entire application state is the SQLite file. Back it up with the WAL checkpointed to avoid backing up a partial transaction:
+The entire application state is the SQLite file at `/home/trickfire/db/dashboard.db`. A backup script and nightly cron job are already installed on the Xavier.
+
+**Script:** `/home/trickfire/scripts/backup-db.sh`
+**Schedule:** every day at 02:00 (server local time)
+**Retention:** 14 days — older files are removed automatically
+**Log:** `/home/trickfire/backups/backup.log`
+
+To run a backup manually at any time:
 
 ```bash
-sqlite3 /home/trickfire/db/dashboard.db \
-  ".backup '/home/trickfire/backups/dashboard-$(date +%F).db'"
+~/scripts/backup-db.sh
 ```
 
-Automate with a cron job or systemd timer. The backup file is a standalone SQLite database - no restore tooling needed, just copy it back and restart the service.
+To verify the cron entry:
+
+```bash
+crontab -l
+```
+
+### Restore from backup
+
+The backup file is a standalone SQLite database — no special tooling needed:
+
+```bash
+sudo systemctl stop trickfire-dashboard
+cp /home/trickfire/backups/dashboard-<date>.db /home/trickfire/db/dashboard.db
+sudo systemctl start trickfire-dashboard
+```
+
+## Database Safety
+
+`pnpm db:reset` **cannot run in production**. It is blocked by a `predb:reset` lifecycle hook in `package.json` that checks `NODE_ENV` and exits with an error before the reset can execute. The database directory (`/home/trickfire/db/`) is outside the application directory so a `rm -rf ~/dashboard` would not touch it either.
 
 ## Troubleshooting
 
@@ -604,7 +530,7 @@ sudo systemctl restart trickfire-dashboard
 <details>
 <summary><strong>Minecraft card shows "offline"</strong></summary>
 
-Verify that `MINECRAFT_SERVER_HOST` and `MINECRAFT_SERVER_PORT` are set correctly in `.env.local`, and that the Xavier can reach the Minecraft server on the LAN. The status check fails gracefully to "offline" by design - it's not a crash, just an unreachable host.
+Verify that `MINECRAFT_SERVER_HOST` and `MINECRAFT_SERVER_PORT` are set correctly in `.env.production`, and that the Xavier can reach the Minecraft server on the LAN. The status check fails gracefully to "offline" by design - it's not a crash, just an unreachable host.
 
 </details>
 
@@ -612,8 +538,8 @@ Verify that `MINECRAFT_SERVER_HOST` and `MINECRAFT_SERVER_PORT` are set correctl
 <summary><strong>BlueMap map shows "map unavailable"</strong></summary>
 
 1. Confirm BlueMap is running on the Minecraft server and its web interface is up: `curl http://<bluemap-host>:8100` should return HTML.
-2. Check that `BLUEMAP_URL` in `.env.local` points to the correct host and port, and that the Xavier can reach it on the LAN.
-3. Restart the dashboard after any `.env.local` change: `sudo systemctl restart trickfire-dashboard`.
+2. Check that `BLUEMAP_URL` in `.env.production` points to the correct host and port, and that the Xavier can reach it on the LAN.
+3. Restart the dashboard after any `.env.production` change: `sudo systemctl restart trickfire-dashboard`.
 4. If BlueMap is running but the map tiles are empty, BlueMap may still be rendering - check its logs on the Minecraft server.
 
 </details>
@@ -632,12 +558,11 @@ Restart the service to pick up the change. You can specify multiple origins as a
 </details>
 
 <details>
-<summary><strong>Network tab shows an error / Headscale unreachable</strong></summary>
+<summary><strong>Network tab shows an error / Tailscale unreachable</strong></summary>
 
-1. Confirm Headscale is running: `systemctl status headscale`
-2. Check `HEADSCALE_URL` in `.env.local` - it must match the `listen_addr` in Headscale's config.
-3. Check the API key hasn't expired: `headscale apikeys list`
-4. Look at Headscale logs: `journalctl -u headscale -f`
+1. Confirm `TAILSCALE_API_KEY` is set in `.env.production` and is not expired.
+2. Rotate if needed: Tailscale admin console → Settings → Keys → Generate access token.
+3. After updating the key, restart the service: `sudo systemctl restart trickfire-dashboard`
 
 </details>
 
@@ -648,6 +573,6 @@ Restart the service to pick up the change. You can specify multiple origins as a
 journalctl -u trickfire-dashboard -n 100 --no-pager
 ```
 
-Common causes: missing `.env.local`, wrong `DATABASE_PATH` (directory doesn't exist), or a failed migration.
+Common causes: missing `.env.production`, wrong `DATABASE_PATH` (directory doesn't exist), or a failed migration.
 
 </details>

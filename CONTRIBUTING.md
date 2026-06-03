@@ -134,13 +134,13 @@ When two adjacent cards share a single data fetch (to avoid duplicate requests),
 
 ## Environment in Dev vs Production
 
-| Concern               | Local dev                                                         | Production                                 |
-| --------------------- | ----------------------------------------------------------------- | ------------------------------------------ |
-| Database              | `db/dashboard.db` in repo root                                    | `/opt/trickfire-dashboard/db/dashboard.db` |
-| Server                | `pnpm dev` (hot reload, Turbopack)                                | systemd + `.next/standalone/server.js`     |
-| HTTPS                 | None (HTTP on port 3000)                                          | Cloudflare Tunnel provides TLS             |
-| Minecraft / Headscale | Optional - app degrades gracefully                                | Required - configure in `.env.local`       |
-| LAN access            | Set `BETTER_AUTH_TRUSTED_ORIGINS` to the LAN IP:port (see README) | Not needed - all traffic goes via Tunnel   |
+| Concern                  | Local dev                                                         | Production                                    |
+| ------------------------ | ----------------------------------------------------------------- | --------------------------------------------- |
+| Database                 | `db/dashboard.db` in repo root                                    | `/home/trickfire/db/dashboard.db`             |
+| Server                   | `pnpm dev` (hot reload, Turbopack)                                | systemd + `.next/standalone/server.js`        |
+| HTTPS                    | None (HTTP on port 3000)                                          | Cloudflare Tunnel provides TLS                |
+| Minecraft / Tailscale    | Optional — app degrades gracefully                                | Required — configure in `.env.production`     |
+| LAN access               | Set `BETTER_AUTH_TRUSTED_ORIGINS` to the LAN IP:port (see README) | Not needed — all traffic goes via Tunnel     |
 
 ## Getting Help
 
