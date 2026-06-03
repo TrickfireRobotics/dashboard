@@ -12,6 +12,7 @@ jobs:
     deploy:
         name: Deploy to Xavier
         runs-on: [self-hosted, xavier]
+        environment: production
 
         steps:
             - name: Pull latest changes
