@@ -12,6 +12,7 @@ const routeLabels: Record<string, string> = {
     "/admin/users": "Users",
     "/admin/minecraft": "Whitelist",
     "/admin/server": "Server",
+    "/admin/github": "Github",
     "/admin/network": "Network",
     "/admin/onshape": "Onshape",
 };
