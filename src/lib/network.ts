@@ -58,7 +58,7 @@ function toNode(d: TailscaleDevice): NetworkNode {
 
 export async function getNetworkNodes(): Promise<{ nodes: NetworkNode[] } | null> {
     const tailnet = process.env.TAILSCALE_TAILNET || "-";
-    const data = await tailscaleFetch(`/tailnet/${tailnet}/devices`);
+    const data = await tailscaleFetch(`/tailnet/${tailnet}/devices?fields=all`);
     if (!data || typeof data !== "object") return null;
     const devices: TailscaleDevice[] = (data as { devices: TailscaleDevice[] }).devices ?? [];
     return { nodes: devices.map(toNode) };
