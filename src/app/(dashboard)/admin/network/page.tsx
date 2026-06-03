@@ -1,6 +1,6 @@
-import { AdminNetworkManager } from "@/components/headscale/AdminNetworkManager";
+import { AdminNetworkManager } from "@/components/network/AdminNetworkManager";
 
-export default async function AdminHeadscalePage() {
+export default async function AdminNetworkPage() {
     return (
         <div className="space-y-6">
             <div>

@@ -13,7 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import type { HeadscaleNode } from "@/lib/headscale";
+import type { NetworkNode } from "@/lib/network";
 
 function OnlineDot({ online }: { online: boolean }) {
     return (
@@ -35,13 +35,13 @@ function relativeTime(iso: string): string {
 }
 
 export function AdminNetworkManager() {
-    const [nodes, setNodes] = useState<HeadscaleNode[] | null>(null);
+    const [nodes, setNodes] = useState<NetworkNode[] | null>(null);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         try {
-            const res = await fetch("/api/admin/headscale/nodes", { cache: "no-store" });
+            const res = await fetch("/api/admin/network/nodes", { cache: "no-store" });
             if (res.ok) setNodes((await res.json()).nodes ?? []);
         } finally {
             setLoading(false);
@@ -55,7 +55,7 @@ export function AdminNetworkManager() {
     async function deleteDevice(id: string) {
         setBusy(id);
         try {
-            const res = await fetch(`/api/admin/headscale/nodes/${id}`, { method: "DELETE" });
+            const res = await fetch(`/api/admin/network/nodes/${id}`, { method: "DELETE" });
             if (!res.ok) throw new Error();
             toast.success("Device removed");
             load();

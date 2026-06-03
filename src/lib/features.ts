@@ -14,10 +14,10 @@ export const FEATURES = {
         description: "Access the TrickFire Minecraft server and whitelist.",
         route: "/minecraft",
     },
-    headscale: {
-        label: "Headscale VPN",
+    network: {
+        label: "Network / VPN",
         description: "Connect devices to the team VPN network.",
-        route: "/headscale",
+        route: "/network",
     },
 } as const;
 
@@ -29,5 +29,5 @@ export const FEATURE_ROUTES: Record<string, FeatureKey> = {
     "/orders": "orders",
     "/api-keys": "api-keys",
     "/minecraft": "minecraft",
-    "/headscale": "headscale",
+    "/network": "network",
 };

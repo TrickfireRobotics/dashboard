@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { HeadscaleNode } from "@/lib/headscale";
+import type { NetworkNode } from "@/lib/network";
 
 function OnlineDot({ online }: { online: boolean }) {
     return (
@@ -29,12 +29,12 @@ function relativeTime(iso: string): string {
 }
 
 export function NodeList() {
-    const [nodes, setNodes] = useState<HeadscaleNode[] | null>(null);
+    const [nodes, setNodes] = useState<NetworkNode[] | null>(null);
     const [loading, setLoading] = useState(true);
 
     const load = useCallback(async () => {
         try {
-            const res = await fetch("/api/headscale/nodes", { cache: "no-store" });
+            const res = await fetch("/api/network/nodes", { cache: "no-store" });
             if (res.ok) {
                 const data = await res.json();
                 setNodes(data.nodes ?? []);

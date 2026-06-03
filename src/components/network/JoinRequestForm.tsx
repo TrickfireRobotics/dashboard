@@ -39,7 +39,7 @@ export function JoinRequestForm() {
     async function onSubmit(values: FormValues) {
         setSubmitting(true);
         try {
-            const res = await fetch("/api/headscale/request", {
+            const res = await fetch("/api/network/request", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(values),

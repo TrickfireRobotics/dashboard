@@ -23,7 +23,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
     // Admins always have full access; members only see granted features.
     const grantedFeatures: FeatureKey[] = isAdmin
-        ? ["orders", "api-keys", "minecraft", "headscale"]
+        ? ["orders", "api-keys", "minecraft", "network"]
         : db
               .select({ featureKey: userFeature.featureKey })
               .from(userFeature)

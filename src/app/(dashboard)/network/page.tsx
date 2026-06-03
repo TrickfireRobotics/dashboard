@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 
-import { NetworkStatusCard } from "@/components/headscale/NetworkStatusCard";
-import { NodeList } from "@/components/headscale/NodeList";
+import { NetworkStatusCard } from "@/components/network/NetworkStatusCard";
+import { NodeList } from "@/components/network/NodeList";
 import { getSessionUser } from "@/lib/session";
 
-export default async function HeadscalePage() {
+export default async function NetworkPage() {
     const user = await getSessionUser();
     if (!user) redirect("/login");
 

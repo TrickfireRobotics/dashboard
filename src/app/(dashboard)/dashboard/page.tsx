@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import {
-    headscaleJoinRequest,
+    networkJoinRequest,
     minecraftWhitelist,
     order,
     user,
@@ -34,7 +34,7 @@ const tiles = [
         icon: Gamepad2,
     },
     {
-        href: "/headscale",
+        href: "/network",
         title: "Network",
         description: "Private network status and access.",
         icon: Network,
@@ -77,8 +77,8 @@ export default async function DashboardHome() {
         const pendingNetworkRequests =
             db
                 .select({ value: count() })
-                .from(headscaleJoinRequest)
-                .where(eq(headscaleJoinRequest.status, "pending"))
+                .from(networkJoinRequest)
+                .where(eq(networkJoinRequest.status, "pending"))
                 .get()?.value ?? 0;
 
         adminStats = [
@@ -90,7 +90,7 @@ export default async function DashboardHome() {
             {
                 label: "Network join requests",
                 value: pendingNetworkRequests,
-                href: "/admin/headscale",
+                href: "/admin/network",
             },
         ];
     }

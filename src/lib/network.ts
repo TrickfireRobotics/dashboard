@@ -1,7 +1,4 @@
-// Backed by the Tailscale API. HeadscaleNode is kept as the UI type to
-// avoid cascading renames throughout components.
-
-export type HeadscaleNode = {
+export type NetworkNode = {
     id: string;
     ipAddresses: string[];
     name: string;
@@ -43,7 +40,7 @@ async function tailscaleFetch(path: string, options?: RequestInit) {
     }
 }
 
-function toNode(d: TailscaleDevice): HeadscaleNode {
+function toNode(d: TailscaleDevice): NetworkNode {
     return {
         id: d.id,
         name: d.hostname,
@@ -55,7 +52,7 @@ function toNode(d: TailscaleDevice): HeadscaleNode {
     };
 }
 
-export async function getHeadscaleNodes(): Promise<{ nodes: HeadscaleNode[] } | null> {
+export async function getNetworkNodes(): Promise<{ nodes: NetworkNode[] } | null> {
     const tailnet = process.env.TAILSCALE_TAILNET ?? "-";
     const data = await tailscaleFetch(`/tailnet/${tailnet}/devices`);
     if (!data || typeof data !== "object") return null;
@@ -63,11 +60,11 @@ export async function getHeadscaleNodes(): Promise<{ nodes: HeadscaleNode[] } | 
     return { nodes: devices.map(toNode) };
 }
 
-export async function deleteHeadscaleNode(id: string): Promise<boolean> {
+export async function deleteNetworkNode(id: string): Promise<boolean> {
     const res = await tailscaleFetch(`/device/${id}`, { method: "DELETE" });
     return res !== null;
 }
 
-export function isHeadscaleConfigured(): boolean {
+export function isNetworkConfigured(): boolean {
     return Boolean(process.env.TAILSCALE_API_KEY);
 }

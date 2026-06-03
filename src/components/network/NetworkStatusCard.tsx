@@ -30,7 +30,7 @@ export function NetworkStatusCard() {
 
     const load = useCallback(async () => {
         try {
-            const res = await fetch("/api/headscale/status", { cache: "no-store" });
+            const res = await fetch("/api/network/status", { cache: "no-store" });
             if (res.ok) setStatus((await res.json()) as Status);
         } catch {
             // Leave previous status on transient error.
