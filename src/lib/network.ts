@@ -31,11 +31,15 @@ async function tailscaleFetch(path: string, options?: RequestInit) {
             },
             cache: "no-store",
         });
-        if (!res.ok) return null;
+        if (!res.ok) {
+            console.error(`Tailscale API error: ${res.status} ${res.statusText} for ${path}`);
+            return null;
+        }
         const text = await res.text();
         if (!text) return true;
         return JSON.parse(text);
-    } catch {
+    } catch (err) {
+        console.error(`Tailscale fetch failed for ${path}:`, err);
         return null;
     }
 }
@@ -53,7 +57,7 @@ function toNode(d: TailscaleDevice): NetworkNode {
 }
 
 export async function getNetworkNodes(): Promise<{ nodes: NetworkNode[] } | null> {
-    const tailnet = process.env.TAILSCALE_TAILNET ?? "-";
+    const tailnet = process.env.TAILSCALE_TAILNET || "-";
     const data = await tailscaleFetch(`/tailnet/${tailnet}/devices`);
     if (!data || typeof data !== "object") return null;
     const devices: TailscaleDevice[] = (data as { devices: TailscaleDevice[] }).devices ?? [];
