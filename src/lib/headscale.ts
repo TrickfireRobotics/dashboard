@@ -1,53 +1,31 @@
+// Backed by the Tailscale API. HeadscaleNode is kept as the UI type to
+// avoid cascading renames throughout components.
+
 export type HeadscaleNode = {
     id: string;
-    machineKey: string;
-    nodeKey: string;
-    discoKey: string;
     ipAddresses: string[];
     name: string;
-    user: { id: string; name: string; createdAt: string };
+    user: { name: string };
     lastSeen: string;
-    lastSuccessfulUpdate: string;
-    expiry: string;
     online: boolean;
-    createdAt: string;
-    registerMethod: string;
     os: string;
-    distro: string;
-    distroVersion: string;
 };
 
-export type HeadscaleUser = {
+type TailscaleDevice = {
     id: string;
-    name: string;
-    createdAt: string;
+    addresses: string[];
+    hostname: string;
+    os: string;
+    user: string;
+    lastSeen: string;
+    online: boolean;
 };
 
-export type HeadscaleRoute = {
-    id: string;
-    node: { id: string; name: string };
-    prefix: string;
-    advertised: boolean;
-    enabled: boolean;
-    isPrimary: boolean;
-    createdAt: string;
-    updatedAt: string;
-};
-
-export type HeadscaleApiKey = {
-    id: string;
-    prefix: string;
-    expiration: string;
-    createdAt: string;
-    lastSeen: string | null;
-};
-
-async function headscaleFetch(path: string, options?: RequestInit) {
-    const base = process.env.HEADSCALE_URL;
-    const key = process.env.HEADSCALE_API_KEY;
-    if (!base || !key) return null;
+async function tailscaleFetch(path: string, options?: RequestInit) {
+    const key = process.env.TAILSCALE_API_KEY;
+    if (!key) return null;
     try {
-        const res = await fetch(`${base}/api/v1${path}`, {
+        const res = await fetch(`https://api.tailscale.com/api/v2${path}`, {
             ...options,
             headers: {
                 Authorization: `Bearer ${key}`,
@@ -57,65 +35,39 @@ async function headscaleFetch(path: string, options?: RequestInit) {
             cache: "no-store",
         });
         if (!res.ok) return null;
-        return res.json();
+        const text = await res.text();
+        if (!text) return true;
+        return JSON.parse(text);
     } catch {
         return null;
     }
 }
 
+function toNode(d: TailscaleDevice): HeadscaleNode {
+    return {
+        id: d.id,
+        name: d.hostname,
+        ipAddresses: d.addresses ?? [],
+        os: d.os ?? "",
+        user: { name: d.user ?? "" },
+        lastSeen: d.lastSeen,
+        online: d.online ?? false,
+    };
+}
+
 export async function getHeadscaleNodes(): Promise<{ nodes: HeadscaleNode[] } | null> {
-    return headscaleFetch("/node");
+    const tailnet = process.env.TAILSCALE_TAILNET ?? "-";
+    const data = await tailscaleFetch(`/tailnet/${tailnet}/devices`);
+    if (!data || typeof data !== "object") return null;
+    const devices: TailscaleDevice[] = (data as { devices: TailscaleDevice[] }).devices ?? [];
+    return { nodes: devices.map(toNode) };
 }
 
 export async function deleteHeadscaleNode(id: string): Promise<boolean> {
-    const res = await headscaleFetch(`/node/${id}`, { method: "DELETE" });
-    return res !== null;
-}
-
-export async function expireHeadscaleNode(id: string): Promise<boolean> {
-    const res = await headscaleFetch(`/node/${id}/expire`, { method: "POST" });
-    return res !== null;
-}
-
-export async function getHeadscaleUsers(): Promise<{ users: HeadscaleUser[] } | null> {
-    return headscaleFetch("/user");
-}
-
-export async function getHeadscaleRoutes(): Promise<{ routes: HeadscaleRoute[] } | null> {
-    return headscaleFetch("/routes");
-}
-
-export async function enableHeadscaleRoute(id: string): Promise<boolean> {
-    const res = await headscaleFetch(`/routes/${id}/enable`, { method: "POST" });
-    return res !== null;
-}
-
-export async function disableHeadscaleRoute(id: string): Promise<boolean> {
-    const res = await headscaleFetch(`/routes/${id}/disable`, { method: "POST" });
-    return res !== null;
-}
-
-export async function getHeadscaleApiKeys(): Promise<{ apiKeys: HeadscaleApiKey[] } | null> {
-    return headscaleFetch("/apikey");
-}
-
-export async function createHeadscaleApiKey(
-    expiration: string
-): Promise<{ apiKey: string } | null> {
-    return headscaleFetch("/apikey", {
-        method: "POST",
-        body: JSON.stringify({ expiration }),
-    });
-}
-
-export async function expireHeadscaleApiKey(prefix: string): Promise<boolean> {
-    const res = await headscaleFetch("/apikey/expire", {
-        method: "POST",
-        body: JSON.stringify({ prefix }),
-    });
+    const res = await tailscaleFetch(`/device/${id}`, { method: "DELETE" });
     return res !== null;
 }
 
 export function isHeadscaleConfigured(): boolean {
-    return Boolean(process.env.HEADSCALE_URL && process.env.HEADSCALE_API_KEY);
+    return Boolean(process.env.TAILSCALE_API_KEY);
 }

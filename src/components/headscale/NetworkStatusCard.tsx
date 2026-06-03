@@ -62,10 +62,10 @@ export function NetworkStatusCard() {
                     {loading && !status
                         ? "Checking network…"
                         : !status?.configured
-                          ? "Headscale not configured"
+                          ? "Tailscale not configured"
                           : isOnline
                             ? `${status.nodeCount} device${status.nodeCount !== 1 ? "s" : ""} registered`
-                            : "Headscale is unreachable"}
+                            : "Tailscale API unreachable"}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -82,8 +82,8 @@ export function NetworkStatusCard() {
                 ) : (
                     <p className="text-muted-foreground text-sm">
                         {status?.configured
-                            ? "The network is offline or unreachable. Contact an admin."
-                            : "Headscale is not yet configured on this server."}
+                            ? "The Tailscale API is unreachable. Contact an admin."
+                            : "Tailscale is not yet configured on this server."}
                     </p>
                 )}
                 <div className="mt-4">
