@@ -2,8 +2,19 @@
 # Run on the Xavier after `git pull` to rebuild and restart the dashboard.
 set -euo pipefail
 
+# Load production env so DATABASE_PATH and other vars are available here too.
+if [ -f .env.production ]; then
+    set -a
+    # shellcheck disable=SC1091
+    source .env.production
+    set +a
+fi
+
 echo "==> Installing / updating dependencies..."
 pnpm install --frozen-lockfile
+
+echo "==> Ensuring database directory exists..."
+mkdir -p "$(dirname "$DATABASE_PATH")"
 
 echo "==> Running database migrations..."
 pnpm exec drizzle-kit migrate
