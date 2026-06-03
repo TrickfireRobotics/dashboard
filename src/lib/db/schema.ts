@@ -68,7 +68,7 @@ export const minecraftWhitelist = sqliteTable("minecraft_whitelist", {
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
 });
 
-export const headscaleJoinRequest = sqliteTable("headscale_join_request", {
+export const networkJoinRequest = sqliteTable("network_join_request", {
     id: integer("id").primaryKey({ autoIncrement: true }),
     userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
     deviceName: text("device_name").notNull(),
@@ -101,13 +101,13 @@ export const minecraftWhitelistRelations = relations(minecraftWhitelist, ({ one 
     }),
 }));
 
-export const headscaleJoinRequestRelations = relations(headscaleJoinRequest, ({ one }) => ({
+export const networkJoinRequestRelations = relations(networkJoinRequest, ({ one }) => ({
     user: one(user, {
-        fields: [headscaleJoinRequest.userId],
+        fields: [networkJoinRequest.userId],
         references: [user.id],
     }),
     reviewer: one(user, {
-        fields: [headscaleJoinRequest.reviewedBy],
+        fields: [networkJoinRequest.reviewedBy],
         references: [user.id],
     }),
 }));

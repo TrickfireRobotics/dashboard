@@ -42,7 +42,7 @@ const featureNav: FeatureNavItem[] = [
     { href: "/orders", label: "Orders", icon: Package, feature: "orders" },
     { href: "/api-keys", label: "API Keys", icon: KeyRound, feature: "api-keys" },
     { href: "/minecraft", label: "Minecraft", icon: Gamepad2, feature: "minecraft" },
-    { href: "/headscale", label: "Network", icon: Network, feature: "headscale" },
+    { href: "/network", label: "Network", icon: Network, feature: "network" },
 ];
 
 const adminNav: NavItem[] = [
@@ -50,7 +50,7 @@ const adminNav: NavItem[] = [
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/minecraft", label: "Whitelist", icon: Server },
     { href: "/admin/server", label: "Server", icon: Gamepad2 },
-    { href: "/admin/headscale", label: "Network", icon: Network },
+    { href: "/admin/network", label: "Network", icon: Network },
     { href: "/admin/onshape", label: "Onshape", icon: Boxes },
 ];
 

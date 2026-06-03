@@ -9,7 +9,7 @@
  * Plan note: every company/team endpoint below requires the API-key owner to
  * be a member (and, for management, an admin) of an Onshape Professional or
  * Enterprise company. On free/standard plans these endpoints return errors and
- * the helpers below degrade to `null`, like the Headscale client does.
+ * the helpers below degrade to `null` when unconfigured.
  *
  * Read limitation: Onshape exposes POST/DELETE for global permissions but no
  * GET, so we cannot read a member's current global-permission grants. The

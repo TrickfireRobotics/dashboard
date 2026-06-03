@@ -82,7 +82,7 @@ export const config = {
         "/orders/:path*",
         "/api-keys/:path*",
         "/minecraft/:path*",
-        "/headscale/:path*",
+        "/network/:path*",
         "/admin/:path*",
     ],
 };
