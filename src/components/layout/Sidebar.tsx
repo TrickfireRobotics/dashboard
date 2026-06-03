@@ -50,7 +50,7 @@ const adminNav: NavItem[] = [
     { href: "/admin/orders", label: "Order Queue", icon: ClipboardList },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/minecraft", label: "Whitelist", icon: Server },
-    { href: "/admin/server", label: "Server", icon: Gamepad2 },    
+    { href: "/admin/server", label: "Server", icon: Gamepad2 },
     { href: "/admin/github", label: "GitHub", icon: GitBranch },
     { href: "/admin/network", label: "Network", icon: Network },
     { href: "/admin/onshape", label: "Onshape", icon: Boxes },
