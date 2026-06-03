@@ -315,14 +315,14 @@ sudo systemctl restart trickfire-dashboard
 
 ### Quick Reference
 
-| Task                   | Command / Location                                  |
-| ---------------------- | --------------------------------------------------- |
-| Check status           | `tailscale status`                                  |
-| Get device IP          | `tailscale ip`                                      |
-| List devices           | Tailscale admin console → Machines                  |
-| Remove a device        | Tailscale admin console → Machines → … → Remove     |
-| Rotate API key         | Tailscale admin console → Settings → Keys           |
-| View logs              | `journalctl -u tailscaled -f`                       |
+| Task            | Command / Location                              |
+| --------------- | ----------------------------------------------- |
+| Check status    | `tailscale status`                              |
+| Get device IP   | `tailscale ip`                                  |
+| List devices    | Tailscale admin console → Machines              |
+| Remove a device | Tailscale admin console → Machines → … → Remove |
+| Rotate API key  | Tailscale admin console → Settings → Keys       |
+| View logs       | `journalctl -u tailscaled -f`                   |
 
 ## 10. Minecraft Server Setup
 

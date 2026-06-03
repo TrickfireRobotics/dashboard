@@ -191,14 +191,14 @@ pnpm db:migrate
 
 ## Scripts
 
-| Command             | Description                                              |
-| ------------------- | -------------------------------------------------------- |
-| `pnpm dev`          | Start the dev server with hot reload                     |
-| `pnpm build`        | Production build                                         |
-| `pnpm start`        | Start the production server (requires a prior `build`)   |
-| `pnpm lint`         | Run ESLint                                               |
-| `pnpm format`       | Auto-format all files with Prettier                      |
-| `pnpm format:check` | Check formatting without writing (used in CI)            |
+| Command             | Description                                                                |
+| ------------------- | -------------------------------------------------------------------------- |
+| `pnpm dev`          | Start the dev server with hot reload                                       |
+| `pnpm build`        | Production build                                                           |
+| `pnpm start`        | Start the production server (requires a prior `build`)                     |
+| `pnpm lint`         | Run ESLint                                                                 |
+| `pnpm format`       | Auto-format all files with Prettier                                        |
+| `pnpm format:check` | Check formatting without writing (used in CI)                              |
 | `pnpm db:generate`  | Generate migrations from schema changes                                    |
 | `pnpm db:migrate`   | Apply all pending migrations                                               |
 | `pnpm db:seed`      | Seed the 6 teams + admin user (idempotent)                                 |
