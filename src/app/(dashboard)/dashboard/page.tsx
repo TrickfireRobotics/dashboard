@@ -4,13 +4,7 @@ import Link from "next/link";
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
-import {
-    networkJoinRequest,
-    minecraftWhitelist,
-    order,
-    user,
-    userFeature,
-} from "@/lib/db/schema";
+import { networkJoinRequest, minecraftWhitelist, order, user, userFeature } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/session";
 import { redirect } from "next/navigation";
 
