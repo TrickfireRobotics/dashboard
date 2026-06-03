@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { minecraftWhitelist } from "@/lib/db/schema";
+import { sendCommand } from "@/lib/azalea";
 import { getSessionUser } from "@/lib/session";
 import { whitelistActionSchema } from "@/lib/validation";
 
@@ -52,5 +53,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         .returning()
         .get();
 
-    return NextResponse.json({ request: updated });
+    let rconWarning: string | undefined;
+    if (parsed.data.action === "approve") {
+        const rcon = await sendCommand(`whitelist add ${existing.username}`);
+        if (!rcon.ok) rconWarning = rcon.error;
+    }
+
+    return NextResponse.json({ request: updated, rconWarning });
 }

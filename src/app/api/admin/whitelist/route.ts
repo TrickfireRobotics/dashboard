@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { minecraftWhitelist } from "@/lib/db/schema";
+import { sendCommand } from "@/lib/azalea";
 import { getSessionUser } from "@/lib/session";
 import { whitelistDirectAddSchema } from "@/lib/validation";
 
@@ -37,5 +38,9 @@ export async function POST(req: NextRequest) {
         .returning()
         .get();
 
-    return NextResponse.json({ request: created }, { status: 201 });
+    let rconWarning: string | undefined;
+    const rcon = await sendCommand(`whitelist add ${parsed.data.username}`);
+    if (!rcon.ok) rconWarning = rcon.error;
+
+    return NextResponse.json({ request: created, rconWarning }, { status: 201 });
 }

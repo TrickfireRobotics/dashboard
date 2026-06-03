@@ -45,11 +45,15 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ action }),
             });
+            const data = await res.json().catch(() => null);
             if (!res.ok) {
-                const data = await res.json().catch(() => null);
                 throw new Error(data?.error ?? "Action failed");
             }
-            toast.success(`Request ${action}d`);
+            if (data?.rconWarning) {
+                toast.warning(`Request ${action}d, but RCON failed: ${data.rconWarning}`);
+            } else {
+                toast.success(`Request ${action}d`);
+            }
             router.refresh();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Something went wrong");
@@ -70,11 +74,15 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username: username.trim() }),
             });
+            const data = await res.json().catch(() => null);
             if (!res.ok) {
-                const data = await res.json().catch(() => null);
                 throw new Error(data?.error ?? "Failed to add username");
             }
-            toast.success("Username added to whitelist");
+            if (data?.rconWarning) {
+                toast.warning(`Added to database, but RCON failed: ${data.rconWarning}`);
+            } else {
+                toast.success("Username added to whitelist");
+            }
             setUsername("");
             router.refresh();
         } catch (err) {
