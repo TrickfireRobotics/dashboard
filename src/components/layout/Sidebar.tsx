@@ -1,11 +1,13 @@
 "use client";
 
 import {
+    Boxes,
     ClipboardList,
     Gamepad2,
     GitBranch,
     KeyRound,
     LayoutDashboard,
+    Lock,
     Network,
     Package,
     Server,
@@ -22,6 +24,7 @@ import { useState } from "react";
 import { LogOut } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import type { FeatureKey } from "@/lib/features";
 
 type NavItem = {
     href: string;
@@ -29,21 +32,28 @@ type NavItem = {
     icon: React.ComponentType<{ className?: string }>;
 };
 
-const memberNav: NavItem[] = [
+type FeatureNavItem = NavItem & { feature: FeatureKey };
+
+const baseNav: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/orders", label: "Orders", icon: Package },
-    { href: "/api-keys", label: "API Keys", icon: KeyRound },
-    { href: "/minecraft", label: "Minecraft", icon: Gamepad2 },
-    { href: "/headscale", label: "Network", icon: Network },
+    { href: "/features", label: "My Access", icon: Lock },
+];
+
+const featureNav: FeatureNavItem[] = [
+    { href: "/orders", label: "Orders", icon: Package, feature: "orders" },
+    { href: "/api-keys", label: "API Keys", icon: KeyRound, feature: "api-keys" },
+    { href: "/minecraft", label: "Minecraft", icon: Gamepad2, feature: "minecraft" },
+    { href: "/network", label: "Network", icon: Network, feature: "network" },
 ];
 
 const adminNav: NavItem[] = [
     { href: "/admin/orders", label: "Order Queue", icon: ClipboardList },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/minecraft", label: "Whitelist", icon: Server },
-    { href: "/admin/server", label: "Server", icon: Gamepad2 },
-    { href: "/admin/headscale", label: "Network", icon: Network },
+    { href: "/admin/server", label: "Server", icon: Gamepad2 },    
     { href: "/admin/github", label: "GitHub", icon: GitBranch },
+    { href: "/admin/network", label: "Network", icon: Network },
+    { href: "/admin/onshape", label: "Onshape", icon: Boxes },
 ];
 
 const EXACT = new Set(["/dashboard", "/admin"]);
@@ -70,10 +80,12 @@ export function Sidebar({
     isAdmin,
     name,
     email,
+    grantedFeatures,
 }: {
     isAdmin: boolean;
     name: string;
     email: string;
+    grantedFeatures: FeatureKey[];
 }) {
     const pathname = usePathname();
 
@@ -96,20 +108,28 @@ export function Sidebar({
         });
     }
 
+    const visibleFeatureNav = featureNav.filter((item) => grantedFeatures.includes(item.feature));
+
     return (
         <aside className="border-sidebar-border bg-sidebar hidden w-60 shrink-0 flex-col border-r md:flex">
             <div className="border-sidebar-border flex h-16 items-center border-b px-5">
-                <Image
-                    src="/logo.png"
-                    alt="TrickFire Robotics"
-                    width={160}
-                    height={40}
-                    className="object-contain"
-                    priority
-                />
+                <Link href="/dashboard" className="transition-opacity hover:opacity-80">
+                    <Image
+                        src="/logo.png"
+                        alt="TrickFire Robotics"
+                        width={160}
+                        height={40}
+                        className="cursor-pointer object-contain"
+                        priority
+                    />
+                </Link>
             </div>
             <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
-                {memberNav.map((item) => (
+                {baseNav.map((item) => (
+                    <NavLink key={item.href} item={item} active={isActive(item.href)} />
+                ))}
+
+                {visibleFeatureNav.map((item) => (
                     <NavLink key={item.href} item={item} active={isActive(item.href)} />
                 ))}
 

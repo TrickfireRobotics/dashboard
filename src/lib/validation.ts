@@ -64,7 +64,7 @@ export const whitelistDirectAddSchema = z.object({
     adminNote: z.string().trim().max(500).optional(),
 });
 
-// Headscale join requests --------------------------------------------------
+// Network join requests ----------------------------------------------------
 
 export const joinRequestSchema = z.object({
     deviceName: z.string().trim().min(1, "Device name is required").max(100),
@@ -83,7 +83,20 @@ export const updateUserSchema = z
     .object({
         role: z.enum(["member", "admin"]).optional(),
         isActive: z.boolean().optional(),
+        approved: z.boolean().optional(),
     })
-    .refine((v) => v.role !== undefined || v.isActive !== undefined, {
+    .refine((v) => v.role !== undefined || v.isActive !== undefined || v.approved !== undefined, {
         message: "Nothing to update",
     });
+
+// Feature access -----------------------------------------------------------
+
+export const featureRequestSchema = z.object({
+    featureKey: z.enum(["orders", "api-keys", "minecraft", "network"]),
+    requestNote: z.string().trim().max(500).optional(),
+});
+
+export const featureActionSchema = z.object({
+    action: z.enum(["grant", "reject"]),
+    adminNote: z.string().trim().max(500).optional(),
+});

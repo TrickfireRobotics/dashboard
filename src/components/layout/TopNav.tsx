@@ -7,13 +7,14 @@ const routeLabels: Record<string, string> = {
     "/orders": "Orders",
     "/api-keys": "API Keys",
     "/minecraft": "Minecraft",
-    "/headscale": "Network",
+    "/network": "Network",
     "/admin/orders": "Order Queue",
     "/admin/users": "Users",
     "/admin/minecraft": "Whitelist",
     "/admin/server": "Server",
-    "/admin/headscale": "Network",
     "/admin/github": "Github",
+    "/admin/network": "Network",
+    "/admin/onshape": "Onshape",
 };
 
 function getPageTitle(pathname: string): string {

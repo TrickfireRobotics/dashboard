@@ -1,9 +1,13 @@
+import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { userFeature } from "@/lib/db/schema";
+import type { FeatureKey } from "@/lib/features";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -11,12 +15,32 @@ export default async function DashboardLayout({ children }: { children: React.Re
     if (!session?.user || session.user.isActive === false) {
         redirect("/login");
     }
+    if (!session.user.approved) {
+        redirect("/pending");
+    }
 
     const isAdmin = session.user.role === "admin";
 
+    // Admins always have full access; members only see granted features.
+    const grantedFeatures: FeatureKey[] = isAdmin
+        ? ["orders", "api-keys", "minecraft", "network"]
+        : db
+              .select({ featureKey: userFeature.featureKey })
+              .from(userFeature)
+              .where(
+                  and(eq(userFeature.userId, session.user.id), eq(userFeature.status, "granted"))
+              )
+              .all()
+              .map((r) => r.featureKey as FeatureKey);
+
     return (
         <div className="flex h-screen overflow-hidden">
-            <Sidebar isAdmin={isAdmin} name={session.user.name} email={session.user.email} />
+            <Sidebar
+                isAdmin={isAdmin}
+                name={session.user.name}
+                email={session.user.email}
+                grantedFeatures={grantedFeatures}
+            />
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                 <TopNav />
                 <main className="flex-1 overflow-y-auto p-6">{children}</main>

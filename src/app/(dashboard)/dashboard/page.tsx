@@ -1,10 +1,10 @@
-import { count, eq } from "drizzle-orm";
+import { and, count, eq } from "drizzle-orm";
 import { Gamepad2, KeyRound, Network, Package } from "lucide-react";
 import Link from "next/link";
 
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
-import { headscaleJoinRequest, minecraftWhitelist, order, user } from "@/lib/db/schema";
+import { networkJoinRequest, minecraftWhitelist, order, user, userFeature } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/session";
 import { redirect } from "next/navigation";
 
@@ -28,7 +28,7 @@ const tiles = [
         icon: Gamepad2,
     },
     {
-        href: "/headscale",
+        href: "/network",
         title: "Network",
         description: "Private network status and access.",
         icon: Network,
@@ -47,9 +47,21 @@ export default async function DashboardHome() {
         const pendingOrders =
             db.select({ value: count() }).from(order).where(eq(order.status, "pending")).get()
                 ?.value ?? 0;
-        const activeMembers =
-            db.select({ value: count() }).from(user).where(eq(user.isActive, true)).get()?.value ??
+        const pendingApprovals =
+            db.select({ value: count() }).from(user).where(eq(user.approved, false)).get()?.value ??
             0;
+        const activeMembers =
+            db
+                .select({ value: count() })
+                .from(user)
+                .where(and(eq(user.isActive, true), eq(user.approved, true)))
+                .get()?.value ?? 0;
+        const pendingFeatureRequests =
+            db
+                .select({ value: count() })
+                .from(userFeature)
+                .where(eq(userFeature.status, "pending"))
+                .get()?.value ?? 0;
         const openWhitelist =
             db
                 .select({ value: count() })
@@ -59,18 +71,20 @@ export default async function DashboardHome() {
         const pendingNetworkRequests =
             db
                 .select({ value: count() })
-                .from(headscaleJoinRequest)
-                .where(eq(headscaleJoinRequest.status, "pending"))
+                .from(networkJoinRequest)
+                .where(eq(networkJoinRequest.status, "pending"))
                 .get()?.value ?? 0;
 
         adminStats = [
+            { label: "Pending approvals", value: pendingApprovals, href: "/admin/users" },
             { label: "Pending orders", value: pendingOrders, href: "/admin/orders" },
+            { label: "Feature requests", value: pendingFeatureRequests, href: "/admin/users" },
             { label: "Active members", value: activeMembers, href: "/admin/users" },
             { label: "Open whitelist requests", value: openWhitelist, href: "/admin/minecraft" },
             {
                 label: "Network join requests",
                 value: pendingNetworkRequests,
-                href: "/admin/headscale",
+                href: "/admin/network",
             },
         ];
     }
@@ -107,9 +121,9 @@ export default async function DashboardHome() {
                             Club-wide stats at a glance.
                         </p>
                     </div>
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {adminStats.map((s) => (
-                            <Link key={s.href} href={s.href}>
+                            <Link key={s.label} href={s.href}>
                                 <Card className="hover:border-primary/60 transition-colors">
                                     <CardHeader>
                                         <CardTitle className="text-primary text-4xl">

@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     const cmd = typeof body?.command === "string" ? body.command.trim() : null;
     if (!cmd) return NextResponse.json({ error: "Missing command" }, { status: 400 });
 
-    const result = sendCommand(cmd);
+    const result = await sendCommand(cmd);
     if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
     return NextResponse.json({ ok: true });
 }

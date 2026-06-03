@@ -12,7 +12,7 @@ export default async function LoginPage({
 }) {
     const session = await auth.api.getSession({ headers: await headers() });
     if (session?.user && session.user.isActive !== false) {
-        redirect("/dashboard");
+        redirect(session.user.approved ? "/dashboard" : "/pending");
     }
 
     const { deactivated } = await searchParams;
