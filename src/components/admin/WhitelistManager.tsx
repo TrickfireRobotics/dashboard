@@ -6,9 +6,6 @@ import { toast } from "sonner";
 
 import { WhitelistStatusBadge } from "@/components/minecraft/WhitelistStatusBadge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
     Table,
     TableBody,
@@ -35,8 +32,6 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
     const router = useRouter();
     const [busy, setBusy] = useState<number | null>(null);
     const [removing, setRemoving] = useState<number | null>(null);
-    const [username, setUsername] = useState("");
-    const [adding, setAdding] = useState(false);
 
     async function act(id: number, action: "approve" | "reject") {
         setBusy(id);
@@ -76,62 +71,8 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
         }
     }
 
-    async function directAdd() {
-        if (!username.trim()) {
-            toast.error("Enter a username");
-            return;
-        }
-        setAdding(true);
-        try {
-            const res = await fetch("/api/admin/whitelist", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username: username.trim() }),
-            });
-            if (!res.ok) {
-                const data = await res.json().catch(() => null);
-                throw new Error(data?.error ?? "Failed to add username");
-            }
-            toast.success("Username added to whitelist");
-            setUsername("");
-            router.refresh();
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Something went wrong");
-        } finally {
-            setAdding(false);
-        }
-    }
-
     return (
         <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Direct Add</CardTitle>
-                    <CardDescription>
-                        Add a username to the whitelist without a member request.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-end gap-3">
-                        <div className="flex-1 space-y-2">
-                            <Label htmlFor="direct-username">Minecraft username</Label>
-                            <Input
-                                id="direct-username"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                placeholder="Notch"
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") directAdd();
-                                }}
-                            />
-                        </div>
-                        <Button onClick={directAdd} disabled={adding}>
-                            {adding ? "Adding..." : "Add"}
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
             {requests.length === 0 ? (
                 <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
                     No whitelist requests yet.
