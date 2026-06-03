@@ -24,6 +24,11 @@ export async function POST(req: NextRequest) {
         );
     }
 
+    const rcon = await sendCommand(`whitelist add ${parsed.data.username}`);
+    if (!rcon.ok) {
+        return NextResponse.json({ error: `RCON failed: ${rcon.error}` }, { status: 502 });
+    }
+
     const created = db
         .insert(minecraftWhitelist)
         .values({
@@ -38,9 +43,5 @@ export async function POST(req: NextRequest) {
         .returning()
         .get();
 
-    let rconWarning: string | undefined;
-    const rcon = await sendCommand(`whitelist add ${parsed.data.username}`);
-    if (!rcon.ok) rconWarning = rcon.error;
-
-    return NextResponse.json({ request: created, rconWarning }, { status: 201 });
+    return NextResponse.json({ request: created }, { status: 201 });
 }

@@ -41,6 +41,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return NextResponse.json({ error: "Request not found" }, { status: 404 });
     }
 
+    if (parsed.data.action === "approve") {
+        const rcon = await sendCommand(`whitelist add ${existing.username}`);
+        if (!rcon.ok) {
+            return NextResponse.json({ error: `RCON failed: ${rcon.error}` }, { status: 502 });
+        }
+    }
+
     const updated = db
         .update(minecraftWhitelist)
         .set({
@@ -53,11 +60,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         .returning()
         .get();
 
-    let rconWarning: string | undefined;
-    if (parsed.data.action === "approve") {
-        const rcon = await sendCommand(`whitelist add ${existing.username}`);
-        if (!rcon.ok) rconWarning = rcon.error;
-    }
-
-    return NextResponse.json({ request: updated, rconWarning });
+    return NextResponse.json({ request: updated });
 }

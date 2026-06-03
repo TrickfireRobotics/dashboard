@@ -34,6 +34,7 @@ export type AdminWhitelistRow = {
 export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }) {
     const router = useRouter();
     const [busy, setBusy] = useState<number | null>(null);
+    const [removing, setRemoving] = useState<number | null>(null);
     const [username, setUsername] = useState("");
     const [adding, setAdding] = useState(false);
 
@@ -45,20 +46,33 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ action }),
             });
-            const data = await res.json().catch(() => null);
             if (!res.ok) {
+                const data = await res.json().catch(() => null);
                 throw new Error(data?.error ?? "Action failed");
             }
-            if (data?.rconWarning) {
-                toast.warning(`Request ${action}d, but RCON failed: ${data.rconWarning}`);
-            } else {
-                toast.success(`Request ${action}d`);
-            }
+            toast.success(`Request ${action}d`);
             router.refresh();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Something went wrong");
         } finally {
             setBusy(null);
+        }
+    }
+
+    async function remove(id: number) {
+        setRemoving(id);
+        try {
+            const res = await fetch(`/api/admin/whitelist/${id}`, { method: "DELETE" });
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                throw new Error(data?.error ?? "Failed to remove");
+            }
+            toast.success("Removed from whitelist");
+            router.refresh();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Something went wrong");
+        } finally {
+            setRemoving(null);
         }
     }
 
@@ -74,15 +88,11 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username: username.trim() }),
             });
-            const data = await res.json().catch(() => null);
             if (!res.ok) {
+                const data = await res.json().catch(() => null);
                 throw new Error(data?.error ?? "Failed to add username");
             }
-            if (data?.rconWarning) {
-                toast.warning(`Added to database, but RCON failed: ${data.rconWarning}`);
-            } else {
-                toast.success("Username added to whitelist");
-            }
+            toast.success("Username added to whitelist");
             setUsername("");
             router.refresh();
         } catch (err) {
@@ -180,6 +190,15 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
                                                     Approve
                                                 </Button>
                                             </div>
+                                        ) : r.status === "approved" ? (
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                disabled={removing === r.id}
+                                                onClick={() => remove(r.id)}
+                                            >
+                                                {removing === r.id ? "Removing..." : "Remove"}
+                                            </Button>
                                         ) : (
                                             <span className="text-muted-foreground text-xs">-</span>
                                         )}
