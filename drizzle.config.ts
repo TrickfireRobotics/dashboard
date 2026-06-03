@@ -2,7 +2,12 @@ import { defineConfig } from "drizzle-kit";
 
 if (!process.env.DATABASE_PATH) {
     for (const f of [".env.local", ".env.production"]) {
-        try { process.loadEnvFile(f); break; } catch { /* try next */ }
+        try {
+            process.loadEnvFile(f);
+            break;
+        } catch {
+            /* try next */
+        }
     }
 }
 
