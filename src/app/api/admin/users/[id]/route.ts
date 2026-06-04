@@ -45,12 +45,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         .set({
             ...(parsed.data.role !== undefined ? { role: parsed.data.role } : {}),
             ...(parsed.data.isActive !== undefined ? { isActive: parsed.data.isActive } : {}),
+            ...(parsed.data.canAccessVault !== undefined
+                ? { canAccessVault: parsed.data.canAccessVault }
+                : {}),
         })
         .where(eq(user.id, userId))
         .returning({
             id: user.id,
             role: user.role,
             isActive: user.isActive,
+            canAccessVault: user.canAccessVault,
         })
         .get();
 
