@@ -29,6 +29,7 @@ export type AdminUserRow = {
     email: string;
     role: "member" | "admin";
     isActive: boolean;
+    canAccessVault: boolean;
     createdAt: Date;
 };
 
@@ -74,6 +75,7 @@ export function UserTable({
                         <TableHead>Email</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Vault access</TableHead>
                         <TableHead>Joined</TableHead>
                         <TableHead className="text-right">Action</TableHead>
                     </TableRow>
@@ -113,6 +115,24 @@ export function UserTable({
                                         <Badge variant="default">Active</Badge>
                                     ) : (
                                         <Badge variant="destructive">Deactivated</Badge>
+                                    )}
+                                </TableCell>
+                                <TableCell>
+                                    {u.role === "admin" ? (
+                                        <Badge variant="secondary">Always (admin)</Badge>
+                                    ) : (
+                                        <Button
+                                            size="sm"
+                                            variant={u.canAccessVault ? "default" : "outline"}
+                                            disabled={busy === u.id}
+                                            onClick={() =>
+                                                patchUser(u.id, {
+                                                    canAccessVault: !u.canAccessVault,
+                                                })
+                                            }
+                                        >
+                                            {u.canAccessVault ? "Granted" : "No access"}
+                                        </Button>
                                     )}
                                 </TableCell>
                                 <TableCell className="text-muted-foreground">
