@@ -39,6 +39,43 @@ export const createApiKeySchema = z.object({
     name: z.string().trim().min(1, "Name is required").max(100),
 });
 
+// API Key Vault ------------------------------------------------------------
+
+const vaultName = z.string().trim().min(1, "Name is required").max(100);
+const vaultSecret = z.string().min(1, "Secret is required").max(5000);
+const vaultDescription = z.preprocess(emptyToUndefined, z.string().trim().max(1000)).optional();
+
+export const vaultEntrySchema = z.discriminatedUnion("type", [
+    z.object({
+        type: z.literal("login"),
+        name: vaultName,
+        username: z.string().trim().min(1, "Username is required").max(200),
+        secret: vaultSecret,
+        description: vaultDescription,
+        easyCopy: z.boolean(),
+    }),
+    z.object({
+        type: z.literal("api_key"),
+        name: vaultName,
+        secret: vaultSecret,
+        description: vaultDescription,
+        easyCopy: z.boolean(),
+    }),
+]);
+
+// Metadata edits without re-entering the secret; secret/username optional.
+export const vaultEntryUpdateSchema = z
+    .object({
+        name: vaultName.optional(),
+        username: z.string().trim().min(1).max(200).optional(),
+        secret: vaultSecret.optional(),
+        description: vaultDescription,
+        easyCopy: z.boolean().optional(),
+    })
+    .refine((v) => Object.values(v).some((x) => x !== undefined), {
+        message: "Nothing to update",
+    });
+
 // Minecraft whitelist ------------------------------------------------------
 
 // Minecraft (Java) usernames: 3-16 chars, letters/digits/underscore.
@@ -83,7 +120,12 @@ export const updateUserSchema = z
     .object({
         role: z.enum(["member", "admin"]).optional(),
         isActive: z.boolean().optional(),
+        canAccessVault: z.boolean().optional(),
     })
-    .refine((v) => v.role !== undefined || v.isActive !== undefined, {
-        message: "Nothing to update",
-    });
+    .refine(
+        (v) =>
+            v.role !== undefined || v.isActive !== undefined || v.canAccessVault !== undefined,
+        {
+            message: "Nothing to update",
+        }
+    );
