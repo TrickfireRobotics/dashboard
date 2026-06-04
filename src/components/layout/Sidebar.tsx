@@ -31,10 +31,12 @@ type NavItem = {
 const memberNav: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/orders", label: "Orders", icon: Package },
-    { href: "/api-keys", label: "API Keys", icon: KeyRound },
     { href: "/minecraft", label: "Minecraft", icon: Gamepad2 },
     { href: "/headscale", label: "Network", icon: Network },
 ];
+
+// Shown only to users with vault access (admins, or members granted the permission).
+const vaultNav: NavItem = { href: "/api-keys", label: "API Keys", icon: KeyRound };
 
 const adminNav: NavItem[] = [
     { href: "/admin/orders", label: "Order Queue", icon: ClipboardList },
@@ -66,10 +68,12 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 
 export function Sidebar({
     isAdmin,
+    canAccessVault,
     name,
     email,
 }: {
     isAdmin: boolean;
+    canAccessVault: boolean;
     name: string;
     email: string;
 }) {
@@ -110,6 +114,10 @@ export function Sidebar({
                 {memberNav.map((item) => (
                     <NavLink key={item.href} item={item} active={isActive(item.href)} />
                 ))}
+
+                {canAccessVault ? (
+                    <NavLink item={vaultNav} active={isActive(vaultNav.href)} />
+                ) : null}
 
                 {isAdmin ? (
                     <>
