@@ -65,6 +65,7 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 | `BETTER_AUTH_URL`             | Same value as `NEXT_PUBLIC_APP_URL`                                                                                                                                   |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated extra origins allowed to make auth requests, e.g. `http://192.168.1.50:3000`. Required when accessing the dev server from another machine on the LAN. |
 | `DATABASE_PATH`               | Path to the SQLite file, e.g. `db/dashboard.db`                                                                                                                       |
+| `VAULT_ENCRYPTION_KEY`        | AES-256 key (hex) encrypting API Key Vault secrets at rest - generate with `openssl rand -hex 32`. **Required in production.** In local dev, if unset, a key is auto-generated and persisted to `db/vault.key`. |
 | `SEED_ADMIN_EMAIL`            | Email for the seeded admin account                                                                                                                                    |
 | `SEED_ADMIN_PASSWORD`         | Password for the seeded admin account                                                                                                                                 |
 | `SEED_ADMIN_NAME`             | Display name for the seeded admin                                                                                                                                     |
@@ -83,6 +84,21 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 
 > [!CAUTION]
 > Never commit `.env.local` or any file containing `BETTER_AUTH_SECRET`. It must stay off `git` - anyone who has it can forge session tokens.
+
+### API Key Vault
+
+The **API Keys** page is a secret vault: admins store shared credentials (third-party API keys, service logins) and grant per-member read access via the **Vault access** toggle on the Users admin page. Each entry is either a _login_ (username + password) or a single _API key_, and can be marked easy-to-copy (one-click copy button) or restricted (reveal-only, no copy button).
+
+Secrets are encrypted at rest with AES-256-GCM using `VAULT_ENCRYPTION_KEY`:
+
+```bash
+openssl rand -hex 32   # set as VAULT_ENCRYPTION_KEY in production
+```
+
+In local development you can leave it unset - on first use a key is generated and saved to `db/vault.key` (gitignored) so secrets stay decryptable across restarts.
+
+> [!CAUTION]
+> Rotating or losing `VAULT_ENCRYPTION_KEY` (or `db/vault.key` in dev) makes every existing vault entry permanently unrecoverable. Back it up alongside `BETTER_AUTH_SECRET`.
 
 ## Project Structure
 
