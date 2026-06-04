@@ -9,6 +9,7 @@ const now = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
 export type OrderStatus = "pending" | "approved" | "rejected" | "ordered";
 export type WhitelistStatus = "pending" | "approved" | "rejected";
 export type JoinRequestStatus = "pending" | "approved" | "rejected";
+export type VaultEntryType = "login" | "api_key";
 
 export const team = sqliteTable("team", {
     id: integer("id").primaryKey({ autoIncrement: true }),
@@ -52,6 +53,28 @@ export const apiKey = sqliteTable("api_key", {
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
 });
 
+// Secret vault: shared club credentials stored encrypted at rest (see
+// vault-crypto.ts). Distinct from `api_key` above, which holds one-way hashes
+// for service-API auth and can never reveal a secret.
+export const vaultEntry = sqliteTable("vault_entry", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    type: text("type").$type<VaultEntryType>().notNull(),
+    description: text("description"),
+    // Login identifier for `login` entries; null for `api_key` entries.
+    username: text("username"),
+    // AES-256-GCM ciphertext ("iv.tag.ct") of the password / API key.
+    secret: text("secret").notNull(),
+    // When false, the UI hides the copy button and resists selection.
+    easyCopy: integer("easy_copy", { mode: "boolean" }).notNull().default(true),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+        .default(now)
+        .$onUpdate(() => new Date())
+        .notNull(),
+});
+
 export const minecraftWhitelist = sqliteTable("minecraft_whitelist", {
     id: integer("id").primaryKey({ autoIncrement: true }),
     userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
@@ -91,6 +114,10 @@ export const orderRelations = relations(order, ({ one }) => ({
 
 export const apiKeyRelations = relations(apiKey, ({ one }) => ({
     user: one(user, { fields: [apiKey.userId], references: [user.id] }),
+}));
+
+export const vaultEntryRelations = relations(vaultEntry, ({ one }) => ({
+    creator: one(user, { fields: [vaultEntry.createdBy], references: [user.id] }),
 }));
 
 export const minecraftWhitelistRelations = relations(minecraftWhitelist, ({ one }) => ({
