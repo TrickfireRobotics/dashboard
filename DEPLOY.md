@@ -68,6 +68,7 @@ pnpm install --frozen-lockfile
 NEXT_PUBLIC_APP_URL=https://dashboard.trickfirerobotics.com
 BETTER_AUTH_URL=https://dashboard.trickfirerobotics.com
 BETTER_AUTH_SECRET=<generated above>
+VAULT_ENCRYPTION_KEY=<generate a second value: openssl rand -hex 32>
 
 DATABASE_PATH=/opt/trickfire-dashboard/db/dashboard.db
 
@@ -92,6 +93,9 @@ EMAIL_FROM=TrickFire Robotics <noreply@trickfirerobotics.com>
 
 > [!CAUTION]
 > Keep `.env.local` off `git`. The `BETTER_AUTH_SECRET` value lets anyone forge session tokens. If it's ever leaked, rotate it immediately and invalidate all sessions by changing the value.
+
+> [!CAUTION]
+> `VAULT_ENCRYPTION_KEY` is **required in production** - the app refuses to encrypt/decrypt vault secrets without it. Generate it separately from `BETTER_AUTH_SECRET` and back it up: rotating or losing it makes every existing API Key Vault entry permanently unrecoverable.
 
 ## 4. Database: Migrate and Seed
 
