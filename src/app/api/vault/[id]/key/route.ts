@@ -15,6 +15,11 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    // Deactivated accounts keep a valid cookie until it expires, and /api/vault/*
+    // isn't covered by the middleware's isActive check - so enforce it here.
+    if (user.isActive === false) {
+        return NextResponse.json({ error: "Account deactivated" }, { status: 403 });
+    }
 
     const id = Number((await params).id);
     if (!Number.isInteger(id) || id <= 0) {
@@ -40,5 +45,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    return NextResponse.json({ name: entry.name, key: decryptSecret(entry.secret) });
+    // Never let the cleartext key be written to a browser or shared cache.
+    return NextResponse.json(
+        { name: entry.name, key: decryptSecret(entry.secret) },
+        { headers: { "Cache-Control": "no-store" } }
+    );
 }
