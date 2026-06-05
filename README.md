@@ -87,7 +87,33 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 
 ### API Key Vault
 
-The **API Keys** page is a secret vault: admins store shared credentials (third-party API keys, service logins) and grant per-member read access via the **Vault access** toggle on the Users admin page. Each entry is either a _login_ (username + password) or a single _API key_, and can be marked easy-to-copy (one-click copy button) or restricted (reveal-only, no copy button).
+The **API Keys** page is a secret vault: admins store shared credentials (third-party API keys, service logins). Who can open the vault page is controlled by the **Vault access** toggle on the Users admin page (admins always can). Each entry is either a _login_ or an _api_key_, and the two behave differently:
+
+- **Login** (username + password) — revealed/copied in the browser on demand. Can be marked _easy-to-copy_ (one-click copy button) or _restricted_ (reveal-only, no copy button). Served by `GET /api/vault/{id}/reveal`.
+- **API key** — the value is **never shown in the dashboard**. It is retrieved only through an authenticated endpoint (see below), and access is granted **per person, per entry** via the entry's **Manage access** action (the key icon in the row's Actions). The global Vault-access toggle only controls page visibility; it does **not** grant key access.
+
+#### Fetching an API key — `GET /api/vault/{id}/key`
+
+Authenticated by the caller's **dashboard session** (login cookie). Returns the key only if the logged-in user is an admin or has been granted access to that entry.
+
+| Status | Meaning |
+| ------ | ------- |
+| `200`  | `{ "name": "Resend", "key": "re_live_..." }` |
+| `401`  | Not logged in (no/invalid session) |
+| `403`  | Logged in but no per-person grant for this entry |
+| `404`  | Entry doesn't exist, or it is a `login` entry (use the reveal endpoint instead) |
+
+Because auth is the session cookie, scripts call it with that cookie. From a logged-in browser you can open the URL directly; from a script, pass the session cookie:
+
+```bash
+# Copy the "better-auth.session_token" cookie from your logged-in browser.
+curl -s https://dashboard.example.com/api/vault/12/key \
+  -H "Cookie: better-auth.session_token=<your-session-cookie>"
+# -> {"name":"Resend","key":"re_live_..."}
+```
+
+> [!NOTE]
+> This endpoint is session-authenticated by design — there is no standalone machine token. A script must reuse a real user's session cookie, and that user must hold a per-person grant for the entry.
 
 Secrets are encrypted at rest with AES-256-GCM using `VAULT_ENCRYPTION_KEY`:
 
@@ -155,6 +181,8 @@ The app uses a **single SQLite file** on disk. All queries go through [Drizzle O
 | `team`                   | The 6 robot sub-teams. Seeded once; not user-editable through the UI.                                                           |
 | `orders`                 | Part order requests. Status flows: `pending → approved / rejected → ordered`.                                                   |
 | `api_key`                | Hashed service API keys issued to members. Only the prefix and hash are stored - the raw key is shown once on creation.         |
+| `vault_entry`            | API Key Vault entries (shared `login` / `api_key` credentials), AES-256-GCM encrypted at rest. See the API Key Vault section.    |
+| `vault_entry_access`     | Per-person read grants for `api_key` vault entries. A row `(entry_id, user_id)` lets that user fetch the key endpoint.           |
 | `minecraft_whitelist`    | Minecraft username whitelist requests. `addedDirectly` marks entries added by admins without a member request.                  |
 | `headscale_join_request` | Requests to join the VPN. Approved requests still require manual action in Headscale CLI.                                       |
 
