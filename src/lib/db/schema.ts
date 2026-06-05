@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export * from "./auth-schema";
 import { user } from "./auth-schema";
@@ -65,7 +65,10 @@ export const vaultEntry = sqliteTable("vault_entry", {
     username: text("username"),
     // AES-256-GCM ciphertext ("iv.tag.ct") of the password / API key.
     secret: text("secret").notNull(),
-    // When false, the UI hides the copy button and resists selection.
+    // Applies to `login` entries only: when false the UI hides the copy button
+    // and resists selection. `api_key` entries are never shown in the UI - they
+    // are fetched through the authenticated key endpoint - so this is ignored
+    // for them.
     easyCopy: integer("easy_copy", { mode: "boolean" }).notNull().default(true),
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
@@ -74,6 +77,24 @@ export const vaultEntry = sqliteTable("vault_entry", {
         .$onUpdate(() => new Date())
         .notNull(),
 });
+
+// Per-person read grants for `api_key` vault entries. An entry's secret is only
+// returned by GET /api/vault/[id]/key to admins or users with a row here.
+export const vaultEntryAccess = sqliteTable(
+    "vault_entry_access",
+    {
+        id: integer("id").primaryKey({ autoIncrement: true }),
+        entryId: integer("entry_id")
+            .notNull()
+            .references(() => vaultEntry.id, { onDelete: "cascade" }),
+        userId: text("user_id")
+            .notNull()
+            .references(() => user.id, { onDelete: "cascade" }),
+        grantedBy: text("granted_by").references(() => user.id, { onDelete: "set null" }),
+        createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    },
+    (table) => [uniqueIndex("vault_entry_access_entry_user").on(table.entryId, table.userId)]
+);
 
 export const minecraftWhitelist = sqliteTable("minecraft_whitelist", {
     id: integer("id").primaryKey({ autoIncrement: true }),
@@ -116,8 +137,17 @@ export const apiKeyRelations = relations(apiKey, ({ one }) => ({
     user: one(user, { fields: [apiKey.userId], references: [user.id] }),
 }));
 
-export const vaultEntryRelations = relations(vaultEntry, ({ one }) => ({
+export const vaultEntryRelations = relations(vaultEntry, ({ one, many }) => ({
     creator: one(user, { fields: [vaultEntry.createdBy], references: [user.id] }),
+    grants: many(vaultEntryAccess),
+}));
+
+export const vaultEntryAccessRelations = relations(vaultEntryAccess, ({ one }) => ({
+    entry: one(vaultEntry, {
+        fields: [vaultEntryAccess.entryId],
+        references: [vaultEntry.id],
+    }),
+    user: one(user, { fields: [vaultEntryAccess.userId], references: [user.id] }),
 }));
 
 export const minecraftWhitelistRelations = relations(minecraftWhitelist, ({ one }) => ({
