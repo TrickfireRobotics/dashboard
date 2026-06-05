@@ -20,26 +20,18 @@ function parseId(raw: string) {
     return Number.isInteger(id) && id > 0 ? id : null;
 }
 
-// Loads the entry and validates the request body. Only api_key entries support
-// per-person grants - login entries are governed by the global vault toggle.
+// Loads the entry and validates the request body. Per-person grants apply to
+// every vault entry (login reveal and api_key fetch alike).
 async function loadEntryAndBody(req: NextRequest, idRaw: string) {
     const id = parseId(idRaw);
     if (id === null) return { error: NextResponse.json({ error: "Invalid id" }, { status: 400 }) };
 
     const entry = db
-        .select({ id: vaultEntry.id, type: vaultEntry.type })
+        .select({ id: vaultEntry.id })
         .from(vaultEntry)
         .where(eq(vaultEntry.id, id))
         .get();
     if (!entry) return { error: NextResponse.json({ error: "Not found" }, { status: 404 }) };
-    if (entry.type !== "api_key") {
-        return {
-            error: NextResponse.json(
-                { error: "Per-person access only applies to api_key entries" },
-                { status: 400 }
-            ),
-        };
-    }
 
     const body = await req.json().catch(() => null);
     const parsed = vaultAccessSchema.safeParse(body);

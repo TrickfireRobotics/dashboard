@@ -87,10 +87,15 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 
 ### API Key Vault
 
-The **API Keys** page is a secret vault: admins store shared credentials (third-party API keys, service logins). Who can open the vault page is controlled by the **Vault access** toggle on the Users admin page (admins always can). Each entry is either a _login_ or an _api_key_, and the two behave differently:
+The **API Keys** page is a secret vault: admins store shared credentials (third-party API keys, service logins). Two layers of access apply:
 
-- **Login** (username + password) — revealed and copied in the browser on demand. Served by `GET /api/vault/{id}/reveal`.
-- **API key** — the value is **never shown in the dashboard**. It is retrieved only through an authenticated endpoint (see below), and access is granted **per person, per entry** via the entry's **Manage access** action (the key icon in the row's Actions). The global Vault-access toggle only controls page visibility; it does **not** grant key access.
+- **Page visibility** — the **Vault access** toggle on the Users admin page controls who can open the vault page at all (admins always can).
+- **Per-secret access** — reading any individual secret requires a **per-person, per-entry** grant, set from the entry's **Manage access** action (the key icon in the row's Actions). Admins always have access; the global Vault-access toggle does **not** grant secret access on its own.
+
+Each entry is either a _login_ or an _api_key_:
+
+- **Login** (username + password) — revealed and copied in the browser on demand, for granted users. Served by `GET /api/vault/{id}/reveal`.
+- **API key** — the value is **never shown in the dashboard**. It is retrieved only through an authenticated endpoint (see below), for granted users.
 
 #### Fetching an API key — `GET /api/vault/{id}/key`
 
@@ -182,7 +187,7 @@ The app uses a **single SQLite file** on disk. All queries go through [Drizzle O
 | `orders`                 | Part order requests. Status flows: `pending → approved / rejected → ordered`.                                                   |
 | `api_key`                | Hashed service API keys issued to members. Only the prefix and hash are stored - the raw key is shown once on creation.         |
 | `vault_entry`            | API Key Vault entries (shared `login` / `api_key` credentials), AES-256-GCM encrypted at rest. See the API Key Vault section.    |
-| `vault_entry_access`     | Per-person read grants for `api_key` vault entries. A row `(entry_id, user_id)` lets that user fetch the key endpoint.           |
+| `vault_entry_access`     | Per-person read grants for vault entries. A row `(entry_id, user_id)` lets that user read that one secret (login or api_key).     |
 | `minecraft_whitelist`    | Minecraft username whitelist requests. `addedDirectly` marks entries added by admins without a member request.                  |
 | `headscale_join_request` | Requests to join the VPN. Approved requests still require manual action in Headscale CLI.                                       |
 

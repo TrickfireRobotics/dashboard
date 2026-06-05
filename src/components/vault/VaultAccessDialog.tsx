@@ -61,8 +61,8 @@ export function VaultAccessDialog({
                 <DialogHeader>
                     <DialogTitle>Manage access</DialogTitle>
                     <DialogDescription>
-                        Choose who can fetch <span className="font-medium">{entryName}</span> from
-                        its key endpoint. Admins always have access.
+                        Choose who can access <span className="font-medium">{entryName}</span>.
+                        Admins always have access.
                     </DialogDescription>
                 </DialogHeader>
 

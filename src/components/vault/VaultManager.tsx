@@ -136,18 +136,16 @@ export function VaultManager({
                                     {isAdmin ? (
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-1">
-                                                {e.type === "api_key" ? (
-                                                    <Button
-                                                        size="icon-sm"
-                                                        variant="ghost"
-                                                        disabled={busy === e.id}
-                                                        onClick={() => setAccessEntry(e)}
-                                                        aria-label="Manage access"
-                                                        title="Manage access"
-                                                    >
-                                                        <KeyRound className="size-4" />
-                                                    </Button>
-                                                ) : null}
+                                                <Button
+                                                    size="icon-sm"
+                                                    variant="ghost"
+                                                    disabled={busy === e.id}
+                                                    onClick={() => setAccessEntry(e)}
+                                                    aria-label="Manage access"
+                                                    title="Manage access"
+                                                >
+                                                    <KeyRound className="size-4" />
+                                                </Button>
                                                 <Button
                                                     size="icon-sm"
                                                     variant="ghost"

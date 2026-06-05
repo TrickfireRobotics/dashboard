@@ -3,13 +3,13 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { vaultEntry } from "@/lib/db/schema";
-import { canReadVaultKey, getSessionUser } from "@/lib/session";
+import { canReadVaultEntry, getSessionUser } from "@/lib/session";
 import { decryptSecret } from "@/lib/vault-crypto";
 
 // Authenticated retrieval of an `api_key` vault secret. The key is never shipped
 // in the page payload - it is decrypted on demand here for the logged-in user,
 // and only if they hold a per-entry grant (or are an admin). See
-// canReadVaultKey in lib/session.ts.
+// canReadVaultEntry in lib/session.ts.
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const user = await getSessionUser();
     if (!user) {
@@ -41,7 +41,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    if (!canReadVaultKey(user, id)) {
+    if (!canReadVaultEntry(user, id)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
