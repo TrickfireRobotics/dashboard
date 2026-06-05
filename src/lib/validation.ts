@@ -76,6 +76,11 @@ export const vaultEntryUpdateSchema = z
         message: "Nothing to update",
     });
 
+// Grant / revoke per-person access to an api_key vault entry.
+export const vaultAccessSchema = z.object({
+    userId: z.string().trim().min(1, "User is required"),
+});
+
 // Minecraft whitelist ------------------------------------------------------
 
 // Minecraft (Java) usernames: 3-16 chars, letters/digits/underscore.
