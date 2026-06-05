@@ -122,9 +122,7 @@ export function VaultEntryDialog({
                 ? {
                       name: values.name,
                       description: values.description?.trim() || undefined,
-                      ...(values.type === "login"
-                          ? { username: values.username?.trim() }
-                          : {}),
+                      ...(values.type === "login" ? { username: values.username?.trim() } : {}),
                       ...(values.secret?.trim() ? { secret: values.secret } : {}),
                   }
                 : {
@@ -132,9 +130,7 @@ export function VaultEntryDialog({
                       name: values.name,
                       description: values.description?.trim() || undefined,
                       secret: values.secret,
-                      ...(values.type === "login"
-                          ? { username: values.username?.trim() }
-                          : {}),
+                      ...(values.type === "login" ? { username: values.username?.trim() } : {}),
                   };
 
             const res = await fetch(url, {
@@ -262,8 +258,8 @@ export function VaultEntryDialog({
 
                         {type === "api_key" ? (
                             <p className="text-muted-foreground text-sm">
-                                API keys are never shown in the dashboard. They&apos;re fetched
-                                from an authenticated endpoint; grant per-person access from the
+                                API keys are never shown in the dashboard. They&apos;re fetched from
+                                an authenticated endpoint; grant per-person access from the
                                 entry&apos;s &ldquo;Manage access&rdquo; action.
                             </p>
                         ) : null}

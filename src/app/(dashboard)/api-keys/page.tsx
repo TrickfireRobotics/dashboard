@@ -68,12 +68,7 @@ export default async function ApiKeysPage() {
                 </p>
             </div>
 
-            <VaultManager
-                entries={entries}
-                isAdmin={isAdmin}
-                members={members}
-                grants={grants}
-            />
+            <VaultManager entries={entries} isAdmin={isAdmin} members={members} grants={grants} />
         </div>
     );
 }

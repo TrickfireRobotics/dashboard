@@ -58,7 +58,7 @@ export function SecretField({ entryId }: { entryId: number }) {
 
     return (
         <div className="flex items-center gap-2">
-            <code className="bg-muted min-w-32 max-w-[16rem] rounded px-2 py-1 font-mono text-xs break-all">
+            <code className="bg-muted max-w-[16rem] min-w-32 rounded px-2 py-1 font-mono text-xs break-all">
                 {shown ? (value ?? "") : "••••••••••••"}
             </code>
 

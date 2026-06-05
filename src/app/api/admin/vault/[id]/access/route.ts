@@ -75,10 +75,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
     db.delete(vaultEntryAccess)
         .where(
-            and(
-                eq(vaultEntryAccess.entryId, loaded.id),
-                eq(vaultEntryAccess.userId, loaded.userId)
-            )
+            and(eq(vaultEntryAccess.entryId, loaded.id), eq(vaultEntryAccess.userId, loaded.userId))
         )
         .run();
 

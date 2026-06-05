@@ -125,8 +125,7 @@ export const updateUserSchema = z
         canAccessVault: z.boolean().optional(),
     })
     .refine(
-        (v) =>
-            v.role !== undefined || v.isActive !== undefined || v.canAccessVault !== undefined,
+        (v) => v.role !== undefined || v.isActive !== undefined || v.canAccessVault !== undefined,
         {
             message: "Nothing to update",
         }

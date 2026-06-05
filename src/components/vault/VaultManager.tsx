@@ -177,11 +177,7 @@ export function VaultManager({
             )}
 
             {isAdmin ? (
-                <VaultEntryDialog
-                    open={dialogOpen}
-                    onOpenChange={setDialogOpen}
-                    entry={editing}
-                />
+                <VaultEntryDialog open={dialogOpen} onOpenChange={setDialogOpen} entry={editing} />
             ) : null}
 
             {isAdmin && accessEntry ? (

@@ -80,8 +80,7 @@ export function decryptSecret(payload: string): string {
     }
     const decipher = createDecipheriv(ALGORITHM, getVaultKey(), Buffer.from(ivHex, "hex"));
     decipher.setAuthTag(Buffer.from(tagHex, "hex"));
-    return Buffer.concat([
-        decipher.update(Buffer.from(ctHex, "hex")),
-        decipher.final(),
-    ]).toString("utf8");
+    return Buffer.concat([decipher.update(Buffer.from(ctHex, "hex")), decipher.final()]).toString(
+        "utf8"
+    );
 }

@@ -58,26 +58,26 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 
 ## Environment Variables
 
-| Variable                      | Description                                                                                                                                                           |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `NEXT_PUBLIC_APP_URL`         | Public origin of the app, e.g. `http://localhost:3000`                                                                                                                |
-| `BETTER_AUTH_SECRET`          | Random secret for signing sessions - generate with `openssl rand -hex 32`                                                                                             |
-| `BETTER_AUTH_URL`             | Same value as `NEXT_PUBLIC_APP_URL`                                                                                                                                   |
-| `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated extra origins allowed to make auth requests, e.g. `http://192.168.1.50:3000`. Required when accessing the dev server from another machine on the LAN. |
-| `DATABASE_PATH`               | Path to the SQLite file, e.g. `db/dashboard.db`                                                                                                                       |
+| Variable                      | Description                                                                                                                                                                                                     |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `NEXT_PUBLIC_APP_URL`         | Public origin of the app, e.g. `http://localhost:3000`                                                                                                                                                          |
+| `BETTER_AUTH_SECRET`          | Random secret for signing sessions - generate with `openssl rand -hex 32`                                                                                                                                       |
+| `BETTER_AUTH_URL`             | Same value as `NEXT_PUBLIC_APP_URL`                                                                                                                                                                             |
+| `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated extra origins allowed to make auth requests, e.g. `http://192.168.1.50:3000`. Required when accessing the dev server from another machine on the LAN.                                           |
+| `DATABASE_PATH`               | Path to the SQLite file, e.g. `db/dashboard.db`                                                                                                                                                                 |
 | `VAULT_ENCRYPTION_KEY`        | AES-256 key (hex) encrypting API Key Vault secrets at rest - generate with `openssl rand -hex 32`. **Required in production.** In local dev, if unset, a key is auto-generated and persisted to `db/vault.key`. |
-| `SEED_ADMIN_EMAIL`            | Email for the seeded admin account                                                                                                                                    |
-| `SEED_ADMIN_PASSWORD`         | Password for the seeded admin account                                                                                                                                 |
-| `SEED_ADMIN_NAME`             | Display name for the seeded admin                                                                                                                                     |
-| `MINECRAFT_SERVER_HOST`       | Hostname/IP of the Minecraft server                                                                                                                                   |
-| `MINECRAFT_SERVER_PORT`       | Port of the Minecraft server (default `25565`)                                                                                                                        |
-| `MINECRAFT_WORLD_PATH`        | Absolute path to the Minecraft world directory, e.g. `/opt/minecraft/world`. Used to read per-player stat files for the playtime leaderboard.                         |
-| `MINECRAFT_BOT_NAMES`         | Comma-separated list of carpet bot names, optionally with a custom skin source: `BotA:Steve,BotB:https://s.namemc.com/i/abc123.png`. Bots are tagged in the UI.       |
-| `BLUEMAP_URL`                 | Internal URL of the BlueMap web server, e.g. `http://localhost:8100`. The dashboard proxies this at `/bluemap` so it's accessible without exposing a second port.     |
-| `RESEND_API_KEY`              | API key from [Resend](https://resend.com) for transactional email                                                                                                     |
-| `EMAIL_FROM`                  | Sender shown in outgoing emails, e.g. `TrickFire Robotics <noreply@trickfirerobotics.com>`                                                                            |
-| `HEADSCALE_URL`               | Base URL of the Headscale REST API, e.g. `http://localhost:50443`                                                                                                     |
-| `HEADSCALE_API_KEY`           | API key generated by Headscale                                                                                                                                        |
+| `SEED_ADMIN_EMAIL`            | Email for the seeded admin account                                                                                                                                                                              |
+| `SEED_ADMIN_PASSWORD`         | Password for the seeded admin account                                                                                                                                                                           |
+| `SEED_ADMIN_NAME`             | Display name for the seeded admin                                                                                                                                                                               |
+| `MINECRAFT_SERVER_HOST`       | Hostname/IP of the Minecraft server                                                                                                                                                                             |
+| `MINECRAFT_SERVER_PORT`       | Port of the Minecraft server (default `25565`)                                                                                                                                                                  |
+| `MINECRAFT_WORLD_PATH`        | Absolute path to the Minecraft world directory, e.g. `/opt/minecraft/world`. Used to read per-player stat files for the playtime leaderboard.                                                                   |
+| `MINECRAFT_BOT_NAMES`         | Comma-separated list of carpet bot names, optionally with a custom skin source: `BotA:Steve,BotB:https://s.namemc.com/i/abc123.png`. Bots are tagged in the UI.                                                 |
+| `BLUEMAP_URL`                 | Internal URL of the BlueMap web server, e.g. `http://localhost:8100`. The dashboard proxies this at `/bluemap` so it's accessible without exposing a second port.                                               |
+| `RESEND_API_KEY`              | API key from [Resend](https://resend.com) for transactional email                                                                                                                                               |
+| `EMAIL_FROM`                  | Sender shown in outgoing emails, e.g. `TrickFire Robotics <noreply@trickfirerobotics.com>`                                                                                                                      |
+| `HEADSCALE_URL`               | Base URL of the Headscale REST API, e.g. `http://localhost:50443`                                                                                                                                               |
+| `HEADSCALE_API_KEY`           | API key generated by Headscale                                                                                                                                                                                  |
 
 > [!TIP]
 > `MINECRAFT_SERVER_HOST`, `MINECRAFT_WORLD_PATH`, `BLUEMAP_URL`, `RESEND_API_KEY`, and `HEADSCALE_*` are optional for local dev. The app handles unreachable services gracefully - the Minecraft card shows "offline", the leaderboard and map show an unavailable state, email features are skipped, and the Network tab shows an error state.
@@ -101,11 +101,11 @@ Each entry is either a _login_ or an _api_key_:
 
 Authenticated by the caller's **dashboard session** (login cookie). Returns the key only if the logged-in user is an admin or has been granted access to that entry.
 
-| Status | Meaning |
-| ------ | ------- |
-| `200`  | `{ "name": "Resend", "key": "re_live_..." }` |
-| `401`  | Not logged in (no/invalid session) |
-| `403`  | Logged in but no per-person grant for this entry |
+| Status | Meaning                                                                         |
+| ------ | ------------------------------------------------------------------------------- |
+| `200`  | `{ "name": "Resend", "key": "re_live_..." }`                                    |
+| `401`  | Not logged in (no/invalid session)                                              |
+| `403`  | Logged in but no per-person grant for this entry                                |
 | `404`  | Entry doesn't exist, or it is a `login` entry (use the reveal endpoint instead) |
 
 Because auth is the session cookie, scripts call it with that cookie. From a logged-in browser you can open the URL directly; from a script, pass the session cookie:
@@ -186,8 +186,8 @@ The app uses a **single SQLite file** on disk. All queries go through [Drizzle O
 | `team`                   | The 6 robot sub-teams. Seeded once; not user-editable through the UI.                                                           |
 | `orders`                 | Part order requests. Status flows: `pending → approved / rejected → ordered`.                                                   |
 | `api_key`                | Hashed service API keys issued to members. Only the prefix and hash are stored - the raw key is shown once on creation.         |
-| `vault_entry`            | API Key Vault entries (shared `login` / `api_key` credentials), AES-256-GCM encrypted at rest. See the API Key Vault section.    |
-| `vault_entry_access`     | Per-person read grants for vault entries. A row `(entry_id, user_id)` lets that user read that one secret (login or api_key).     |
+| `vault_entry`            | API Key Vault entries (shared `login` / `api_key` credentials), AES-256-GCM encrypted at rest. See the API Key Vault section.   |
+| `vault_entry_access`     | Per-person read grants for vault entries. A row `(entry_id, user_id)` lets that user read that one secret (login or api_key).   |
 | `minecraft_whitelist`    | Minecraft username whitelist requests. `addedDirectly` marks entries added by admins without a member request.                  |
 | `headscale_join_request` | Requests to join the VPN. Approved requests still require manual action in Headscale CLI.                                       |
 
