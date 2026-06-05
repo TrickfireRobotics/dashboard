@@ -267,33 +267,44 @@ export function VaultEntryDialog({
                             )}
                         />
 
-                        <FormField
-                            control={form.control}
-                            name="easyCopy"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Copy behavior</FormLabel>
-                                    <Select value={field.value} onValueChange={field.onChange}>
-                                        <FormControl>
-                                            <SelectTrigger className="w-full">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="true">Easy to copy</SelectItem>
-                                            <SelectItem value="false">
-                                                Restricted (reveal only)
-                                            </SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <FormDescription>
-                                        Restricted entries hide the copy button and resist
-                                        selection.
-                                    </FormDescription>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                        {type === "login" ? (
+                            <FormField
+                                control={form.control}
+                                name="easyCopy"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Copy behavior</FormLabel>
+                                        <Select
+                                            value={field.value}
+                                            onValueChange={field.onChange}
+                                        >
+                                            <FormControl>
+                                                <SelectTrigger className="w-full">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="true">Easy to copy</SelectItem>
+                                                <SelectItem value="false">
+                                                    Restricted (reveal only)
+                                                </SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                        <FormDescription>
+                                            Restricted entries hide the copy button and resist
+                                            selection.
+                                        </FormDescription>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        ) : (
+                            <p className="text-muted-foreground text-sm">
+                                API keys are never shown in the dashboard. They&apos;re fetched
+                                from an authenticated endpoint; grant per-person access from the
+                                entry&apos;s &ldquo;Manage access&rdquo; action.
+                            </p>
+                        )}
 
                         <FormField
                             control={form.control}

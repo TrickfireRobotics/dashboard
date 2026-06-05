@@ -1,11 +1,14 @@
 "use client";
 
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { KeyRound, Pencil, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { EntryName } from "@/components/vault/EntryName";
+import { KeyEndpointField } from "@/components/vault/KeyEndpointField";
 import { SecretField } from "@/components/vault/SecretField";
+import { VaultAccessDialog } from "@/components/vault/VaultAccessDialog";
 import { VaultEntryDialog, type VaultEntryRow } from "@/components/vault/VaultEntryDialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,16 +24,29 @@ import { formatDate } from "@/lib/utils";
 
 const TYPE_LABEL = { login: "Login", api_key: "API key" } as const;
 
+export type VaultMember = {
+    id: string;
+    name: string;
+    email: string;
+    isAdmin: boolean;
+};
+
 export function VaultManager({
     entries,
     isAdmin,
+    members,
+    grants,
 }: {
     entries: VaultEntryRow[];
     isAdmin: boolean;
+    // Admin-only: roster + entryId -> granted userIds, for managing access.
+    members: VaultMember[];
+    grants: Record<number, string[]>;
 }) {
     const router = useRouter();
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editing, setEditing] = useState<VaultEntryRow | undefined>(undefined);
+    const [accessEntry, setAccessEntry] = useState<VaultEntryRow | undefined>(undefined);
     const [busy, setBusy] = useState<number | null>(null);
 
     function openCreate() {
@@ -96,9 +112,9 @@ export function VaultManager({
                             {entries.map((e) => (
                                 <TableRow key={e.id}>
                                     <TableCell className="text-foreground font-medium">
-                                        {e.name}
+                                        <EntryName name={e.name} />
                                         {e.description ? (
-                                            <p className="text-muted-foreground text-xs font-normal">
+                                            <p className="text-muted-foreground max-w-[16rem] text-xs font-normal break-words">
                                                 {e.description}
                                             </p>
                                         ) : null}
@@ -110,10 +126,16 @@ export function VaultManager({
                                         {e.type === "login" ? e.username : "-"}
                                     </TableCell>
                                     <TableCell>
-                                        <SecretField entryId={e.id} easyCopy={e.easyCopy} />
+                                        {e.type === "api_key" ? (
+                                            <KeyEndpointField entryId={e.id} />
+                                        ) : (
+                                            <SecretField entryId={e.id} easyCopy={e.easyCopy} />
+                                        )}
                                     </TableCell>
                                     <TableCell>
-                                        {e.easyCopy ? (
+                                        {e.type === "api_key" ? (
+                                            <Badge variant="outline">Endpoint</Badge>
+                                        ) : e.easyCopy ? (
                                             <Badge variant="secondary">Easy</Badge>
                                         ) : (
                                             <Badge variant="outline">Restricted</Badge>
@@ -125,6 +147,18 @@ export function VaultManager({
                                     {isAdmin ? (
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-1">
+                                                {e.type === "api_key" ? (
+                                                    <Button
+                                                        size="icon-sm"
+                                                        variant="ghost"
+                                                        disabled={busy === e.id}
+                                                        onClick={() => setAccessEntry(e)}
+                                                        aria-label="Manage access"
+                                                        title="Manage access"
+                                                    >
+                                                        <KeyRound className="size-4" />
+                                                    </Button>
+                                                ) : null}
                                                 <Button
                                                     size="icon-sm"
                                                     variant="ghost"
@@ -160,6 +194,19 @@ export function VaultManager({
                     open={dialogOpen}
                     onOpenChange={setDialogOpen}
                     entry={editing}
+                />
+            ) : null}
+
+            {isAdmin && accessEntry ? (
+                <VaultAccessDialog
+                    open={accessEntry !== undefined}
+                    onOpenChange={(open) => {
+                        if (!open) setAccessEntry(undefined);
+                    }}
+                    entryId={accessEntry.id}
+                    entryName={accessEntry.name}
+                    members={members}
+                    grantedUserIds={grants[accessEntry.id] ?? []}
                 />
             ) : null}
         </div>

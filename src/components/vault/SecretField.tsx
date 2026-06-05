@@ -77,7 +77,7 @@ export function SecretField({ entryId, easyCopy }: { entryId: number; easyCopy: 
             <code
                 onCopy={easyCopy ? undefined : (e) => e.preventDefault()}
                 className={cn(
-                    "bg-muted min-w-32 rounded px-2 py-1 font-mono text-xs",
+                    "bg-muted min-w-32 max-w-[16rem] rounded px-2 py-1 font-mono text-xs break-all",
                     !easyCopy && "select-none"
                 )}
             >
