@@ -50,7 +50,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             ...(d.description !== undefined ? { description: d.description } : {}),
             ...(allowUsername && d.username !== undefined ? { username: d.username } : {}),
             ...(d.secret !== undefined ? { secret: encryptSecret(d.secret) } : {}),
-            ...(d.easyCopy !== undefined ? { easyCopy: d.easyCopy } : {}),
         })
         .where(eq(vaultEntry.id, id))
         .returning({ id: vaultEntry.id })

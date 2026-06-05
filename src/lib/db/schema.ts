@@ -65,11 +65,6 @@ export const vaultEntry = sqliteTable("vault_entry", {
     username: text("username"),
     // AES-256-GCM ciphertext ("iv.tag.ct") of the password / API key.
     secret: text("secret").notNull(),
-    // Applies to `login` entries only: when false the UI hides the copy button
-    // and resists selection. `api_key` entries are never shown in the UI - they
-    // are fetched through the authenticated key endpoint - so this is ignored
-    // for them.
-    easyCopy: integer("easy_copy", { mode: "boolean" }).notNull().default(true),
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" })

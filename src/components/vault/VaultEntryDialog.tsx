@@ -41,7 +41,6 @@ export type VaultEntryRow = {
     type: VaultEntryType;
     description: string | null;
     username: string | null;
-    easyCopy: boolean;
     createdAt: Date;
 };
 
@@ -54,7 +53,6 @@ function makeSchema(isEdit: boolean) {
             // Optional when editing - leave blank to keep the existing secret.
             secret: z.string().max(5000).optional(),
             description: z.string().trim().max(1000).optional(),
-            easyCopy: z.enum(["true", "false"]),
         })
         .superRefine((v, ctx) => {
             if (v.type === "login" && !v.username?.trim()) {
@@ -97,7 +95,6 @@ export function VaultEntryDialog({
             username: "",
             secret: "",
             description: "",
-            easyCopy: "true",
         },
     });
 
@@ -110,7 +107,6 @@ export function VaultEntryDialog({
             username: entry?.username ?? "",
             secret: "",
             description: entry?.description ?? "",
-            easyCopy: (entry?.easyCopy ?? true) ? "true" : "false",
         });
     }, [open, entry, form]);
 
@@ -119,7 +115,6 @@ export function VaultEntryDialog({
     async function onSubmit(values: FormValues) {
         setSubmitting(true);
         try {
-            const easyCopy = values.easyCopy === "true";
             const url = isEdit ? `/api/admin/vault/${entry.id}` : "/api/admin/vault";
             const method = isEdit ? "PATCH" : "POST";
 
@@ -127,7 +122,6 @@ export function VaultEntryDialog({
                 ? {
                       name: values.name,
                       description: values.description?.trim() || undefined,
-                      easyCopy,
                       ...(values.type === "login"
                           ? { username: values.username?.trim() }
                           : {}),
@@ -137,7 +131,6 @@ export function VaultEntryDialog({
                       type: values.type,
                       name: values.name,
                       description: values.description?.trim() || undefined,
-                      easyCopy,
                       secret: values.secret,
                       ...(values.type === "login"
                           ? { username: values.username?.trim() }
@@ -267,44 +260,13 @@ export function VaultEntryDialog({
                             )}
                         />
 
-                        {type === "login" ? (
-                            <FormField
-                                control={form.control}
-                                name="easyCopy"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Copy behavior</FormLabel>
-                                        <Select
-                                            value={field.value}
-                                            onValueChange={field.onChange}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger className="w-full">
-                                                    <SelectValue />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="true">Easy to copy</SelectItem>
-                                                <SelectItem value="false">
-                                                    Restricted (reveal only)
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormDescription>
-                                            Restricted entries hide the copy button and resist
-                                            selection.
-                                        </FormDescription>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        ) : (
+                        {type === "api_key" ? (
                             <p className="text-muted-foreground text-sm">
                                 API keys are never shown in the dashboard. They&apos;re fetched
                                 from an authenticated endpoint; grant per-person access from the
                                 entry&apos;s &ldquo;Manage access&rdquo; action.
                             </p>
-                        )}
+                        ) : null}
 
                         <FormField
                             control={form.control}

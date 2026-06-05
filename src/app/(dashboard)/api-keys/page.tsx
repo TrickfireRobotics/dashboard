@@ -23,7 +23,6 @@ export default async function ApiKeysPage() {
             type: vaultEntry.type,
             description: vaultEntry.description,
             username: vaultEntry.username,
-            easyCopy: vaultEntry.easyCopy,
             createdAt: vaultEntry.createdAt,
         })
         .from(vaultEntry)

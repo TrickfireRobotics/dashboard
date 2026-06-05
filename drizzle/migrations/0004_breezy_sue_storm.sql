@@ -1,0 +1,1 @@
+ALTER TABLE `vault_entry` DROP COLUMN `easy_copy`;

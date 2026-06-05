@@ -52,14 +52,12 @@ export const vaultEntrySchema = z.discriminatedUnion("type", [
         username: z.string().trim().min(1, "Username is required").max(200),
         secret: vaultSecret,
         description: vaultDescription,
-        easyCopy: z.boolean(),
     }),
     z.object({
         type: z.literal("api_key"),
         name: vaultName,
         secret: vaultSecret,
         description: vaultDescription,
-        easyCopy: z.boolean(),
     }),
 ]);
 
@@ -70,7 +68,6 @@ export const vaultEntryUpdateSchema = z
         username: z.string().trim().min(1).max(200).optional(),
         secret: vaultSecret.optional(),
         description: vaultDescription,
-        easyCopy: z.boolean().optional(),
     })
     .refine((v) => Object.values(v).some((x) => x !== undefined), {
         message: "Nothing to update",

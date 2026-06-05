@@ -89,7 +89,7 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 
 The **API Keys** page is a secret vault: admins store shared credentials (third-party API keys, service logins). Who can open the vault page is controlled by the **Vault access** toggle on the Users admin page (admins always can). Each entry is either a _login_ or an _api_key_, and the two behave differently:
 
-- **Login** (username + password) — revealed/copied in the browser on demand. Can be marked _easy-to-copy_ (one-click copy button) or _restricted_ (reveal-only, no copy button). Served by `GET /api/vault/{id}/reveal`.
+- **Login** (username + password) — revealed and copied in the browser on demand. Served by `GET /api/vault/{id}/reveal`.
 - **API key** — the value is **never shown in the dashboard**. It is retrieved only through an authenticated endpoint (see below), and access is granted **per person, per entry** via the entry's **Manage access** action (the key icon in the row's Actions). The global Vault-access toggle only controls page visibility; it does **not** grant key access.
 
 #### Fetching an API key — `GET /api/vault/{id}/key`

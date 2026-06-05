@@ -33,7 +33,6 @@ export async function POST(req: NextRequest) {
             description: d.description ?? null,
             username: d.type === "login" ? d.username : null,
             secret: encryptSecret(d.secret),
-            easyCopy: d.easyCopy,
             createdBy: user.id,
         })
         .returning({ id: vaultEntry.id })

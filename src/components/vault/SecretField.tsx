@@ -1,27 +1,16 @@
 "use client";
 
 import { Check, Copy, Eye, EyeOff, Loader2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
-// Restricted secrets auto-hide after this long so they don't linger on screen.
-const RESTRICTED_HIDE_MS = 20_000;
-
-export function SecretField({ entryId, easyCopy }: { entryId: number; easyCopy: boolean }) {
+export function SecretField({ entryId }: { entryId: number }) {
     const [value, setValue] = useState<string | null>(null);
     const [shown, setShown] = useState(false);
     const [loading, setLoading] = useState(false);
     const [copied, setCopied] = useState(false);
-    const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-    useEffect(() => {
-        return () => {
-            if (hideTimer.current) clearTimeout(hideTimer.current);
-        };
-    }, []);
 
     // Fetch + cache the decrypted secret. Returns null on failure (toasts).
     const fetchSecret = useCallback(async (): Promise<string | null> => {
@@ -47,16 +36,11 @@ export function SecretField({ entryId, easyCopy }: { entryId: number; easyCopy: 
     async function toggleReveal() {
         if (shown) {
             setShown(false);
-            if (hideTimer.current) clearTimeout(hideTimer.current);
             return;
         }
         const secret = await fetchSecret();
         if (secret === null) return;
         setShown(true);
-        if (!easyCopy) {
-            if (hideTimer.current) clearTimeout(hideTimer.current);
-            hideTimer.current = setTimeout(() => setShown(false), RESTRICTED_HIDE_MS);
-        }
     }
 
     async function copy() {
@@ -74,13 +58,7 @@ export function SecretField({ entryId, easyCopy }: { entryId: number; easyCopy: 
 
     return (
         <div className="flex items-center gap-2">
-            <code
-                onCopy={easyCopy ? undefined : (e) => e.preventDefault()}
-                className={cn(
-                    "bg-muted min-w-32 max-w-[16rem] rounded px-2 py-1 font-mono text-xs break-all",
-                    !easyCopy && "select-none"
-                )}
-            >
+            <code className="bg-muted min-w-32 max-w-[16rem] rounded px-2 py-1 font-mono text-xs break-all">
                 {shown ? (value ?? "") : "••••••••••••"}
             </code>
 
@@ -101,18 +79,16 @@ export function SecretField({ entryId, easyCopy }: { entryId: number; easyCopy: 
                 )}
             </Button>
 
-            {easyCopy ? (
-                <Button
-                    size="icon-sm"
-                    variant="ghost"
-                    onClick={copy}
-                    disabled={loading}
-                    aria-label="Copy secret"
-                    title="Copy"
-                >
-                    {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-                </Button>
-            ) : null}
+            <Button
+                size="icon-sm"
+                variant="ghost"
+                onClick={copy}
+                disabled={loading}
+                aria-label="Copy secret"
+                title="Copy"
+            >
+                {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+            </Button>
         </div>
     );
 }

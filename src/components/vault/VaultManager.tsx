@@ -10,7 +10,6 @@ import { KeyEndpointField } from "@/components/vault/KeyEndpointField";
 import { SecretField } from "@/components/vault/SecretField";
 import { VaultAccessDialog } from "@/components/vault/VaultAccessDialog";
 import { VaultEntryDialog, type VaultEntryRow } from "@/components/vault/VaultEntryDialog";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     Table,
@@ -101,7 +100,6 @@ export function VaultManager({
                                 <TableHead>Type</TableHead>
                                 <TableHead>Username</TableHead>
                                 <TableHead>Secret</TableHead>
-                                <TableHead>Copy</TableHead>
                                 <TableHead>Added</TableHead>
                                 {isAdmin ? (
                                     <TableHead className="text-right">Actions</TableHead>
@@ -129,16 +127,7 @@ export function VaultManager({
                                         {e.type === "api_key" ? (
                                             <KeyEndpointField entryId={e.id} />
                                         ) : (
-                                            <SecretField entryId={e.id} easyCopy={e.easyCopy} />
-                                        )}
-                                    </TableCell>
-                                    <TableCell>
-                                        {e.type === "api_key" ? (
-                                            <Badge variant="outline">Endpoint</Badge>
-                                        ) : e.easyCopy ? (
-                                            <Badge variant="secondary">Easy</Badge>
-                                        ) : (
-                                            <Badge variant="outline">Restricted</Badge>
+                                            <SecretField entryId={e.id} />
                                         )}
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
