@@ -3,18 +3,17 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { vaultEntry } from "@/lib/db/schema";
-import { canUseVault, getSessionUser } from "@/lib/session";
+import { canReadVaultKey, getSessionUser } from "@/lib/session";
 import { decryptSecret } from "@/lib/vault-crypto";
 
-// Secrets never ship in the page payload - they are decrypted on demand here,
-// only for users who currently hold vault access.
+// Authenticated retrieval of an `api_key` vault secret. The key is never shipped
+// in the page payload - it is decrypted on demand here for the logged-in user,
+// and only if they hold a per-entry grant (or are an admin). See
+// canReadVaultKey in lib/session.ts.
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const user = await getSessionUser();
     if (!user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    if (!canUseVault(user)) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const id = Number((await params).id);
@@ -24,27 +23,22 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
     const entry = db
         .select({
+            name: vaultEntry.name,
             type: vaultEntry.type,
-            username: vaultEntry.username,
             secret: vaultEntry.secret,
         })
         .from(vaultEntry)
         .where(eq(vaultEntry.id, id))
         .get();
-    if (!entry) {
+    // 404 for both missing and non-api_key entries: login secrets are served by
+    // the reveal endpoint, never here.
+    if (!entry || entry.type !== "api_key") {
         return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
-    // api_key secrets are never revealed in-browser - they are fetched through
-    // the authenticated, per-person key endpoint instead.
-    if (entry.type === "api_key") {
-        return NextResponse.json(
-            { error: "Use the key endpoint: GET /api/vault/{id}/key" },
-            { status: 403 }
-        );
+
+    if (!canReadVaultKey(user, id)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    return NextResponse.json({
-        username: entry.type === "login" ? entry.username : null,
-        secret: decryptSecret(entry.secret),
-    });
+    return NextResponse.json({ name: entry.name, key: decryptSecret(entry.secret) });
 }
