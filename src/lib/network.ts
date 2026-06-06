@@ -52,7 +52,7 @@ function toNode(d: TailscaleDevice): NetworkNode {
         os: d.os ?? "",
         user: { name: d.user ?? "" },
         lastSeen: d.lastSeen,
-        online: d.online ?? false,
+        online: d.online ?? Date.now() - new Date(d.lastSeen).getTime() < 3 * 60 * 1000,
     };
 }
 
