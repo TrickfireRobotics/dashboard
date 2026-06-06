@@ -1,15 +1,24 @@
+import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { auth } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { userFeature } from "@/lib/db/schema";
+import { FEATURE_ROUTES } from "@/lib/features";
 
-// Run on the Node.js runtime so the better-sqlite3-backed auth/db can be used
-// to enforce the deactivated-user check on every protected request.
 export const runtime = "nodejs";
 
 const SESSION_COOKIES = ["better-auth.session_token", "__Secure-better-auth.session_token"];
 
+function resolveUrl(req: NextRequest, path: string): URL {
+    const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+    const proto = req.headers.get("x-forwarded-proto") ?? "http";
+    if (host) return new URL(path, `${proto}://${host}`);
+    return new URL(path, req.url);
+}
+
 function redirectToLogin(req: NextRequest, deactivated = false) {
-    const url = new URL("/login", req.url);
+    const url = resolveUrl(req, "/login");
     if (deactivated) {
         url.searchParams.set("deactivated", "1");
     }
@@ -29,10 +38,38 @@ export async function middleware(req: NextRequest) {
         return redirectToLogin(req);
     }
 
-    // `isActive` is fetched fresh from the DB by getSession, so a member
-    // deactivated mid-session is caught here on their next request.
     if (session.user.isActive === false) {
         return redirectToLogin(req, true);
+    }
+
+    if (!session.user.approved) {
+        return NextResponse.redirect(resolveUrl(req, "/pending"));
+    }
+
+    // Admins bypass per-feature checks.
+    if (session.user.role !== "admin") {
+        const path = req.nextUrl.pathname;
+        for (const [prefix, featureKey] of Object.entries(FEATURE_ROUTES)) {
+            if (path === prefix || path.startsWith(`${prefix}/`)) {
+                const granted = db
+                    .select({ id: userFeature.id })
+                    .from(userFeature)
+                    .where(
+                        and(
+                            eq(userFeature.userId, session.user.id),
+                            eq(userFeature.featureKey, featureKey),
+                            eq(userFeature.status, "granted")
+                        )
+                    )
+                    .get();
+                if (!granted) {
+                    const url = resolveUrl(req, "/features");
+                    url.searchParams.set("denied", featureKey);
+                    return NextResponse.redirect(url);
+                }
+                break;
+            }
+        }
     }
 
     return NextResponse.next();
@@ -41,10 +78,11 @@ export async function middleware(req: NextRequest) {
 export const config = {
     matcher: [
         "/dashboard/:path*",
+        "/features/:path*",
         "/orders/:path*",
         "/api-keys/:path*",
         "/minecraft/:path*",
-        "/headscale/:path*",
+        "/network/:path*",
         "/admin/:path*",
     ],
 };

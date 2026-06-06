@@ -44,7 +44,7 @@ export default async function MinecraftPage() {
             <div className="grid gap-6 lg:grid-cols-3 lg:items-start">
                 <ServerStatusSection />
 
-                <Card>
+                <Card className="h-full">
                     <CardHeader>
                         <CardTitle>Whitelist</CardTitle>
                         <CardDescription>Request access to the club server.</CardDescription>
@@ -53,7 +53,7 @@ export default async function MinecraftPage() {
                         <WhitelistRequestForm />
 
                         {requests.length > 0 && (
-                            <div className="space-y-1">
+                            <div className="h-full space-y-1">
                                 <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                                     Your Requests
                                 </p>

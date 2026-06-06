@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "4a01b982-f26e-4ff3-99a8-174add86535d",
-  "prevId": "11e81fe6-521c-4962-a669-817ca7ea6189",
+  "id": "c6934a8d-e702-4a41-8629-82be9d4310f2",
+  "prevId": "299c1d72-2aa7-4aa7-a3f2-133df8988a42",
   "tables": {
     "api_key": {
       "name": "api_key",
@@ -94,8 +94,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "headscale_join_request": {
-      "name": "headscale_join_request",
+    "network_join_request": {
+      "name": "network_join_request",
       "columns": {
         "id": {
           "name": "id",
@@ -172,9 +172,9 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "headscale_join_request_user_id_user_id_fk": {
-          "name": "headscale_join_request_user_id_user_id_fk",
-          "tableFrom": "headscale_join_request",
+        "network_join_request_user_id_user_id_fk": {
+          "name": "network_join_request_user_id_user_id_fk",
+          "tableFrom": "network_join_request",
           "tableTo": "user",
           "columnsFrom": [
             "user_id"
@@ -185,9 +185,9 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
-        "headscale_join_request_reviewed_by_user_id_fk": {
-          "name": "headscale_join_request_reviewed_by_user_id_fk",
-          "tableFrom": "headscale_join_request",
+        "network_join_request_reviewed_by_user_id_fk": {
+          "name": "network_join_request_reviewed_by_user_id_fk",
+          "tableFrom": "network_join_request",
           "tableTo": "user",
           "columnsFrom": [
             "reviewed_by"
@@ -503,8 +503,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "vault_entry": {
-      "name": "vault_entry",
+    "user_feature": {
+      "name": "user_feature",
       "columns": {
         "id": {
           "name": "id",
@@ -512,110 +512,6 @@
           "primaryKey": true,
           "notNull": true,
           "autoincrement": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "username": {
-          "name": "username",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "secret": {
-          "name": "secret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "easy_copy": {
-          "name": "easy_copy",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
-        "created_by": {
-          "name": "created_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "vault_entry_created_by_user_id_fk": {
-          "name": "vault_entry_created_by_user_id_fk",
-          "tableFrom": "vault_entry",
-          "tableTo": "user",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
-    "vault_entry_access": {
-      "name": "vault_entry_access",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "entry_id": {
-          "name": "entry_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
         },
         "user_id": {
           "name": "user_id",
@@ -624,15 +520,51 @@
           "notNull": true,
           "autoincrement": false
         },
-        "granted_by": {
-          "name": "granted_by",
+        "feature_key": {
+          "name": "feature_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'pending'"
+        },
+        "request_note": {
+          "name": "request_note",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
+        "admin_note": {
+          "name": "admin_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reviewed_by": {
+          "name": "reviewed_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reviewed_at": {
+          "name": "reviewed_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "requested_at": {
+          "name": "requested_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -641,32 +573,26 @@
         }
       },
       "indexes": {
-        "vault_entry_access_entry_user": {
-          "name": "vault_entry_access_entry_user",
+        "user_feature_unique": {
+          "name": "user_feature_unique",
           "columns": [
-            "entry_id",
-            "user_id"
+            "user_id",
+            "feature_key"
           ],
           "isUnique": true
+        },
+        "user_feature_userId_idx": {
+          "name": "user_feature_userId_idx",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
-        "vault_entry_access_entry_id_vault_entry_id_fk": {
-          "name": "vault_entry_access_entry_id_vault_entry_id_fk",
-          "tableFrom": "vault_entry_access",
-          "tableTo": "vault_entry",
-          "columnsFrom": [
-            "entry_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "vault_entry_access_user_id_user_id_fk": {
-          "name": "vault_entry_access_user_id_user_id_fk",
-          "tableFrom": "vault_entry_access",
+        "user_feature_user_id_user_id_fk": {
+          "name": "user_feature_user_id_user_id_fk",
+          "tableFrom": "user_feature",
           "tableTo": "user",
           "columnsFrom": [
             "user_id"
@@ -677,12 +603,12 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "vault_entry_access_granted_by_user_id_fk": {
-          "name": "vault_entry_access_granted_by_user_id_fk",
-          "tableFrom": "vault_entry_access",
+        "user_feature_reviewed_by_user_id_fk": {
+          "name": "user_feature_reviewed_by_user_id_fk",
+          "tableFrom": "user_feature",
           "tableTo": "user",
           "columnsFrom": [
-            "granted_by"
+            "reviewed_by"
           ],
           "columnsTo": [
             "id"
@@ -986,8 +912,8 @@
           "autoincrement": false,
           "default": true
         },
-        "can_access_vault": {
-          "name": "can_access_vault",
+        "approved": {
+          "name": "approved",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -1076,7 +1002,9 @@
   "enums": {},
   "_meta": {
     "schemas": {},
-    "tables": {},
+    "tables": {
+      "headscale_join_request": "network_join_request"
+    },
     "columns": {}
   },
   "internal": {

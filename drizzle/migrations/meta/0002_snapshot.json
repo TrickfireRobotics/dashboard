@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "11e81fe6-521c-4962-a669-817ca7ea6189",
+  "id": "299c1d72-2aa7-4aa7-a3f2-133df8988a42",
   "prevId": "64108b20-e796-4223-9dee-c373b69f7116",
   "tables": {
     "api_key": {
@@ -503,8 +503,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "vault_entry": {
-      "name": "vault_entry",
+    "user_feature": {
+      "name": "user_feature",
       "columns": {
         "id": {
           "name": "id",
@@ -513,66 +513,58 @@
           "notNull": true,
           "autoincrement": true
         },
-        "name": {
-          "name": "name",
+        "user_id": {
+          "name": "user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "type": {
-          "name": "type",
+        "feature_key": {
+          "name": "feature_key",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "description": {
-          "name": "description",
+        "status": {
+          "name": "status",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "username": {
-          "name": "username",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "secret": {
-          "name": "secret",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "easy_copy": {
-          "name": "easy_copy",
-          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": true
+          "default": "'pending'"
         },
-        "created_by": {
-          "name": "created_by",
+        "request_note": {
+          "name": "request_note",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "created_at": {
-          "name": "created_at",
+        "admin_note": {
+          "name": "admin_note",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reviewed_by": {
+          "name": "reviewed_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "reviewed_at": {
+          "name": "reviewed_at",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
+          "notNull": false,
+          "autoincrement": false
         },
-        "updated_at": {
-          "name": "updated_at",
+        "requested_at": {
+          "name": "requested_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
@@ -580,14 +572,43 @@
           "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "user_feature_unique": {
+          "name": "user_feature_unique",
+          "columns": [
+            "user_id",
+            "feature_key"
+          ],
+          "isUnique": true
+        },
+        "user_feature_userId_idx": {
+          "name": "user_feature_userId_idx",
+          "columns": [
+            "user_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
-        "vault_entry_created_by_user_id_fk": {
-          "name": "vault_entry_created_by_user_id_fk",
-          "tableFrom": "vault_entry",
+        "user_feature_user_id_user_id_fk": {
+          "name": "user_feature_user_id_user_id_fk",
+          "tableFrom": "user_feature",
           "tableTo": "user",
           "columnsFrom": [
-            "created_by"
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "user_feature_reviewed_by_user_id_fk": {
+          "name": "user_feature_reviewed_by_user_id_fk",
+          "tableFrom": "user_feature",
+          "tableTo": "user",
+          "columnsFrom": [
+            "reviewed_by"
           ],
           "columnsTo": [
             "id"
@@ -891,8 +912,8 @@
           "autoincrement": false,
           "default": true
         },
-        "can_access_vault": {
-          "name": "can_access_vault",
+        "approved": {
+          "name": "approved",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,

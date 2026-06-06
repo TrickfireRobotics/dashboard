@@ -19,22 +19,36 @@
     {
       "idx": 2,
       "version": "6",
-      "when": 1780612011775,
-      "tag": "0002_flimsy_echo",
+      "when": 1780298934954,
+      "tag": "0002_thick_riptide",
       "breakpoints": true
     },
     {
       "idx": 3,
       "version": "6",
-      "when": 1780682038001,
-      "tag": "0003_medical_shen",
+      "when": 1780000000000,
+      "tag": "0003_rename_headscale_to_network",
       "breakpoints": true
     },
     {
       "idx": 4,
       "version": "6",
+      "when": 1780612011775,
+      "tag": "0004_flimsy_echo",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1780682038001,
+      "tag": "0005_medical_shen",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
       "when": 1780682890058,
-      "tag": "0004_breezy_sue_storm",
+      "tag": "0006_breezy_sue_storm",
       "breakpoints": true
     }
   ]

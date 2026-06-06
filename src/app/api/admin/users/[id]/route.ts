@@ -28,9 +28,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     // An admin cannot demote or deactivate themselves - avoids locking the club
     // out of its own admin panel.
-    if (userId === admin.id && (parsed.data.role === "member" || parsed.data.isActive === false)) {
+    if (
+        userId === admin.id &&
+        (parsed.data.role === "member" ||
+            parsed.data.isActive === false ||
+            parsed.data.approved === false)
+    ) {
         return NextResponse.json(
-            { error: "You cannot change your own role or active status" },
+            { error: "You cannot change your own role, active status, or approval" },
             { status: 400 }
         );
     }
@@ -48,6 +53,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             ...(parsed.data.canAccessVault !== undefined
                 ? { canAccessVault: parsed.data.canAccessVault }
                 : {}),
+            ...(parsed.data.approved !== undefined ? { approved: parsed.data.approved } : {}),
         })
         .where(eq(user.id, userId))
         .returning({
@@ -55,6 +61,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             role: user.role,
             isActive: user.isActive,
             canAccessVault: user.canAccessVault,
+            approved: user.approved,
         })
         .get();
 

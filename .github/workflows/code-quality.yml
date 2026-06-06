@@ -23,7 +23,7 @@ jobs:
             - name: Setup Node.js
               uses: actions/setup-node@v4
               with:
-                  node-version: 22
+                  node-version: 26
                   cache: pnpm
 
             - name: Install dependencies
@@ -34,3 +34,6 @@ jobs:
 
             - name: Run Prettier check
               run: pnpm format:check
+
+            - name: Run TypeScript check
+              run: pnpm tsc --noEmit

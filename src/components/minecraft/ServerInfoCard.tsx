@@ -23,7 +23,7 @@ type Props = {
 
 function StatBox({ label, value }: { label: string; value: string }) {
     return (
-        <div className="bg-muted/40 rounded-lg border p-3">
+        <div className="bg-muted/40 h-full rounded-lg border p-3">
             <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
                 {label}
             </p>
@@ -34,7 +34,7 @@ function StatBox({ label, value }: { label: string; value: string }) {
 
 export function ServerInfoCard({ status, loading, onRefresh }: Props) {
     return (
-        <Card>
+        <Card className="h-full">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <CardTitle>Server</CardTitle>
