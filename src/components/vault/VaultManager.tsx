@@ -38,7 +38,6 @@ export function VaultManager({
 }: {
     entries: VaultEntryRow[];
     isAdmin: boolean;
-    // Admin-only: roster + entryId -> granted userIds, for managing access.
     members: VaultMember[];
     grants: Record<number, string[]>;
 }) {
@@ -112,7 +111,7 @@ export function VaultManager({
                                     <TableCell className="text-foreground font-medium">
                                         <EntryName name={e.name} />
                                         {e.description ? (
-                                            <p className="text-muted-foreground max-w-[16rem] text-xs font-normal break-words">
+                                            <p className="text-muted-foreground wrap-break-words max-w-[16rem] text-xs font-normal">
                                                 {e.description}
                                             </p>
                                         ) : null}

@@ -13,7 +13,7 @@ Internal portal for [TrickFire Robotics](https://trickfirerobotics.com). Members
 | Auth            | [better-auth](https://www.better-auth.com) - email/password, session cookies                                         |
 | UI              | [Tailwind CSS v4](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com), [Lucide icons](https://lucide.dev/) |
 | Email           | [Resend](https://resend.com)                                                                                         |
-| Network         | [Tailscale](https://tailscale.com) — shared tailnet, managed via Tailscale API                                       |
+| Network         | [Tailscale](https://tailscale.com) - shared tailnet, managed via Tailscale API                                       |
 | Package manager | [`pnpm`](https://pnpm.io/)                                                                                           |
 
 ## Local Development
@@ -67,16 +67,16 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 | Variable                      | Description                                                                                                                                                                                                     |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `NEXT_PUBLIC_APP_URL`         | Public origin of the app, e.g. `http://localhost:3000`                                                                                                                                                          |
-| `BETTER_AUTH_SECRET`          | Random secret for signing sessions — generate with `openssl rand -hex 32`                                                                                                                                       |
+| `BETTER_AUTH_SECRET`          | Random secret for signing sessions - generate with `openssl rand -hex 32`                                                                                                                                       |
 | `BETTER_AUTH_URL`             | Same value as `NEXT_PUBLIC_APP_URL`                                                                                                                                                                             |
 | `BETTER_AUTH_TRUSTED_ORIGINS` | Comma-separated extra origins allowed to make auth requests, e.g. `http://192.168.1.50:3000`. Required when accessing the dev server from another machine on the LAN.                                           |
 | `DATABASE_PATH`               | Path to the SQLite file, e.g. `./db/dashboard.db`                                                                                                                                                               |
-| `VAULT_ENCRYPTION_KEY`        | AES-256 key (hex) encrypting API Key Vault secrets at rest — generate with `openssl rand -hex 32`. **Required in production.** In local dev, if unset, a key is auto-generated and persisted to `db/vault.key`. |
+| `VAULT_ENCRYPTION_KEY`        | AES-256 key (hex) encrypting API Key Vault secrets at rest - generate with `openssl rand -hex 32`. **Required in production.** In local dev, if unset, a key is auto-generated and persisted to `db/vault.key`. |
 | `RESEND_API_KEY`              | API key from [Resend](https://resend.com) for transactional email                                                                                                                                               |
 | `EMAIL_FROM`                  | Sender shown in outgoing emails, e.g. `TrickFire Robotics <noreply@trickfirerobotics.com>`                                                                                                                      |
 | `MINECRAFT_SERVER_HOST`       | Hostname/IP of the Minecraft server (default `localhost`)                                                                                                                                                       |
 | `MINECRAFT_SERVER_PORT`       | Query port of the Minecraft server (default `25565`)                                                                                                                                                            |
-| `MINECRAFT_SERVER_PATH`       | Absolute path to the Minecraft server directory — used to detect if the server is installed                                                                                                                     |
+| `MINECRAFT_SERVER_PATH`       | Absolute path to the Minecraft server directory - used to detect if the server is installed                                                                                                                     |
 | `MINECRAFT_WORLD_PATH`        | Absolute path to the Minecraft world directory. Used to read per-player stat files for the playtime leaderboard.                                                                                                |
 | `MINECRAFT_RCON_PORT`         | RCON port (default `25575`). Must match `rcon.port` in `server.properties`.                                                                                                                                     |
 | `MINECRAFT_RCON_PASSWORD`     | RCON password. Must match `rcon.password` in `server.properties`.                                                                                                                                               |
@@ -87,7 +87,7 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 | `ONSHAPE_BASE_URL`            | OnShape API base URL, e.g. `https://cad.onshape.com/api`                                                                                                                                                        |
 | `ONSHAPE_ACCESS_KEY`          | OnShape API access key                                                                                                                                                                                          |
 | `ONSHAPE_SECRET_KEY`          | OnShape API secret key                                                                                                                                                                                          |
-| `ONSHAPE_COMPANY_ID`          | Optional. Pin requests to a specific OnShape company — auto-detected from the access key if omitted.                                                                                                            |
+| `ONSHAPE_COMPANY_ID`          | Optional. Pin requests to a specific OnShape company - auto-detected from the access key if omitted.                                                                                                            |
 | `SEED_ADMIN_EMAIL`            | Email for the seeded admin account                                                                                                                                                                              |
 | `SEED_ADMIN_PASSWORD`         | Password for the seeded admin account                                                                                                                                                                           |
 | `SEED_ADMIN_NAME`             | Display name for the seeded admin                                                                                                                                                                               |
@@ -96,21 +96,21 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 > Most variables are optional for local dev. The app degrades gracefully: Minecraft cards show "offline", the leaderboard and map show an unavailable state, email is skipped, and the Network tab shows an error state. The only var you strictly need to set is `BETTER_AUTH_SECRET`.
 
 > [!CAUTION]
-> Never commit `.env.local` or `.env.production`. The `BETTER_AUTH_SECRET` value lets anyone forge session tokens — if it leaks, rotate it immediately by changing the value and restarting the server (all existing sessions are invalidated).
+> Never commit `.env.local` or `.env.production`. The `BETTER_AUTH_SECRET` value lets anyone forge session tokens - if it leaks, rotate it immediately by changing the value and restarting the server (all existing sessions are invalidated).
 
 ### API Key Vault
 
 The **API Keys** page is a secret vault: admins store shared credentials (third-party API keys, service logins). Two layers of access apply:
 
-- **Page visibility** — the **Vault access** toggle on the Users admin page controls who can open the vault page at all (admins always can).
-- **Per-secret access** — reading any individual secret requires a **per-person, per-entry** grant, set from the entry's **Manage access** action (the key icon in the row's Actions). Admins always have access; the global Vault-access toggle does **not** grant secret access on its own.
+- **Page visibility** - the **Vault access** toggle on the Users admin page controls who can open the vault page at all (admins always can).
+- **Per-secret access** - reading any individual secret requires a **per-person, per-entry** grant, set from the entry's **Manage access** action (the key icon in the row's Actions). Admins always have access; the global Vault-access toggle does **not** grant secret access on its own.
 
 Each entry is either a _login_ or an _api_key_:
 
-- **Login** (username + password) — revealed and copied in the browser on demand, for granted users. Served by `GET /api/vault/{id}/reveal`.
-- **API key** — the value is **never shown in the dashboard**. It is retrieved only through an authenticated endpoint (see below), for granted users.
+- **Login** (username + password) - revealed and copied in the browser on demand, for granted users. Served by `GET /api/vault/{id}/reveal`.
+- **API key** - the value is **never shown in the dashboard**. It is retrieved only through an authenticated endpoint (see below), for granted users.
 
-#### Fetching an API key — `GET /api/vault/{id}/key`
+#### Fetching an API key - `GET /api/vault/{id}/key`
 
 Authenticated by the caller's **dashboard session** (login cookie). Returns the key only if the logged-in user is an admin or has been granted access to that entry.
 
@@ -131,7 +131,7 @@ curl -s https://dashboard.example.com/api/vault/12/key \
 ```
 
 > [!NOTE]
-> This endpoint is session-authenticated by design — there is no standalone machine token. A script must reuse a real user's session cookie, and that user must hold a per-person grant for the entry.
+> This endpoint is session-authenticated by design - there is no standalone machine token. A script must reuse a real user's session cookie, and that user must hold a per-person grant for the entry.
 
 Secrets are encrypted at rest with AES-256-GCM using `VAULT_ENCRYPTION_KEY`:
 
@@ -252,7 +252,7 @@ pnpm db:migrate
 | `pnpm db:migrate`   | Apply all pending migrations                                               |
 | `pnpm db:seed`      | Seed the 6 teams + admin user (idempotent)                                 |
 | `pnpm db:reset`     | Drop and recreate the local database. **Blocked in production** by a guard |
-| `pnpm db:studio`    | Open Drizzle Studio — visual database browser (dev only)                   |
+| `pnpm db:studio`    | Open Drizzle Studio - visual database browser (dev only)                   |
 
 ## Deployment
 

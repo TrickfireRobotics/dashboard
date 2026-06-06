@@ -53,7 +53,7 @@ export function ServerControlCard({ initial }: { initial: Status }) {
             const res = await fetch("/api/admin/server/update", { method: "POST" });
             const data = await res.json().catch(() => null);
             if (!res.ok) throw new Error(data?.error ?? "Request failed");
-            toast.success("Update started — watch the log for progress");
+            toast.success("Update started - watch the log for progress");
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Something went wrong");
         } finally {

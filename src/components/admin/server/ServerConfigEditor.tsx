@@ -75,7 +75,7 @@ export function ServerConfigEditor({ initial }: { initial: AzaleaConfig }) {
             <CardHeader>
                 <CardTitle>Pack Info</CardTitle>
                 <CardDescription>
-                    Managed by azalea — use azalea server update to change.
+                    Managed by azalea - use azalea server update to change.
                 </CardDescription>
             </CardHeader>
             <CardContent>

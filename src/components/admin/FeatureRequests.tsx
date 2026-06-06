@@ -86,7 +86,7 @@ export function FeatureRequests({ requests }: { requests: FeatureRequestRow[] })
                                     </TableCell>
                                     <TableCell>{featureLabel}</TableCell>
                                     <TableCell className="text-muted-foreground text-sm">
-                                        {r.requestNote ?? "—"}
+                                        {r.requestNote ?? "-"}
                                     </TableCell>
                                     <TableCell className="text-muted-foreground">
                                         {formatDate(r.requestedAt)}

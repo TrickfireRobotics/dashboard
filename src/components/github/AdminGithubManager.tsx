@@ -457,7 +457,7 @@ export function AdminGithubManager({ org }: { org: GithubOrg | null }) {
 
             <p className="text-muted-foreground text-xs">
                 Invitations are sent as regular members only. Owner promotion and demotion are not
-                available here — manage owners in the GitHub organization settings.
+                available here - manage owners in the GitHub organization settings.
             </p>
 
             <div className="flex flex-wrap gap-1 border-b pb-3">

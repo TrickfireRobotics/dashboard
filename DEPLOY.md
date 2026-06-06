@@ -54,7 +54,7 @@ pnpm install --frozen-lockfile
 
 ## 3. Configure Environment
 
-1. Create `/home/trickfire/dashboard/.env.production` — use `.env.example` as the template.
+1. Create `/home/trickfire/dashboard/.env.production` - use `.env.example` as the template.
 2. Generate the auth secret:
 
     ```bash
@@ -88,10 +88,10 @@ EMAIL_FROM=TrickFire Robotics <noreply@trickfirerobotics.com>
 ```
 
 > [!NOTE]
-> `NODE_ENV=production` is set directly in the systemd service file — do **not** add it to `.env.production`. Next.js uses it to decide which env files to load; putting it inside the file it is trying to load creates a circular dependency.
+> `NODE_ENV=production` is set directly in the systemd service file - do **not** add it to `.env.production`. Next.js uses it to decide which env files to load; putting it inside the file it is trying to load creates a circular dependency.
 
 > [!NOTE]
-> `BETTER_AUTH_TRUSTED_ORIGINS` is **not needed in production** — all browser traffic arrives via the Cloudflare Tunnel, which always uses `https://dashboard.trickfirerobotics.com`. It is only required when accessing the dev server from a second machine on the LAN (e.g. testing on a phone at `http://192.168.1.50:3000`).
+> `BETTER_AUTH_TRUSTED_ORIGINS` is **not needed in production** - all browser traffic arrives via the Cloudflare Tunnel, which always uses `https://dashboard.trickfirerobotics.com`. It is only required when accessing the dev server from a second machine on the LAN (e.g. testing on a phone at `http://192.168.1.50:3000`).
 
 > [!CAUTION]
 > Keep `.env.production` off `git`. The `BETTER_AUTH_SECRET` value lets anyone forge session tokens. If it's ever leaked, rotate it immediately and invalidate all sessions by changing the value.
@@ -192,7 +192,7 @@ cd /home/trickfire/actions-runner
 Go to your GitHub repo → **Settings → Actions → Runners → New self-hosted runner**, select **Linux / ARM64**, and follow the download and configure commands shown there. They look like:
 
 ```bash
-# Download (use the exact URL and token from GitHub — they are one-time)
+# Download (use the exact URL and token from GitHub - they are one-time)
 curl -o actions-runner-linux-arm64.tar.gz -L <url-from-github>
 tar xzf actions-runner-linux-arm64.tar.gz
 
@@ -237,7 +237,7 @@ journalctl -u trickfire-dashboard -f
 ```
 
 > [!NOTE]
-> Deploys are serialised — if two merges land in quick succession, the second waits for the first to finish rather than running concurrently.
+> Deploys are serialised - if two merges land in quick succession, the second waits for the first to finish rather than running concurrently.
 
 ## 8. Cloudflare Tunnel
 
@@ -330,7 +330,7 @@ sudo systemctl restart trickfire-dashboard
 
 ## 10. Minecraft Server Setup
 
-The Minecraft server runs as an independent systemd service (`minecraft.service`) managed by [Azalea](https://github.com/matejstastny/azalea). The dashboard can start and stop it, stream its logs, and send console commands via RCON — all without the server depending on the dashboard process.
+The Minecraft server runs as an independent systemd service (`minecraft.service`) managed by [Azalea](https://github.com/matejstastny/azalea). The dashboard can start and stop it, stream its logs, and send console commands via RCON - all without the server depending on the dashboard process.
 
 ### Install Azalea
 
@@ -364,7 +364,7 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-Enable it (but don't start it yet — the dashboard controls that):
+Enable it (but don't start it yet - the dashboard controls that):
 
 ```bash
 sudo systemctl daemon-reload
@@ -468,7 +468,7 @@ The entire application state is the SQLite file at `/home/trickfire/db/dashboard
 
 **Script:** `/home/trickfire/scripts/backup-db.sh`
 **Schedule:** every day at 02:00 (server local time)
-**Retention:** 14 days — older files are removed automatically
+**Retention:** 14 days - older files are removed automatically
 **Log:** `/home/trickfire/backups/backup.log`
 
 To run a backup manually at any time:
@@ -485,7 +485,7 @@ crontab -l
 
 ### Restore from backup
 
-The backup file is a standalone SQLite database — no special tooling needed:
+The backup file is a standalone SQLite database - no special tooling needed:
 
 ```bash
 sudo systemctl stop trickfire-dashboard

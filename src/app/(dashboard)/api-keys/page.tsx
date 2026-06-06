@@ -14,8 +14,6 @@ export default async function ApiKeysPage() {
 
     const isAdmin = sessionUser.role === "admin";
 
-    // Metadata only - login secrets are fetched on demand via
-    // /api/vault/[id]/reveal; api_key secrets via /api/vault/[id]/key.
     const rows = db
         .select({
             id: vaultEntry.id,
@@ -31,8 +29,6 @@ export default async function ApiKeysPage() {
 
     const entries: VaultEntryRow[] = rows;
 
-    // Admins manage per-person grants, so load the member roster and the current
-    // grants (entryId -> userIds). Members don't need either.
     let members: VaultMember[] = [];
     const grants: Record<number, string[]> = {};
     if (isAdmin) {

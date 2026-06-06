@@ -65,9 +65,9 @@ export function ServerInfoCard({ status, loading, onRefresh }: Props) {
                         />
                         <StatBox
                             label="Latency"
-                            value={status.latencyMs != null ? `${status.latencyMs} ms` : "— ms"}
+                            value={status.latencyMs != null ? `${status.latencyMs} ms` : "- ms"}
                         />
-                        <StatBox label="Version" value={status.version ?? "—"} />
+                        <StatBox label="Version" value={status.version ?? "-"} />
                     </div>
                 ) : (
                     <p className="text-muted-foreground text-sm">

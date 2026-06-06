@@ -29,7 +29,7 @@ const githubUsername = z
     .max(39)
     .regex(/^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/, "Invalid GitHub username");
 
-// Invite by username or email — exactly one. Role is fixed server-side to a
+// Invite by username or email - exactly one. Role is fixed server-side to a
 // regular member; this endpoint never invites owners.
 const inviteSchema = z
     .object({
