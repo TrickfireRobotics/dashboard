@@ -55,6 +55,7 @@
  * Forced dark via `class="dark"` on <html>; `:root` is the single source of truth.
  */
 :root {
+    color-scheme: dark;
     --background: #222222;
     --foreground: #cccccc;
     --card: #2a2a2a;
@@ -92,6 +93,22 @@
 @layer base {
     * {
         @apply border-border outline-ring/50;
+        scrollbar-color: #3a3a3a #2a2a2a;
+        scrollbar-width: thin;
+    }
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: #2a2a2a;
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #3a3a3a;
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: #4a4a4a;
     }
     body {
         @apply bg-background text-foreground;
