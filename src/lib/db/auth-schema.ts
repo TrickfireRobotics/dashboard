@@ -16,6 +16,7 @@ export const user = sqliteTable("user", {
         .notNull(),
     role: text("role").default("member"),
     isActive: integer("is_active", { mode: "boolean" }).default(true),
+    canAccessVault: integer("can_access_vault", { mode: "boolean" }).default(false),
     approved: integer("approved", { mode: "boolean" }).default(false),
 });
 

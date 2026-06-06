@@ -31,6 +31,7 @@ export type AdminUserRow = {
     email: string;
     role: "member" | "admin";
     isActive: boolean;
+    canAccessVault: boolean;
     grantedFeatures: FeatureKey[];
     createdAt: Date;
 };
@@ -107,6 +108,7 @@ export function UserTable({
                         <TableHead>Email</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Status</TableHead>
+                        <TableHead>Vault access</TableHead>
                         <TableHead>Joined</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
@@ -154,6 +156,24 @@ export function UserTable({
                                             <Badge variant="destructive">Deactivated</Badge>
                                         )}
                                     </TableCell>
+                                    <TableCell>
+                                        {u.role === "admin" ? (
+                                            <Badge variant="secondary">Always (admin)</Badge>
+                                        ) : (
+                                            <Button
+                                                size="sm"
+                                                variant={u.canAccessVault ? "default" : "outline"}
+                                                disabled={busy === u.id}
+                                                onClick={() =>
+                                                    patchUser(u.id, {
+                                                        canAccessVault: !u.canAccessVault,
+                                                    })
+                                                }
+                                            >
+                                                {u.canAccessVault ? "Granted" : "No access"}
+                                            </Button>
+                                        )}
+                                    </TableCell>
                                     <TableCell className="text-muted-foreground">
                                         {formatDate(u.createdAt)}
                                     </TableCell>
@@ -185,7 +205,7 @@ export function UserTable({
                                 </TableRow>
                                 {isExpanded && u.role !== "admin" && (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="bg-muted/30 px-6 py-3">
+                                        <TableCell colSpan={7} className="bg-muted/30 px-6 py-3">
                                             <p className="text-muted-foreground mb-2 text-xs font-medium tracking-wider uppercase">
                                                 Feature access for {u.name}
                                             </p>

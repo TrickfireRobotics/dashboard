@@ -28,7 +28,7 @@ export type OnshapeCompany = {
 };
 
 export type OnshapeMember = {
-    /** The underlying Onshape user id — used when removing a member. */
+    /** The underlying Onshape user id - used when removing a member. */
     userId: string | null;
     name: string;
     admin: boolean;

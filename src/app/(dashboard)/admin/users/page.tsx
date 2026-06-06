@@ -36,6 +36,7 @@ export default async function AdminUsersPage() {
             email: user.email,
             role: user.role,
             isActive: user.isActive,
+            canAccessVault: user.canAccessVault,
             createdAt: user.createdAt,
         })
         .from(user)
@@ -63,6 +64,7 @@ export default async function AdminUsersPage() {
         email: u.email,
         role: u.role === "admin" ? "admin" : "member",
         isActive: u.isActive ?? true,
+        canAccessVault: u.canAccessVault ?? false,
         grantedFeatures: featuresByUser.get(u.id) ?? [],
         createdAt: u.createdAt,
     }));

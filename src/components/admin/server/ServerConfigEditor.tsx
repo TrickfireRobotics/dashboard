@@ -43,7 +43,7 @@ function ScrollableMods({ entries }: { entries: [string, string][] }) {
     return (
         <div className="relative">
             <div
-                className={`from-card pointer-events-none absolute inset-x-0 top-0 z-10 h-8 bg-gradient-to-b to-transparent transition-opacity duration-150 ${showTop ? "opacity-100" : "opacity-0"}`}
+                className={`from-card pointer-events-none absolute inset-x-0 top-0 z-10 h-8 bg-linear-to-b to-transparent transition-opacity duration-150 ${showTop ? "opacity-100" : "opacity-0"}`}
             />
             <div
                 ref={ref}
@@ -61,7 +61,7 @@ function ScrollableMods({ entries }: { entries: [string, string][] }) {
                 ))}
             </div>
             <div
-                className={`from-card pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-gradient-to-t to-transparent transition-opacity duration-150 ${showBottom ? "opacity-100" : "opacity-0"}`}
+                className={`from-card pointer-events-none absolute inset-x-0 bottom-0 z-10 h-8 bg-linear-to-t to-transparent transition-opacity duration-150 ${showBottom ? "opacity-100" : "opacity-0"}`}
             />
         </div>
     );
@@ -75,7 +75,7 @@ export function ServerConfigEditor({ initial }: { initial: AzaleaConfig }) {
             <CardHeader>
                 <CardTitle>Pack Info</CardTitle>
                 <CardDescription>
-                    Managed by azalea — use azalea server update to change.
+                    Managed by azalea - use azalea server update to change.
                 </CardDescription>
             </CardHeader>
             <CardContent>

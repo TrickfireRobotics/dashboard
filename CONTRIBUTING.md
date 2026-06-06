@@ -31,9 +31,9 @@ Commit messages must follow the [Conventional Commits](https://www.conventionalc
 | ---------- | ----------------------------------------------- |
 | `feat`     | New feature or behaviour                        |
 | `fix`      | Bug fix                                         |
-| `chore`    | Maintenance, deps, config — no behaviour change |
+| `chore`    | Maintenance, deps, config - no behaviour change |
 | `docs`     | Documentation only                              |
-| `style`    | Formatting, whitespace — no logic change        |
+| `style`    | Formatting, whitespace - no logic change        |
 | `refactor` | Code restructure with no feature or fix         |
 | `perf`     | Performance improvement                         |
 | `ci`       | CI/CD changes                                   |
@@ -139,8 +139,8 @@ When two adjacent cards share a single data fetch (to avoid duplicate requests),
 | Database              | `db/dashboard.db` in repo root                                    | `/home/trickfire/db/dashboard.db`         |
 | Server                | `pnpm dev` (hot reload, Turbopack)                                | systemd + `.next/standalone/server.js`    |
 | HTTPS                 | None (HTTP on port 3000)                                          | Cloudflare Tunnel provides TLS            |
-| Minecraft / Tailscale | Optional — app degrades gracefully                                | Required — configure in `.env.production` |
-| LAN access            | Set `BETTER_AUTH_TRUSTED_ORIGINS` to the LAN IP:port (see README) | Not needed — all traffic goes via Tunnel  |
+| Minecraft / Tailscale | Optional - app degrades gracefully                                | Required - configure in `.env.production` |
+| LAN access            | Set `BETTER_AUTH_TRUSTED_ORIGINS` to the LAN IP:port (see README) | Not needed - all traffic goes via Tunnel  |
 
 ## Getting Help
 

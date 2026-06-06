@@ -41,10 +41,12 @@ const baseNav: NavItem[] = [
 
 const featureNav: FeatureNavItem[] = [
     { href: "/orders", label: "Orders", icon: Package, feature: "orders" },
-    { href: "/api-keys", label: "API Keys", icon: KeyRound, feature: "api-keys" },
     { href: "/minecraft", label: "Minecraft", icon: Gamepad2, feature: "minecraft" },
     { href: "/network", label: "Network", icon: Network, feature: "network" },
 ];
+
+// Shown only to users with vault access (admins, or members granted the permission).
+const vaultNav: NavItem = { href: "/api-keys", label: "API Keys", icon: KeyRound };
 
 const adminNav: NavItem[] = [
     { href: "/admin/orders", label: "Order Queue", icon: ClipboardList },
@@ -78,11 +80,13 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
 
 export function Sidebar({
     isAdmin,
+    canAccessVault,
     name,
     email,
     grantedFeatures,
 }: {
     isAdmin: boolean;
+    canAccessVault: boolean;
     name: string;
     email: string;
     grantedFeatures: FeatureKey[];
@@ -132,6 +136,10 @@ export function Sidebar({
                 {visibleFeatureNav.map((item) => (
                     <NavLink key={item.href} item={item} active={isActive(item.href)} />
                 ))}
+
+                {canAccessVault ? (
+                    <NavLink item={vaultNav} active={isActive(vaultNav.href)} />
+                ) : null}
 
                 {isAdmin ? (
                     <>

@@ -9,6 +9,7 @@ const now = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
 export type OrderStatus = "pending" | "approved" | "rejected" | "ordered";
 export type WhitelistStatus = "pending" | "approved" | "rejected";
 export type JoinRequestStatus = "pending" | "approved" | "rejected";
+export type VaultEntryType = "login" | "api_key";
 export type FeatureStatus = "pending" | "granted" | "rejected";
 
 export const team = sqliteTable("team", {
@@ -53,6 +54,44 @@ export const apiKey = sqliteTable("api_key", {
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
 });
 
+// Secret vault: shared club credentials stored encrypted at rest (see
+// vault-crypto.ts). Distinct from `api_key` above, which holds one-way hashes
+// for service-API auth and can never reveal a secret.
+export const vaultEntry = sqliteTable("vault_entry", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull(),
+    type: text("type").$type<VaultEntryType>().notNull(),
+    description: text("description"),
+    // Login identifier for `login` entries; null for `api_key` entries.
+    username: text("username"),
+    // AES-256-GCM ciphertext ("iv.tag.ct") of the password / API key.
+    secret: text("secret").notNull(),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+        .default(now)
+        .$onUpdate(() => new Date())
+        .notNull(),
+});
+
+// Per-person read grants for `api_key` vault entries. An entry's secret is only
+// returned by GET /api/vault/[id]/key to admins or users with a row here.
+export const vaultEntryAccess = sqliteTable(
+    "vault_entry_access",
+    {
+        id: integer("id").primaryKey({ autoIncrement: true }),
+        entryId: integer("entry_id")
+            .notNull()
+            .references(() => vaultEntry.id, { onDelete: "cascade" }),
+        userId: text("user_id")
+            .notNull()
+            .references(() => user.id, { onDelete: "cascade" }),
+        grantedBy: text("granted_by").references(() => user.id, { onDelete: "set null" }),
+        createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    },
+    (table) => [uniqueIndex("vault_entry_access_entry_user").on(table.entryId, table.userId)]
+);
+
 export const minecraftWhitelist = sqliteTable("minecraft_whitelist", {
     id: integer("id").primaryKey({ autoIncrement: true }),
     userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
@@ -92,6 +131,19 @@ export const orderRelations = relations(order, ({ one }) => ({
 
 export const apiKeyRelations = relations(apiKey, ({ one }) => ({
     user: one(user, { fields: [apiKey.userId], references: [user.id] }),
+}));
+
+export const vaultEntryRelations = relations(vaultEntry, ({ one, many }) => ({
+    creator: one(user, { fields: [vaultEntry.createdBy], references: [user.id] }),
+    grants: many(vaultEntryAccess),
+}));
+
+export const vaultEntryAccessRelations = relations(vaultEntryAccess, ({ one }) => ({
+    entry: one(vaultEntry, {
+        fields: [vaultEntryAccess.entryId],
+        references: [vaultEntry.id],
+    }),
+    user: one(user, { fields: [vaultEntryAccess.userId], references: [user.id] }),
 }));
 
 export const minecraftWhitelistRelations = relations(minecraftWhitelist, ({ one }) => ({

@@ -4,7 +4,7 @@
  * Auth: a token sent as `Authorization: Bearer <token>`. Use a fine-grained
  * personal access token (or GitHub App installation token) scoped to the single
  * TrickFire organization. The only permission required is
- * **Organization → Members: Read and write** — enough to list members, invite
+ * **Organization → Members: Read and write** - enough to list members, invite
  * people, and remove them. The token deliberately needs no org-administration
  * permission, and this client never grants org-owner ("admin") access:
  * invitations are always sent as `direct_member` and there is no role-promotion
@@ -33,7 +33,7 @@ export type GithubMember = {
     login: string;
     avatarUrl: string;
     htmlUrl: string;
-    /** Org role, surfaced read-only — this client never changes it. */
+    /** Org role, surfaced read-only - this client never changes it. */
     role: GithubRole;
 };
 

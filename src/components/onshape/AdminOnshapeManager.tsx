@@ -392,7 +392,7 @@ export function AdminOnshapeManager({ company }: { company: OnshapeCompany | nul
             <p className="text-muted-foreground text-xs">
                 Onshape&apos;s API exposes member type (admin/guest/light) and team membership, but
                 has no read endpoint for individual global-permission grants or Enterprise project
-                roles — manage those in the Onshape admin console.
+                roles - manage those in the Onshape admin console.
             </p>
 
             <div className="flex flex-wrap gap-1 border-b pb-3">
