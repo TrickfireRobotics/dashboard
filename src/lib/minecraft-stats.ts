@@ -95,7 +95,8 @@ export async function getPlaytimeLeaderboard(): Promise<LeaderboardEntry[]> {
         }
     }
 
-    entries.sort((a, b) => b.playTimeSeconds - a.playTimeSeconds);
-    leaderboardCache = { entries, expiresAt: Date.now() + 5 * 60 * 1000 };
-    return entries;
+    const filtered = entries.filter((e) => !e.isBot);
+    filtered.sort((a, b) => b.playTimeSeconds - a.playTimeSeconds);
+    leaderboardCache = { entries: filtered, expiresAt: Date.now() + 5 * 60 * 1000 };
+    return filtered;
 }
