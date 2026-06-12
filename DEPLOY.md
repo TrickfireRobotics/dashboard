@@ -1,11 +1,8 @@
 # Deploying the TrickFire Dashboard
 
-Production runs on the lab's **Jetson Xavier (ARM64)** at `https://dashboard.trickfirerobotics.com`, exposed through a Cloudflare Tunnel. It is a Next.js 15 app using `output: "standalone"` with a local SQLite database (`better-sqlite3`).
+Production runs on a Debian AMD64 server behind a Cloudflare Tunnel. It is a Next.js 15 app using `output: "standalone"` with a local SQLite database (`better-sqlite3`).
 
-All steps below are run **on the Xavier** unless noted otherwise. The `better-sqlite3` native binary must be compiled on the device.
-
-> [!IMPORTANT]
-> The Xavier is ARM64. Any native dependency compiled on a dev machine (x86/ARM Mac) won't work here - always install and build directly on the device.
+All steps below are run **on the server** unless noted otherwise.
 
 ## Table of Contents
 
@@ -30,14 +27,14 @@ All steps below are run **on the Xavier** unless noted otherwise. The `better-sq
 ## 1. Initial Setup
 
 ```bash
-# Confirm Node.js is installed, match the major version the app targets where possible
+# Confirm Node.js is installed (see .nvmrc for the target major version)
 node --version
 
 # Enable pnpm via corepack
 sudo corepack enable pnpm
 pnpm --version
 
-# Build toolchain for compiling better-sqlite3's native addon on ARM64
+# Build toolchain for compiling better-sqlite3's native addon
 sudo apt-get update
 sudo apt-get install -y build-essential python3
 ```
@@ -48,7 +45,7 @@ sudo apt-get install -y build-essential python3
 git clone <repo-url> /home/trickfire/dashboard
 cd /home/trickfire/dashboard
 
-# Installs deps and compiles better-sqlite3 against the Xavier's Node + ARM64
+# Installs deps and compiles better-sqlite3's native addon
 pnpm install --frozen-lockfile
 ```
 
@@ -174,7 +171,7 @@ journalctl -u trickfire-dashboard -f
 
 ## 7. Automated Deploys (GitHub Actions)
 
-Every merge to `main` automatically runs `deploy.sh` on the Xavier via a self-hosted GitHub Actions runner. This replaces the manual steps in [Updating an Existing Deployment](#updating-an-existing-deployment) for day-to-day releases.
+Every merge to `main` automatically runs `deploy.sh` on the server via a self-hosted GitHub Actions runner. This replaces the manual steps in [Updating an Existing Deployment](#updating-an-existing-deployment) for day-to-day releases.
 
 ### Install the runner
 
@@ -189,12 +186,12 @@ mkdir -p /home/trickfire/actions-runner
 cd /home/trickfire/actions-runner
 ```
 
-Go to your GitHub repo → **Settings → Actions → Runners → New self-hosted runner**, select **Linux / ARM64**, and follow the download and configure commands shown there. They look like:
+Go to your GitHub repo → **Settings → Actions → Runners → New self-hosted runner**, select **Linux / AMD64**, and follow the download and configure commands shown there. They look like:
 
 ```bash
 # Download (use the exact URL and token from GitHub - they are one-time)
-curl -o actions-runner-linux-arm64.tar.gz -L <url-from-github>
-tar xzf actions-runner-linux-arm64.tar.gz
+curl -o actions-runner-linux-x64.tar.gz -L <url-from-github>
+tar xzf actions-runner-linux-x64.tar.gz
 
 # Configure (use the token and URL from GitHub)
 ./config.sh --url https://github.com/<org>/<repo> --token <token>
@@ -229,7 +226,7 @@ trickfire ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop minecraft
 
 ### Verify
 
-Push any commit to `main` (or merge a PR) and watch the Actions tab on GitHub. The **Deploy** workflow should appear, run on the Xavier, and complete in roughly the same time as a manual deploy. Check the service afterwards:
+Push any commit to `main` (or merge a PR) and watch the Actions tab on GitHub. The **Deploy** workflow should appear, run on the server, and complete in roughly the same time as a manual deploy. Check the service afterwards:
 
 ```bash
 sudo systemctl status trickfire-dashboard
@@ -275,7 +272,7 @@ sudo systemctl enable --now cloudflared
 
 Tailscale backs the Network tab in the dashboard. The club uses a shared Tailscale account so all devices belong to one tailnet.
 
-### Install Tailscale on the Xavier
+### Install Tailscale on the server
 
 ```bash
 curl -fsSL https://tailscale.com/install.sh | sh
@@ -423,7 +420,7 @@ BlueMap is a Minecraft server-side mod/plugin. Follow the [official BlueMap docs
 
 ### Configure the Dashboard
 
-Set `BLUEMAP_URL` in `.env.production` to the address the Xavier can reach BlueMap on. If BlueMap runs on the same machine as the Minecraft server:
+Set `BLUEMAP_URL` in `.env.production` to the address the server can reach BlueMap on. If BlueMap runs on the same machine as the Minecraft server:
 
 ```env
 BLUEMAP_URL=http://<minecraft-server-ip>:8100
@@ -439,7 +436,7 @@ The dashboard proxies all requests from `/bluemap/...` to `BLUEMAP_URL`. BlueMap
 
 ### Firewall Note
 
-Ensure port `8100` is **not** open to the internet. The dashboard acts as the only entry point. If BlueMap is on a separate server on the LAN, the Xavier needs LAN access to port `8100` on that machine.
+Ensure port `8100` is **not** open to the internet. The dashboard acts as the only entry point. If BlueMap is on a separate server on the LAN, the server needs LAN access to port `8100` on that machine.
 
 ---
 
@@ -464,7 +461,7 @@ sudo systemctl restart trickfire-dashboard
 
 ## Backups
 
-The entire application state is the SQLite file at `/home/trickfire/db/dashboard.db`. A backup script and nightly cron job are already installed on the Xavier.
+The entire application state is the SQLite file at `/home/trickfire/db/dashboard.db`. A backup script and nightly cron job are already installed on the server.
 
 **Script:** `/home/trickfire/scripts/backup-db.sh`
 **Schedule:** every day at 02:00 (server local time)
@@ -502,7 +499,7 @@ sudo systemctl start trickfire-dashboard
 <details>
 <summary><strong>Could not locate the bindings file / invalid ELF header</strong></summary>
 
-`better-sqlite3` was compiled on a different machine or architecture. Recompile it on the Xavier:
+`better-sqlite3` was compiled on a different machine or architecture. Recompile it on the server:
 
 ```bash
 cd /home/trickfire/dashboard
@@ -534,7 +531,7 @@ sudo systemctl restart trickfire-dashboard
 <details>
 <summary><strong>Minecraft card shows "offline"</strong></summary>
 
-Verify that `MINECRAFT_SERVER_HOST` and `MINECRAFT_SERVER_PORT` are set correctly in `.env.production`, and that the Xavier can reach the Minecraft server on the LAN. The status check fails gracefully to "offline" by design - it's not a crash, just an unreachable host.
+Verify that `MINECRAFT_SERVER_HOST` and `MINECRAFT_SERVER_PORT` are set correctly in `.env.production`, and that the server can reach the Minecraft server on the LAN. The status check fails gracefully to "offline" by design - it's not a crash, just an unreachable host.
 
 </details>
 
@@ -542,7 +539,7 @@ Verify that `MINECRAFT_SERVER_HOST` and `MINECRAFT_SERVER_PORT` are set correctl
 <summary><strong>BlueMap map shows "map unavailable"</strong></summary>
 
 1. Confirm BlueMap is running on the Minecraft server and its web interface is up: `curl http://<bluemap-host>:8100` should return HTML.
-2. Check that `BLUEMAP_URL` in `.env.production` points to the correct host and port, and that the Xavier can reach it on the LAN.
+2. Check that `BLUEMAP_URL` in `.env.production` points to the correct host and port, and that the server can reach it on the LAN.
 3. Restart the dashboard after any `.env.production` change: `sudo systemctl restart trickfire-dashboard`.
 4. If BlueMap is running but the map tiles are empty, BlueMap may still be rendering - check its logs on the Minecraft server.
 

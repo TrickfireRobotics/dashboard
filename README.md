@@ -2,7 +2,6 @@
 
 Internal portal for [TrickFire Robotics](https://trickfirerobotics.com). Members submit part orders and Minecraft whitelist requests; admins review and action them. A service API used by simulation scripts is also exposed through the same server.
 
-**Production:** `https://dashboard.trickfirerobotics.com` - runs a server in our lab room behind a Cloudflare Tunnel.
 
 ## Tech Stack
 
@@ -256,7 +255,7 @@ pnpm db:migrate
 
 ## Deployment
 
-See **[DEPLOY.md](DEPLOY.md)** for full production setup - Jetson Xavier (ARM64), systemd service, Cloudflare Tunnel, and Headscale configuration.
+See **[DEPLOY.md](DEPLOY.md)** for full production setup.
 
 ## Contributing
 
