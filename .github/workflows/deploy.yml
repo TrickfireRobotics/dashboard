@@ -10,8 +10,8 @@ concurrency:
 
 jobs:
     deploy:
-        name: Deploy to Xavier
-        runs-on: [self-hosted, xavier]
+        name: Deploy
+        runs-on: [self-hosted, tfserver]
         environment: production
 
         steps:
