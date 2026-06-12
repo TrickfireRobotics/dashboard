@@ -2,7 +2,6 @@
 
 Internal portal for [TrickFire Robotics](https://trickfirerobotics.com). Members submit part orders and Minecraft whitelist requests; admins review and action them. A service API used by simulation scripts is also exposed through the same server.
 
-
 ## Tech Stack
 
 | Layer           | Choice                                                                                                               |
