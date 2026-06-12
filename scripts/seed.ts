@@ -1,10 +1,13 @@
 // Load env before any module that reads process.env at import time
 // (auth.ts reads BETTER_AUTH_SECRET, db/index.ts reads DATABASE_PATH).
 // Static ESM imports are hoisted, so we use dynamic imports inside main().
-try {
-    process.loadEnvFile(".env.local");
-} catch {
-    // No .env.local - rely on the ambient environment.
+for (const f of [".env.local", ".env.production"]) {
+    try {
+        process.loadEnvFile(f);
+        break;
+    } catch {
+        /* try next */
+    }
 }
 
 const TEAMS = [
