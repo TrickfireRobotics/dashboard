@@ -1,0 +1,26 @@
+name: Deploy Monitor
+
+on:
+    push:
+        branches: [main]
+        paths: [health/**]
+
+concurrency:
+    group: deploy-monitor
+    cancel-in-progress: false
+
+jobs:
+    deploy:
+        name: Deploy
+        runs-on: ubuntu-latest
+        environment: production
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Deploy Worker
+              working-directory: health
+              run: npx wrangler deploy
+              env:
+                  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+                  CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
