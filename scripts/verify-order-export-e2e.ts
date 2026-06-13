@@ -18,7 +18,7 @@ import {
     formatOrderForExcel,
 } from "../src/lib/order-export";
 
-function assert(condition: boolean, message: string) {
+function assert(condition: unknown, message: string): asserts condition {
     if (!condition) throw new Error(message);
 }
 
