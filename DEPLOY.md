@@ -18,7 +18,7 @@ All steps below are run **on the server** unless noted otherwise.
 10. [Tailscale Setup](#10-tailscale-setup)
 11. [Headscale Setup](#11-headscale-setup)
 12. [Minecraft Server Setup](#12-minecraft-server-setup)
-13. [BlueMap Setup](#13-bluemap-setup)
+13. [Pl3xMap Setup](#13-pl3xmap-setup)
 14. [Updating an Existing Deployment](#updating-an-existing-deployment)
 15. [Backups](#backups)
 16. [Database Safety](#database-safety)
@@ -75,7 +75,7 @@ MINECRAFT_SERVER_HOST=<host or LAN IP of the Minecraft server>
 MINECRAFT_SERVER_PORT=25565
 MINECRAFT_WORLD_PATH=/home/trickfire/minecraft/world
 MINECRAFT_BOT_NAMES=BotA,BotB         # comma-separated; append :SkinURL for a custom skin
-BLUEMAP_URL=http://localhost:8100
+PL3XMAP_URL=http://localhost:8080
 
 # Tailscale
 TAILSCALE_API_KEY=<from Tailscale admin console → Settings → Keys>
@@ -436,33 +436,33 @@ MINECRAFT_BOT_NAMES=BotA,BotB   # append :SkinURL for a custom skin
 
 ---
 
-## 12. BlueMap Setup
+## 13. Pl3xMap Setup
 
-The Minecraft page embeds the BlueMap web map. The dashboard proxies it at `/bluemap` so it is accessible via the dashboard URL without exposing BlueMap's port publicly.
+The Minecraft page embeds the Pl3xMap web map. The dashboard proxies it at `/pl3xmap` so it is accessible via the dashboard URL without exposing Pl3xMap's port publicly.
 
-### Install BlueMap
+### Install Pl3xMap
 
-BlueMap is a Minecraft server-side mod/plugin. Follow the [official BlueMap docs](https://bluemap.bluecolored.de/) for your server type (Fabric, Paper, etc.). The web interface starts on port `8100` by default.
+Pl3xMap is a Minecraft server-side mod/plugin. Follow the [official Pl3xMap docs](https://modrinth.com/plugin/pl3xmap) for your server type (Fabric, Paper, etc.). The internal web server starts on port `8080` by default.
 
 ### Configure the Dashboard
 
-Set `BLUEMAP_URL` in `.env.production` to the address the server can reach BlueMap on. If BlueMap runs on the same machine as the Minecraft server:
+Set `PL3XMAP_URL` in `.env.production` to the address the server can reach Pl3xMap on. If Pl3xMap runs on the same machine as the Minecraft server:
 
 ```env
-BLUEMAP_URL=http://<minecraft-server-ip>:8100
+PL3XMAP_URL=http://<minecraft-server-ip>:8080
 ```
 
-If BlueMap is on the same machine as the dashboard:
+If Pl3xMap is on the same machine as the dashboard:
 
 ```env
-BLUEMAP_URL=http://localhost:8100
+PL3XMAP_URL=http://localhost:8080
 ```
 
-The dashboard proxies all requests from `/bluemap/...` to `BLUEMAP_URL`. BlueMap does **not** need to be exposed on the public firewall or in the Cloudflare Tunnel config.
+The dashboard proxies all requests from `/pl3xmap/...` to `PL3XMAP_URL`. Pl3xMap does **not** need to be exposed on the public firewall or in the Cloudflare Tunnel config.
 
 ### Firewall Note
 
-Ensure port `8100` is **not** open to the internet. The dashboard acts as the only entry point. If BlueMap is on a separate server on the LAN, the server needs LAN access to port `8100` on that machine.
+Ensure port `8080` is **not** open to the internet. The dashboard acts as the only entry point. If Pl3xMap is on a separate server on the LAN, the server needs LAN access to port `8080` on that machine.
 
 ---
 
@@ -562,12 +562,12 @@ Verify that `MINECRAFT_SERVER_HOST` and `MINECRAFT_SERVER_PORT` are set correctl
 </details>
 
 <details>
-<summary><strong>BlueMap map shows "map unavailable"</strong></summary>
+<summary><strong>Pl3xMap shows "map unavailable"</strong></summary>
 
-1. Confirm BlueMap is running on the Minecraft server and its web interface is up: `curl http://<bluemap-host>:8100` should return HTML.
-2. Check that `BLUEMAP_URL` in `.env.production` points to the correct host and port, and that the server can reach it on the LAN.
+1. Confirm Pl3xMap is running on the Minecraft server and its web interface is up: `curl http://<pl3xmap-host>:8080` should return HTML.
+2. Check that `PL3XMAP_URL` in `.env.production` points to the correct host and port, and that the server can reach it on the LAN.
 3. Restart the dashboard after any `.env.production` change: `sudo systemctl restart trickfire-dashboard`.
-4. If BlueMap is running but the map tiles are empty, BlueMap may still be rendering - check its logs on the Minecraft server.
+4. If Pl3xMap is running but the map tiles are empty, Pl3xMap may still be rendering - check its logs on the Minecraft server.
 
 </details>
 

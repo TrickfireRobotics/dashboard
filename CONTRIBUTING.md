@@ -120,12 +120,12 @@ Internal route handlers (e.g. `GET /api/minecraft/leaderboard`) exist for data t
 
 ## Proxying External Services
 
-Some internal services (currently BlueMap) are proxied through the Next.js app so they are accessible via the dashboard URL without exposing a second port. The proxy lives at `src/app/bluemap/[[...path]]/route.ts` and forwards requests to `BLUEMAP_URL`.
+Some internal services (currently Pl3xMap) are proxied through the Next.js app so they are accessible via the dashboard URL without exposing a second port. The proxy lives at `src/app/pl3xmap/[[...path]]/route.ts` and forwards requests to `PL3XMAP_URL`.
 
 Key points:
 
 - Use a catch-all route handler (`[[...path]]`) so all sub-paths forward correctly.
-- For SPA-based services, you may need to rewrite the HTML `<base href>` tag so asset paths resolve through the proxy prefix rather than the root. The BlueMap handler does this.
+- For SPA-based services, you may need to rewrite the HTML `<base href>` tag so asset paths resolve through the proxy prefix rather than the root. The Pl3xMap handler does this.
 - Catch `ECONNREFUSED` / `ENOTFOUND` and return a `503` so the client component can show a graceful unavailable state instead of an unhandled error.
 
 ## Shared Fetch with Multiple Grid Cards

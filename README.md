@@ -79,7 +79,7 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 | `MINECRAFT_RCON_PORT`         | RCON port (default `25575`). Must match `rcon.port` in `server.properties`.                                                                                                                                     |
 | `MINECRAFT_RCON_PASSWORD`     | RCON password. Must match `rcon.password` in `server.properties`.                                                                                                                                               |
 | `MINECRAFT_BOT_NAMES`         | Comma-separated list of carpet bot names, optionally with a custom skin URL: `BotA:https://s.namemc.com/i/abc123.png`. Bots are tagged in the UI.                                                               |
-| `BLUEMAP_URL`                 | Internal URL of the BlueMap web server, e.g. `http://localhost:8100`. The dashboard proxies this at `/bluemap` so it's accessible without exposing a second port.                                               |
+| `PL3XMAP_URL`                 | Internal URL of the Pl3xMap web server, e.g. `http://localhost:8080`. The dashboard proxies this at `/pl3xmap` so it's accessible without exposing a second port.                                               |
 | `TAILSCALE_API_KEY`           | API key from the Tailscale admin console (Settings → Keys). Powers the Network tab.                                                                                                                             |
 | `TAILSCALE_TAILNET`           | Tailnet name, e.g. `trickfirerobotics.com`. Use `-` to default to the tailnet that owns the API key.                                                                                                            |
 | `ONSHAPE_BASE_URL`            | OnShape API base URL, e.g. `https://cad.onshape.com/api`                                                                                                                                                        |
@@ -160,7 +160,7 @@ dashboard/
 │   │   ├── api/                # Route handlers
 │   │   │   ├── service/        # External service endpoints (e.g. API key verify)
 │   │   │   └── minecraft/      # Internal endpoints (status, leaderboard)
-│   │   └── bluemap/            # BlueMap reverse proxy (catch-all, forwards to BLUEMAP_URL)
+│   │   └── pl3xmap/            # Pl3xMap reverse proxy (catch-all, forwards to PL3XMAP_URL)
 │   ├── components/
 │   │   ├── layout/             # Sidebar, TopNav
 │   │   ├── minecraft/          # Minecraft-specific components (status, leaderboard, map)

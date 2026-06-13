@@ -1,7 +1,7 @@
 import { desc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
-import { BluemapEmbed } from "@/components/minecraft/BluemapEmbed";
+import { Pl3xmapEmbed } from "@/components/minecraft/Pl3xmapEmbed";
 import { PlaytimeLeaderboard } from "@/components/minecraft/PlaytimeLeaderboard";
 import { ServerStatusSection } from "@/components/minecraft/ServerStatusSection";
 import { WhitelistRequestForm } from "@/components/minecraft/WhitelistRequestForm";
@@ -84,7 +84,7 @@ export default async function MinecraftPage() {
 
             <PlaytimeLeaderboard />
 
-            <BluemapEmbed />
+            <Pl3xmapEmbed />
         </div>
     );
 }

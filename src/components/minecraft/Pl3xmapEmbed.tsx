@@ -8,14 +8,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-export function BluemapEmbed() {
+export function Pl3xmapEmbed() {
     const [available, setAvailable] = useState<boolean | null>(null);
 
     useEffect(() => {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), 5_000);
 
-        fetch("/bluemap", { method: "HEAD", signal: controller.signal })
+        fetch("/pl3xmap", { method: "HEAD", signal: controller.signal })
             .then((r) => setAvailable(r.ok))
             .catch(() => setAvailable(false))
             .finally(() => clearTimeout(timer));
@@ -33,7 +33,7 @@ export function BluemapEmbed() {
                     </div>
                     {available && (
                         <a
-                            href="/bluemap"
+                            href="/pl3xmap"
                             target="_blank"
                             rel="noopener noreferrer"
                             className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
@@ -43,7 +43,7 @@ export function BluemapEmbed() {
                         </a>
                     )}
                 </div>
-                <CardDescription>Live BlueMap view of the server world.</CardDescription>
+                <CardDescription>Live Pl3xMap view of the server world.</CardDescription>
             </CardHeader>
 
             <CardContent className={cn(available ? "p-0" : undefined)}>
@@ -51,8 +51,8 @@ export function BluemapEmbed() {
                     <Skeleton className="h-[520px] rounded-none rounded-b-xl" />
                 ) : available ? (
                     <iframe
-                        src="/bluemap"
-                        title="BlueMap World Map"
+                        src="/pl3xmap"
+                        title="Pl3xMap World Map"
                         className="h-[520px] w-full rounded-b-xl border-0"
                         allowFullScreen
                     />
@@ -62,7 +62,7 @@ export function BluemapEmbed() {
                         <div className="text-center">
                             <p className="text-foreground text-sm font-medium">Map unavailable</p>
                             <p className="text-muted-foreground text-sm">
-                                BlueMap is not running or unreachable.
+                                Pl3xMap is not running or unreachable.
                             </p>
                         </div>
                     </div>

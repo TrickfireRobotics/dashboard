@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 
 const UPSTREAM =
-    process.env.BLUEMAP_URL ?? `http://${process.env.MINECRAFT_SERVER_HOST ?? "localhost"}:8100`;
+    process.env.PL3XMAP_URL ?? `http://${process.env.MINECRAFT_SERVER_HOST ?? "localhost"}:8080`;
 
 export async function GET(
     request: NextRequest,
@@ -19,15 +19,15 @@ export async function GET(
 
         const contentType = res.headers.get("content-type") ?? "application/octet-stream";
 
-        // Rewrite HTML responses so BlueMap's SPA resolves asset/API paths
-        // relative to /bluemap/ rather than the server root.
+        // Rewrite HTML responses so Pl3xMap's SPA resolves asset/API paths
+        // relative to /pl3xmap/ rather than the server root.
         if (contentType.includes("text/html")) {
             let html = await res.text();
 
             if (html.includes("<base ")) {
-                html = html.replace(/<base\s+href="[^"]*"/gi, '<base href="/bluemap/"');
+                html = html.replace(/<base\s+href="[^"]*"/gi, '<base href="/pl3xmap/"');
             } else {
-                html = html.replace("<head>", '<head><base href="/bluemap/">');
+                html = html.replace("<head>", '<head><base href="/pl3xmap/">');
             }
 
             return new Response(html, {
