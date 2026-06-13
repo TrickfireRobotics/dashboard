@@ -26,7 +26,14 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { formatPriceCents } from "@/lib/utils";
+import {
+    BalanceAmount,
+    isOverBudget,
+    stfBucketSelectLabel,
+    StfBucketSelectItemContent,
+} from "@/components/BalanceAmount";
+import type { FundType, OrderStatus } from "@/lib/db/schema";
+import { cn, formatPriceCents } from "@/lib/utils";
 
 type StfBucketBalance = {
     id: number;
@@ -86,7 +93,35 @@ const formSchema = z
 
 type FormValues = z.infer<typeof formSchema>;
 
-export function OrderForm() {
+export type OrderFormInitial = {
+    id: number;
+    status: OrderStatus;
+    fundType: FundType;
+    stfBucketId: number | null;
+    vendor: string;
+    link: string;
+    itemName: string;
+    partNumber: string | null;
+    quantity: number;
+    unitCostCents: number;
+    notes: string | null;
+};
+
+function toFormValues(order: OrderFormInitial): FormValues {
+    return {
+        fundType: order.fundType,
+        stfBucketId: order.stfBucketId != null ? String(order.stfBucketId) : "",
+        vendor: order.vendor,
+        link: order.link,
+        itemName: order.itemName,
+        partNumber: order.partNumber ?? "",
+        quantity: String(order.quantity),
+        unitCost: (order.unitCostCents / 100).toFixed(2),
+        notes: order.notes ?? "",
+    };
+}
+
+export function OrderForm({ initialOrder }: { initialOrder?: OrderFormInitial }) {
     const router = useRouter();
     const [submitting, setSubmitting] = useState(false);
     const [balances, setBalances] = useState<Balances | null>(null);
@@ -94,17 +129,19 @@ export function OrderForm() {
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
-        defaultValues: {
-            fundType: undefined,
-            stfBucketId: "",
-            vendor: "",
-            link: "",
-            itemName: "",
-            partNumber: "",
-            quantity: "1",
-            unitCost: "",
-            notes: "",
-        },
+        defaultValues: initialOrder
+            ? toFormValues(initialOrder)
+            : {
+                  fundType: undefined,
+                  stfBucketId: "",
+                  vendor: "",
+                  link: "",
+                  itemName: "",
+                  partNumber: "",
+                  quantity: "1",
+                  unitCost: "",
+                  notes: "",
+              },
     });
 
     const fundType = form.watch("fundType");
@@ -139,7 +176,10 @@ export function OrderForm() {
         const bucket = balances.stfBuckets.find((b) => String(b.id) === stfBucketId);
         if (!bucket) return null;
         if (totalCostCents > bucket.remainingBalanceCents) {
-            return `This order exceeds the remaining balance in ${bucket.name}. Available: ${formatPriceCents(bucket.remainingBalanceCents)}, Order total: ${formatPriceCents(totalCostCents)}.`;
+            const availableLabel = isOverBudget(bucket.remainingBalanceCents)
+                ? `Over by ${formatPriceCents(Math.abs(bucket.remainingBalanceCents))}`
+                : formatPriceCents(bucket.remainingBalanceCents);
+            return `This order exceeds the remaining balance in ${bucket.name}. Available: ${availableLabel}, Order total: ${formatPriceCents(totalCostCents)}.`;
         }
         return null;
     }, [balances, fundType, stfBucketId, totalCostCents]);
@@ -156,26 +196,37 @@ export function OrderForm() {
         if (balanceError) return;
         setSubmitting(true);
         try {
-            const res = await fetch("/api/orders", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    fundType: values.fundType,
-                    stfBucketId: values.fundType === "STF" ? Number(values.stfBucketId) : undefined,
-                    vendor: values.vendor,
-                    link: values.link,
-                    itemName: values.itemName,
-                    partNumber: values.partNumber || undefined,
-                    quantity: Number(values.quantity),
-                    unitCost: Number(values.unitCost),
-                    notes: values.notes || undefined,
-                }),
-            });
+            const payload = {
+                fundType: values.fundType,
+                stfBucketId: values.fundType === "STF" ? Number(values.stfBucketId) : undefined,
+                vendor: values.vendor,
+                link: values.link,
+                itemName: values.itemName,
+                partNumber: values.partNumber || undefined,
+                quantity: Number(values.quantity),
+                unitCost: Number(values.unitCost),
+                notes: values.notes || undefined,
+            };
+
+            const res = await fetch(
+                initialOrder ? `/api/orders/${initialOrder.id}` : "/api/orders",
+                {
+                    method: initialOrder ? "PATCH" : "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                }
+            );
             if (!res.ok) {
                 const data = await res.json().catch(() => null);
                 throw new Error(data?.error ?? "Failed to submit order");
             }
-            toast.success("Order submitted for review");
+            toast.success(
+                initialOrder
+                    ? initialOrder.status === "denied"
+                        ? "Order resubmitted for review"
+                        : "Order updated"
+                    : "Order submitted for review"
+            );
             router.push("/orders");
             router.refresh();
         } catch (err) {
@@ -221,9 +272,7 @@ export function OrderForm() {
                 {fundType === "Gift" && balances ? (
                     <div className="bg-muted/50 rounded-lg border px-4 py-3 text-sm">
                         <span className="text-muted-foreground">Gift fund balance: </span>
-                        <span className="text-foreground font-semibold">
-                            {formatPriceCents(balances.giftBalanceCents)}
-                        </span>
+                        <BalanceAmount cents={balances.giftBalanceCents} size="sm" mode="signed" />
                     </div>
                 ) : null}
 
@@ -238,7 +287,7 @@ export function OrderForm() {
                                     items={Object.fromEntries(
                                         (balances?.stfBuckets ?? []).map((b) => [
                                             String(b.id),
-                                            `${b.name} — ${formatPriceCents(b.remainingBalanceCents)} remaining`,
+                                            stfBucketSelectLabel(b.name, b.remainingBalanceCents),
                                         ])
                                     )}
                                     value={field.value ?? ""}
@@ -252,15 +301,22 @@ export function OrderForm() {
                                     <SelectContent>
                                         {(balances?.stfBuckets ?? []).map((bucket) => {
                                             const disabled = bucket.remainingBalanceCents <= 0;
+                                            const over = isOverBudget(bucket.remainingBalanceCents);
                                             return (
                                                 <SelectItem
                                                     key={bucket.id}
                                                     value={String(bucket.id)}
                                                     disabled={disabled}
+                                                    className={cn(
+                                                        over &&
+                                                            "data-disabled:text-destructive data-disabled:opacity-100"
+                                                    )}
                                                 >
-                                                    {bucket.name} —{" "}
-                                                    {formatPriceCents(bucket.remainingBalanceCents)}{" "}
-                                                    remaining
+                                                    <StfBucketSelectItemContent
+                                                        name={bucket.name}
+                                                        cents={bucket.remainingBalanceCents}
+                                                        unavailable={disabled}
+                                                    />
                                                 </SelectItem>
                                             );
                                         })}
@@ -410,7 +466,13 @@ export function OrderForm() {
 
                 <div className="flex gap-3">
                     <Button type="submit" disabled={!canSubmit}>
-                        {submitting ? "Submitting..." : "Submit order"}
+                        {submitting
+                            ? "Saving..."
+                            : initialOrder
+                              ? initialOrder.status === "denied"
+                                  ? "Resubmit for review"
+                                  : "Save changes"
+                              : "Submit order"}
                     </Button>
                     <Button
                         type="button"

@@ -2,10 +2,12 @@ import { desc, eq } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { OrderBalancesSummary } from "@/components/orders/OrderBalancesSummary";
 import { OrderTable, type MemberOrderRow } from "@/components/orders/OrderTable";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { order, stfBucket } from "@/lib/db/schema";
+import { getGiftFundValueCents, getStfBucketsWithBalances } from "@/lib/finance";
 import { getSessionUser } from "@/lib/session";
 
 export default async function OrdersPage() {
@@ -30,6 +32,9 @@ export default async function OrdersPage() {
         .orderBy(desc(order.createdAt))
         .all();
 
+    const giftBalanceCents = getGiftFundValueCents();
+    const stfBuckets = getStfBucketsWithBalances();
+
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
@@ -43,6 +48,8 @@ export default async function OrdersPage() {
                     Submit order
                 </Button>
             </div>
+
+            <OrderBalancesSummary giftBalanceCents={giftBalanceCents} stfBuckets={stfBuckets} />
 
             <OrderTable orders={rows} />
         </div>
