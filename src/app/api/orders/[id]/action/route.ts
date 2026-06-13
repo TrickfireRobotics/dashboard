@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
-import { order } from "@/lib/db/schema";
+import { order, orderHistory } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/session";
 import { ORDER_ACTION_STATUS, orderActionSchema } from "@/lib/validation";
 
@@ -34,10 +34,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    const newStatus = ORDER_ACTION_STATUS[parsed.data.action];
+
     const updated = db
         .update(order)
         .set({
-            status: ORDER_ACTION_STATUS[parsed.data.action],
+            status: newStatus,
             adminNote: parsed.data.adminNote ?? null,
             reviewedBy: user.id,
             reviewedAt: new Date(),
@@ -45,6 +47,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         .where(eq(order.id, orderId))
         .returning()
         .get();
+
+    db.insert(orderHistory)
+        .values({
+            orderId,
+            fromStatus: existing.status,
+            toStatus: newStatus,
+            changedBy: user.id,
+            note: parsed.data.adminNote ?? null,
+        })
+        .run();
 
     return NextResponse.json({ order: updated });
 }

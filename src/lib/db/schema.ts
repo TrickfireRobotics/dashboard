@@ -120,13 +120,31 @@ export const networkJoinRequest = sqliteTable("network_join_request", {
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
 });
 
-export const orderRelations = relations(order, ({ one }) => ({
+export const orderHistory = sqliteTable("order_history", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    orderId: integer("order_id")
+        .notNull()
+        .references(() => order.id, { onDelete: "cascade" }),
+    fromStatus: text("from_status").$type<OrderStatus>(),
+    toStatus: text("to_status").$type<OrderStatus>().notNull(),
+    changedBy: text("changed_by").references(() => user.id, { onDelete: "set null" }),
+    note: text("note"),
+    changedAt: integer("changed_at", { mode: "timestamp_ms" }).default(now).notNull(),
+});
+
+export const orderRelations = relations(order, ({ one, many }) => ({
     user: one(user, { fields: [order.userId], references: [user.id] }),
     team: one(team, { fields: [order.teamId], references: [team.id] }),
     reviewer: one(user, {
         fields: [order.reviewedBy],
         references: [user.id],
     }),
+    history: many(orderHistory),
+}));
+
+export const orderHistoryRelations = relations(orderHistory, ({ one }) => ({
+    order: one(order, { fields: [orderHistory.orderId], references: [order.id] }),
+    changedBy: one(user, { fields: [orderHistory.changedBy], references: [user.id] }),
 }));
 
 export const apiKeyRelations = relations(apiKey, ({ one }) => ({
