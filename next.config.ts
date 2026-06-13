@@ -42,7 +42,7 @@ const pl3xmapHeaders = [
 
 const nextConfig: NextConfig = {
     output: "standalone",
-    serverExternalPackages: ["better-sqlite3"],
+    serverExternalPackages: ["better-sqlite3", "systeminformation"],
     async headers() {
         return [
             {
