@@ -14,9 +14,11 @@ All steps below are run **on the server** unless noted otherwise.
 6. [Run as a systemd Service](#6-run-as-a-systemd-service)
 7. [Automated Deploys (GitHub Actions)](#7-automated-deploys-github-actions)
 8. [Cloudflare Tunnel](#8-cloudflare-tunnel)
-9. [Headscale Setup](#9-headscale-setup)
-10. [Minecraft Server Setup](#10-minecraft-server-setup)
-11. [BlueMap Setup](#11-bluemap-setup)
+9. [Uptime Monitoring](#9-uptime-monitoring)
+10. [Tailscale Setup](#10-tailscale-setup)
+11. [Headscale Setup](#11-headscale-setup)
+12. [Minecraft Server Setup](#12-minecraft-server-setup)
+13. [BlueMap Setup](#13-bluemap-setup)
 12. [Updating an Existing Deployment](#updating-an-existing-deployment)
 13. [Backups](#backups)
 14. [Database Safety](#database-safety)
@@ -268,7 +270,31 @@ sudo systemctl enable --now cloudflared
 > [!NOTE]
 > The service API endpoint (`POST /api/service/verify`, used by simulation Python scripts) is reachable through the same tunnel and is IP-rate-limited via `x-forwarded-for` / `cf-connecting-ip` headers injected by Cloudflare.
 
-## 9. Tailscale Setup
+## 9. Uptime Monitoring
+
+Uptime is monitored by a Cloudflare Worker (`health/`) that pings `/api/health` every 5 minutes and posts a Discord alert if the dashboard is unreachable. The Worker runs on Cloudflare's edge and is unaffected by server outages.
+
+### Deploy
+
+```bash
+cd health
+pnpm dlx wrangler deploy
+pnpm dlx wrangler secret put DISCORD_WEBHOOK_URL   # paste the Discord webhook URL when prompted
+```
+
+### How it works
+
+- **Cron trigger** — runs every 5 minutes automatically.
+- **HTTP handler** — visiting the Worker URL triggers an instant check, useful for testing.
+- On failure, posts a Discord embed with the reason and timestamp, and pings the on-call members.
+
+### Updating the ping list
+
+The list of Discord user IDs to ping is hardcoded in `health/src/index.js` (`PING_IDS`). Edit the array and redeploy.
+
+---
+
+## 10. Tailscale Setup
 
 Tailscale backs the Network tab in the dashboard. The club uses a shared Tailscale account so all devices belong to one tailnet.
 
@@ -325,7 +351,7 @@ sudo systemctl restart trickfire-dashboard
 | Rotate API key  | Tailscale admin console → Settings → Keys       |
 | View logs       | `journalctl -u tailscaled -f`                   |
 
-## 10. Minecraft Server Setup
+## 11. Minecraft Server Setup
 
 The Minecraft server runs as an independent systemd service (`minecraft.service`) managed by [Azalea](https://github.com/matejstastny/azalea). The dashboard can start and stop it, stream its logs, and send console commands via RCON - all without the server depending on the dashboard process.
 
@@ -410,7 +436,7 @@ MINECRAFT_BOT_NAMES=BotA,BotB   # append :SkinURL for a custom skin
 
 ---
 
-## 11. BlueMap Setup
+## 12. BlueMap Setup
 
 The Minecraft page embeds the BlueMap web map. The dashboard proxies it at `/bluemap` so it is accessible via the dashboard URL without exposing BlueMap's port publicly.
 
