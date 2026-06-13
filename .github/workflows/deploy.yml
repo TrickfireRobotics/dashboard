@@ -17,7 +17,7 @@ jobs:
         steps:
             - name: Pull latest changes
               working-directory: /home/trickfire/dashboard
-              run: git pull
+              run: git fetch origin main && git reset --hard origin/main
 
             - name: Run deploy script
               working-directory: /home/trickfire/dashboard
