@@ -2,12 +2,17 @@
 
 import { usePathname } from "next/navigation";
 
+import { MobileNav } from "./MobileNav";
+import type { FeatureKey } from "@/lib/features";
+
 const routeLabels: Record<string, string> = {
     "/dashboard": "Dashboard",
+    "/features": "My Access",
     "/orders": "Orders",
     "/api-keys": "API Keys",
     "/minecraft": "Minecraft",
     "/network": "Network",
+    "/admin": "Admin",
     "/admin/orders": "Order Queue",
     "/admin/users": "Users",
     "/admin/minecraft": "Whitelist",
@@ -25,12 +30,31 @@ function getPageTitle(pathname: string): string {
     return "";
 }
 
-export function TopNav() {
+export function TopNav({
+    isAdmin,
+    canAccessVault,
+    name,
+    email,
+    grantedFeatures,
+}: {
+    isAdmin: boolean;
+    canAccessVault: boolean;
+    name: string;
+    email: string;
+    grantedFeatures: FeatureKey[];
+}) {
     const pathname = usePathname();
     const title = getPageTitle(pathname);
 
     return (
-        <header className="border-border flex h-16 items-center border-b px-6">
+        <header className="border-border flex h-16 items-center gap-3 border-b px-6">
+            <MobileNav
+                isAdmin={isAdmin}
+                canAccessVault={canAccessVault}
+                name={name}
+                email={email}
+                grantedFeatures={grantedFeatures}
+            />
             {title && <h1 className="text-foreground text-lg font-semibold">{title}</h1>}
         </header>
     );

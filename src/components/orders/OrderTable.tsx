@@ -39,12 +39,14 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
                 <TableHeader>
                     <TableRow>
                         <TableHead>Item</TableHead>
-                        <TableHead>Team</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Unit price</TableHead>
+                        <TableHead className="hidden md:table-cell">Team</TableHead>
+                        <TableHead className="hidden text-right md:table-cell">Qty</TableHead>
+                        <TableHead className="hidden text-right md:table-cell">
+                            Unit price
+                        </TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Submitted</TableHead>
-                        <TableHead>Admin note</TableHead>
+                        <TableHead className="hidden md:table-cell">Admin note</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -53,9 +55,13 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
                             <TableCell className="text-foreground font-medium">
                                 {o.itemName}
                             </TableCell>
-                            <TableCell>{o.teamName ?? "-"}</TableCell>
-                            <TableCell className="text-right">{o.quantity}</TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="hidden md:table-cell">
+                                {o.teamName ?? "-"}
+                            </TableCell>
+                            <TableCell className="hidden text-right md:table-cell">
+                                {o.quantity}
+                            </TableCell>
+                            <TableCell className="hidden text-right md:table-cell">
                                 {formatPriceCents(o.unitPrice)}
                             </TableCell>
                             <TableCell>
@@ -64,7 +70,7 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
                             <TableCell className="text-muted-foreground">
                                 {formatDate(o.createdAt)}
                             </TableCell>
-                            <TableCell className="text-muted-foreground max-w-50 whitespace-normal">
+                            <TableCell className="text-muted-foreground hidden max-w-50 whitespace-normal md:table-cell">
                                 {o.adminNote ?? "-"}
                             </TableCell>
                         </TableRow>

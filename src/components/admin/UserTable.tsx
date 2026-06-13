@@ -105,11 +105,11 @@ export function UserTable({
                 <TableHeader>
                     <TableRow>
                         <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
+                        <TableHead className="hidden md:table-cell">Email</TableHead>
                         <TableHead>Role</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead>Vault access</TableHead>
-                        <TableHead>Joined</TableHead>
+                        <TableHead className="hidden md:table-cell">Vault access</TableHead>
+                        <TableHead className="hidden md:table-cell">Joined</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -128,7 +128,7 @@ export function UserTable({
                                             </span>
                                         ) : null}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
+                                    <TableCell className="text-muted-foreground hidden md:table-cell">
                                         {u.email}
                                     </TableCell>
                                     <TableCell>
@@ -156,7 +156,7 @@ export function UserTable({
                                             <Badge variant="destructive">Deactivated</Badge>
                                         )}
                                     </TableCell>
-                                    <TableCell>
+                                    <TableCell className="hidden md:table-cell">
                                         {u.role === "admin" ? (
                                             <Badge variant="secondary">Always (admin)</Badge>
                                         ) : (
@@ -174,7 +174,7 @@ export function UserTable({
                                             </Button>
                                         )}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
+                                    <TableCell className="text-muted-foreground hidden md:table-cell">
                                         {formatDate(u.createdAt)}
                                     </TableCell>
                                     <TableCell className="text-right">

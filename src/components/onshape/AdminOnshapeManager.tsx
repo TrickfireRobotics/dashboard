@@ -187,8 +187,8 @@ function MembersTab() {
                             <TableRow>
                                 <TableHead>Name</TableHead>
                                 <TableHead>Type</TableHead>
-                                <TableHead>Added</TableHead>
-                                <TableHead>Last login</TableHead>
+                                <TableHead className="hidden md:table-cell">Added</TableHead>
+                                <TableHead className="hidden md:table-cell">Last login</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -203,10 +203,10 @@ function MembersTab() {
                                             light={m.light}
                                         />
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
+                                    <TableCell className="text-muted-foreground hidden md:table-cell">
                                         {m.dateAdded ? formatDate(new Date(m.dateAdded)) : "-"}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
+                                    <TableCell className="text-muted-foreground hidden md:table-cell">
                                         {m.lastLoginTime
                                             ? formatDate(new Date(m.lastLoginTime))
                                             : "Never"}

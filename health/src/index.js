@@ -1,21 +1,35 @@
 const HEALTH_URL = "https://dashboard.trickfirerobotics.com/api/health";
 const PING_IDS = ["388895281745231873", "703987101959454802", "917095787735941141"];
 
+async function ping() {
+    const res = await fetch(HEALTH_URL, { signal: AbortSignal.timeout(10000) });
+    const body = await res.text();
+    if (!res.ok || !body.includes("ok")) {
+        return `HTTP ${res.status} — ${body.slice(0, 200)}`;
+    }
+    return null;
+}
+
 async function check(env) {
-    let down = false;
-    let reason = "";
+    let reason = null;
 
     try {
-        const res = await fetch(HEALTH_URL, { signal: AbortSignal.timeout(10000) });
-        const body = await res.text();
-        if (!res.ok || !body.includes("ok")) {
-            down = true;
-            reason = `HTTP ${res.status} - ${body.slice(0, 200)}`;
-        }
+        reason = await ping();
     } catch (err) {
-        down = true;
         reason = err.message;
     }
+
+    // retry once after 5 seconds before alerting
+    if (reason !== null) {
+        await new Promise((r) => setTimeout(r, 5000));
+        try {
+            reason = await ping();
+        } catch (err) {
+            reason = err.message;
+        }
+    }
+
+    let down = reason !== null;
 
     if (down) {
         const pings = PING_IDS.map((id) => `<@${id}>`).join(" ");

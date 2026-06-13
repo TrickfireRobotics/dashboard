@@ -96,11 +96,13 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
                         <TableRow>
                             <TableHead>Item</TableHead>
                             <TableHead>Requester</TableHead>
-                            <TableHead>Team</TableHead>
-                            <TableHead className="text-right">Qty</TableHead>
-                            <TableHead className="text-right">Unit price</TableHead>
+                            <TableHead className="hidden md:table-cell">Team</TableHead>
+                            <TableHead className="hidden text-right md:table-cell">Qty</TableHead>
+                            <TableHead className="hidden text-right md:table-cell">
+                                Unit price
+                            </TableHead>
                             <TableHead>Status</TableHead>
-                            <TableHead>Submitted</TableHead>
+                            <TableHead className="hidden md:table-cell">Submitted</TableHead>
                             <TableHead className="text-right">Review</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -113,15 +115,19 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
                                 <TableCell className="text-muted-foreground">
                                     {o.requesterName ?? o.requesterEmail ?? "-"}
                                 </TableCell>
-                                <TableCell>{o.teamName ?? "-"}</TableCell>
-                                <TableCell className="text-right">{o.quantity}</TableCell>
-                                <TableCell className="text-right">
+                                <TableCell className="hidden md:table-cell">
+                                    {o.teamName ?? "-"}
+                                </TableCell>
+                                <TableCell className="hidden text-right md:table-cell">
+                                    {o.quantity}
+                                </TableCell>
+                                <TableCell className="hidden text-right md:table-cell">
                                     {formatPriceCents(o.unitPrice)}
                                 </TableCell>
                                 <TableCell>
                                     <OrderStatusBadge status={o.status} />
                                 </TableCell>
-                                <TableCell className="text-muted-foreground">
+                                <TableCell className="text-muted-foreground hidden md:table-cell">
                                     {formatDate(o.createdAt)}
                                 </TableCell>
                                 <TableCell className="text-right">

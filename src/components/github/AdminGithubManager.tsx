@@ -258,8 +258,8 @@ function InvitationsTab() {
                     <TableRow>
                         <TableHead>Invitee</TableHead>
                         <TableHead>Role</TableHead>
-                        <TableHead>Invited by</TableHead>
-                        <TableHead>Sent</TableHead>
+                        <TableHead className="hidden md:table-cell">Invited by</TableHead>
+                        <TableHead className="hidden md:table-cell">Sent</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -270,10 +270,10 @@ function InvitationsTab() {
                                 {i.login ?? i.email ?? "-"}
                             </TableCell>
                             <TableCell className="text-muted-foreground">{i.role}</TableCell>
-                            <TableCell className="text-muted-foreground">
+                            <TableCell className="text-muted-foreground hidden md:table-cell">
                                 {i.inviter ?? "-"}
                             </TableCell>
-                            <TableCell className="text-muted-foreground">
+                            <TableCell className="text-muted-foreground hidden md:table-cell">
                                 {i.createdAt ? formatDate(new Date(i.createdAt)) : "-"}
                             </TableCell>
                             <TableCell className="text-right">

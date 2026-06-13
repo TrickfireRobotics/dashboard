@@ -86,9 +86,9 @@ export function AdminNetworkManager() {
                         <TableHead></TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>User</TableHead>
-                        <TableHead>IP Addresses</TableHead>
-                        <TableHead>OS</TableHead>
-                        <TableHead>Last seen</TableHead>
+                        <TableHead className="hidden md:table-cell">IP Addresses</TableHead>
+                        <TableHead className="hidden md:table-cell">OS</TableHead>
+                        <TableHead className="hidden md:table-cell">Last seen</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -102,13 +102,13 @@ export function AdminNetworkManager() {
                             <TableCell className="text-muted-foreground">
                                 {node.user?.name ?? "-"}
                             </TableCell>
-                            <TableCell className="font-mono text-xs">
+                            <TableCell className="hidden font-mono text-xs md:table-cell">
                                 {node.ipAddresses?.join(", ") ?? "-"}
                             </TableCell>
-                            <TableCell className="text-muted-foreground">
+                            <TableCell className="text-muted-foreground hidden md:table-cell">
                                 {node.os || "-"}
                             </TableCell>
-                            <TableCell className="text-muted-foreground">
+                            <TableCell className="text-muted-foreground hidden md:table-cell">
                                 {relativeTime(node.lastSeen)}
                             </TableCell>
                             <TableCell className="text-right">
