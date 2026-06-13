@@ -26,13 +26,55 @@ const TEAMS = [
 async function main() {
     const { auth } = await import("../src/lib/auth");
     const { db } = await import("../src/lib/db");
-    const { team, user } = await import("../src/lib/db/schema");
+    const { giftFund, stfBucket, stfQuarter, team, user } = await import("../src/lib/db/schema");
+    const { GIFT_FUND_ID } = await import("../src/lib/finance");
     const { eq } = await import("drizzle-orm");
 
     for (const name of TEAMS) {
         db.insert(team).values({ name }).onConflictDoNothing().run();
     }
     console.log(`Seeded ${TEAMS.length} teams.`);
+
+    const existingGift = db.select().from(giftFund).where(eq(giftFund.id, GIFT_FUND_ID)).get();
+    if (!existingGift) {
+        db.insert(giftFund).values({ id: GIFT_FUND_ID, currentValueCents: 120_400 }).run();
+        console.log("Seeded gift fund.");
+    } else if (existingGift.currentValueCents === 0) {
+        db.update(giftFund)
+            .set({ currentValueCents: 120_400 })
+            .where(eq(giftFund.id, GIFT_FUND_ID))
+            .run();
+        console.log("Updated gift fund seed value.");
+    }
+
+    let quarter = db.select().from(stfQuarter).where(eq(stfQuarter.isActive, true)).get();
+    if (!quarter) {
+        quarter = db
+            .insert(stfQuarter)
+            .values({ name: "Fall 2025", isActive: true })
+            .returning()
+            .get();
+        console.log(`Seeded active quarter: ${quarter.name}`);
+    }
+
+    const defaultBuckets = [
+        { name: "Mechanical", startingBalanceCents: 43_000 },
+        { name: "Electronics", startingBalanceCents: 12_050 },
+        { name: "Software", startingBalanceCents: 0 },
+    ];
+    for (const bucket of defaultBuckets) {
+        const exists = db.select().from(stfBucket).where(eq(stfBucket.name, bucket.name)).get();
+        if (!exists) {
+            db.insert(stfBucket)
+                .values({
+                    quarterId: quarter.id,
+                    name: bucket.name,
+                    startingBalanceCents: bucket.startingBalanceCents,
+                })
+                .run();
+        }
+    }
+    console.log("Seeded STF buckets.");
 
     const rawEmail = process.env.SEED_ADMIN_EMAIL;
     const email = rawEmail?.includes("@") ? rawEmail : `${rawEmail}@admin.local`;

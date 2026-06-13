@@ -6,7 +6,9 @@ import { user } from "./auth-schema";
 
 const now = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
 
-export type OrderStatus = "pending" | "approved" | "rejected" | "ordered";
+export type OrderStatus = "pending" | "approved" | "denied";
+export type FundType = "STF" | "Gift";
+export type GiftFundChangeType = "order_approved" | "manual_adjustment";
 export type WhitelistStatus = "pending" | "approved" | "rejected";
 export type JoinRequestStatus = "pending" | "approved" | "rejected";
 export type VaultEntryType = "login" | "api_key";
@@ -17,28 +19,71 @@ export const team = sqliteTable("team", {
     name: text("name").notNull().unique(),
 });
 
+export const stfQuarter = sqliteTable("stf_quarter", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    name: text("name").notNull().unique(),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(false),
+    archivedAt: integer("archived_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+});
+
+export const stfBucket = sqliteTable("stf_bucket", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    quarterId: integer("quarter_id")
+        .notNull()
+        .references(() => stfQuarter.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    startingBalanceCents: integer("starting_balance_cents").notNull().default(0),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+});
+
+export const giftFund = sqliteTable("gift_fund", {
+    id: integer("id").primaryKey(),
+    currentValueCents: integer("current_value_cents").notNull().default(0),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+        .default(now)
+        .$onUpdate(() => new Date())
+        .notNull(),
+});
+
 export const order = sqliteTable("orders", {
     id: integer("id").primaryKey({ autoIncrement: true }),
     userId: text("user_id")
         .notNull()
         .references(() => user.id, { onDelete: "cascade" }),
-    teamId: integer("team_id").references(() => team.id, {
+    fundType: text("fund_type").$type<FundType>().notNull(),
+    stfBucketId: integer("stf_bucket_id").references(() => stfBucket.id, {
         onDelete: "set null",
     }),
+    quarterId: integer("quarter_id").references(() => stfQuarter.id, {
+        onDelete: "set null",
+    }),
+    vendor: text("vendor").notNull(),
+    link: text("link").notNull(),
     itemName: text("item_name").notNull(),
-    vendorUrl: text("vendor_url"),
-    description: text("description"),
-    partType: text("part_type"),
     partNumber: text("part_number"),
     quantity: integer("quantity").notNull().default(1),
-    unitPrice: integer("unit_price"),
+    unitCostCents: integer("unit_cost_cents").notNull(),
+    notes: text("notes"),
     status: text("status").$type<OrderStatus>().notNull().default("pending"),
-    adminNote: text("admin_note"),
+    denialComment: text("denial_comment"),
     reviewedBy: text("reviewed_by").references(() => user.id, {
         onDelete: "set null",
     }),
     reviewedAt: integer("reviewed_at", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+});
+
+export const giftFundLog = sqliteTable("gift_fund_log", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    timestamp: integer("timestamp", { mode: "timestamp_ms" }).default(now).notNull(),
+    changedBy: text("changed_by").references(() => user.id, { onDelete: "set null" }),
+    changeType: text("change_type").$type<GiftFundChangeType>().notNull(),
+    previousValueCents: integer("previous_value_cents").notNull(),
+    newValueCents: integer("new_value_cents").notNull(),
+    orderId: integer("order_id").references(() => order.id, { onDelete: "set null" }),
+    note: text("note"),
 });
 
 export const apiKey = sqliteTable("api_key", {
@@ -132,9 +177,28 @@ export const orderHistory = sqliteTable("order_history", {
     changedAt: integer("changed_at", { mode: "timestamp_ms" }).default(now).notNull(),
 });
 
+export const stfQuarterRelations = relations(stfQuarter, ({ many }) => ({
+    buckets: many(stfBucket),
+    orders: many(order),
+}));
+
+export const stfBucketRelations = relations(stfBucket, ({ one, many }) => ({
+    quarter: one(stfQuarter, {
+        fields: [stfBucket.quarterId],
+        references: [stfQuarter.id],
+    }),
+    orders: many(order),
+}));
+
+export const giftFundLogRelations = relations(giftFundLog, ({ one }) => ({
+    changedByUser: one(user, { fields: [giftFundLog.changedBy], references: [user.id] }),
+    order: one(order, { fields: [giftFundLog.orderId], references: [order.id] }),
+}));
+
 export const orderRelations = relations(order, ({ one, many }) => ({
     user: one(user, { fields: [order.userId], references: [user.id] }),
-    team: one(team, { fields: [order.teamId], references: [team.id] }),
+    stfBucket: one(stfBucket, { fields: [order.stfBucketId], references: [stfBucket.id] }),
+    quarter: one(stfQuarter, { fields: [order.quarterId], references: [stfQuarter.id] }),
     reviewer: one(user, {
         fields: [order.reviewedBy],
         references: [user.id],

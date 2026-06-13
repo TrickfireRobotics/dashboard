@@ -8,7 +8,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import type { OrderStatus } from "@/lib/db/schema";
+import type { FundType, OrderStatus } from "@/lib/db/schema";
 import { formatDate, formatPriceCents } from "@/lib/utils";
 
 import { OrderStatusBadge } from "./OrderStatusBadge";
@@ -16,13 +16,18 @@ import { OrderStatusBadge } from "./OrderStatusBadge";
 export type MemberOrderRow = {
     id: number;
     itemName: string;
-    teamName: string | null;
+    fundType: FundType;
+    stfBucketName: string | null;
     quantity: number;
-    unitPrice: number | null;
+    unitCostCents: number;
     status: OrderStatus;
-    adminNote: string | null;
+    denialComment: string | null;
     createdAt: Date;
 };
+
+function totalCostCents(row: { quantity: number; unitCostCents: number }) {
+    return row.quantity * row.unitCostCents;
+}
 
 export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
     if (orders.length === 0) {
@@ -39,14 +44,11 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
                 <TableHeader>
                     <TableRow>
                         <TableHead>Item</TableHead>
-                        <TableHead className="hidden md:table-cell">Team</TableHead>
-                        <TableHead className="hidden text-right md:table-cell">Qty</TableHead>
-                        <TableHead className="hidden text-right md:table-cell">
-                            Unit price
-                        </TableHead>
+                        <TableHead className="hidden md:table-cell">Fund / bucket</TableHead>
+                        <TableHead className="hidden text-right md:table-cell">Total</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Submitted</TableHead>
-                        <TableHead className="hidden md:table-cell">Admin note</TableHead>
+                        <TableHead className="hidden md:table-cell">Officer note</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -56,13 +58,11 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
                                 {o.itemName}
                             </TableCell>
                             <TableCell className="hidden md:table-cell">
-                                {o.teamName ?? "-"}
+                                {o.fundType}
+                                {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
                             </TableCell>
                             <TableCell className="hidden text-right md:table-cell">
-                                {o.quantity}
-                            </TableCell>
-                            <TableCell className="hidden text-right md:table-cell">
-                                {formatPriceCents(o.unitPrice)}
+                                {formatPriceCents(totalCostCents(o))}
                             </TableCell>
                             <TableCell>
                                 <OrderStatusBadge status={o.status} />
@@ -71,7 +71,7 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
                                 {formatDate(o.createdAt)}
                             </TableCell>
                             <TableCell className="text-muted-foreground hidden max-w-50 whitespace-normal md:table-cell">
-                                {o.adminNote ?? "-"}
+                                {o.denialComment ?? "-"}
                             </TableCell>
                         </TableRow>
                     ))}

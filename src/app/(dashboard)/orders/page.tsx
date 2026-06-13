@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { OrderTable, type MemberOrderRow } from "@/components/orders/OrderTable";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
-import { order, team } from "@/lib/db/schema";
+import { order, stfBucket } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/session";
 
 export default async function OrdersPage() {
@@ -16,15 +16,16 @@ export default async function OrdersPage() {
         .select({
             id: order.id,
             itemName: order.itemName,
-            teamName: team.name,
+            fundType: order.fundType,
+            stfBucketName: stfBucket.name,
             quantity: order.quantity,
-            unitPrice: order.unitPrice,
+            unitCostCents: order.unitCostCents,
             status: order.status,
-            adminNote: order.adminNote,
+            denialComment: order.denialComment,
             createdAt: order.createdAt,
         })
         .from(order)
-        .leftJoin(team, eq(order.teamId, team.id))
+        .leftJoin(stfBucket, eq(order.stfBucketId, stfBucket.id))
         .where(eq(order.userId, user.id))
         .orderBy(desc(order.createdAt))
         .all();
@@ -35,11 +36,11 @@ export default async function OrdersPage() {
                 <div>
                     <h1 className="text-3xl">My Orders</h1>
                     <p className="text-muted-foreground">
-                        Your submitted parts orders and their review status.
+                        Your submitted orders and their review status.
                     </p>
                 </div>
                 <Button nativeButton={false} render={<Link href="/orders/new" />}>
-                    Order a part
+                    Submit order
                 </Button>
             </div>
 

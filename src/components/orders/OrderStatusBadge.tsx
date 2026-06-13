@@ -12,11 +12,10 @@ const STATUS: Record<
 > = {
     pending: { label: "Pending", variant: "outline" },
     approved: { label: "Approved", variant: "default" },
-    rejected: { label: "Rejected", variant: "destructive" },
-    ordered: { label: "Ordered", variant: "secondary" },
+    denied: { label: "Denied", variant: "destructive" },
 };
 
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
-    const { label, variant } = STATUS[status];
-    return <Badge variant={variant}>{label}</Badge>;
+    const config = STATUS[status] ?? { label: status, variant: "outline" as const };
+    return <Badge variant={config.variant}>{config.label}</Badge>;
 }
