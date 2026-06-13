@@ -7,15 +7,12 @@ function pad(n: number) {
 }
 
 export function LiveClock() {
-    const [now, setNow] = useState<Date | null>(null);
+    const [now, setNow] = useState(() => new Date());
 
     useEffect(() => {
-        setNow(new Date());
         const id = setInterval(() => setNow(new Date()), 1_000);
         return () => clearInterval(id);
     }, []);
-
-    if (!now) return null;
 
     const time = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
     const date = now.toLocaleDateString(undefined, {
