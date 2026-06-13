@@ -12,10 +12,10 @@ const isDev = process.env.NODE_ENV === "development";
 
 const csp = [
     "default-src 'self'",
-    `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
     `img-src ${imgSrc}`,
-    "connect-src 'self'",
+    "connect-src 'self' https://cloudflareinsights.com",
     "font-src 'self'",
     "frame-src 'self'",
     "frame-ancestors 'none'",
@@ -34,14 +34,24 @@ const securityHeaders = [
     { key: "Content-Security-Policy", value: csp },
 ];
 
+const pl3xmapHeaders = [
+    { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains; preload" },
+    { key: "X-Content-Type-Options", value: "nosniff" },
+    { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+];
+
 const nextConfig: NextConfig = {
     output: "standalone",
     serverExternalPackages: ["better-sqlite3"],
     async headers() {
         return [
             {
-                source: "/(.*)",
+                source: "/((?!pl3xmap).*)",
                 headers: securityHeaders,
+            },
+            {
+                source: "/pl3xmap/:path*",
+                headers: pl3xmapHeaders,
             },
         ];
     },
