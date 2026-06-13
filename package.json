@@ -9,6 +9,8 @@
         "lint": "eslint",
         "format": "prettier --write .",
         "format:check": "prettier --check .",
+        "typecheck": "tsc --noEmit",
+        "check": "pnpm lint && pnpm format:check && pnpm typecheck",
         "db:generate": "drizzle-kit generate",
         "db:migrate": "drizzle-kit migrate",
         "db:seed": "tsx scripts/seed.ts",
@@ -19,6 +21,13 @@
         "deploy": "bash scripts/deploy.sh",
         "auth:generate": "pnpm dlx @better-auth/cli@latest generate --config src/lib/auth.ts --output src/lib/db/auth-schema.ts -y",
         "prepare": "husky"
+    },
+    "lint-staged": {
+        "*.{ts,tsx,js,jsx,mjs,cjs}": [
+            "eslint --fix",
+            "prettier --write"
+        ],
+        "*.{json,md,yml,yaml,css}": "prettier --write"
     },
     "dependencies": {
         "@base-ui/react": "^1.5.0",
@@ -57,6 +66,7 @@
         "eslint-config-next": "15.5.18",
         "eslint-config-prettier": "^10.1.8",
         "husky": "^9.1.7",
+        "lint-staged": "^17.0.7",
         "prettier": "^3.8.3",
         "prettier-plugin-tailwindcss": "^0.8.0",
         "shadcn": "^4.8.2",

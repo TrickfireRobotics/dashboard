@@ -66,6 +66,8 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 | `SEED_ADMIN_EMAIL`            | No        | Email for the seeded admin account                                                                                  |
 | `SEED_ADMIN_PASSWORD`         | No        | Password for the seeded admin account                                                                               |
 | `SEED_ADMIN_NAME`             | No        | Display name for the seeded admin                                                                                   |
+| `GITHUB_ORG`                  | No        | GitHub organization name (e.g. `trickfirerobotics`) — enables the GitHub admin page                                 |
+| `GITHUB_TOKEN`                | No        | Fine-grained PAT with **Organization → Members: Read and write** permission                                         |
 
 > [!CAUTION]
 > Never commit `.env.local` or `.env.production`. `BETTER_AUTH_SECRET` lets anyone forge session tokens - if it leaks, rotate it immediately by changing the value and restarting the server (all existing sessions are invalidated). Rotating or losing `VAULT_ENCRYPTION_KEY` makes every existing vault entry permanently unrecoverable - back it up.
