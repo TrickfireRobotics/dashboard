@@ -22,7 +22,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     const isAdmin = session.user.role === "admin";
     const canAccessVault = isAdmin || session.user.canAccessVault === true;
 
-    // Admins always have full access; members only see granted features.
     const grantedFeatures: FeatureKey[] = isAdmin
         ? ["orders", "api-keys", "minecraft", "network"]
         : db
@@ -35,7 +34,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
               .map((r) => r.featureKey as FeatureKey);
 
     return (
-        <div className="flex h-screen overflow-hidden">
+        <div className="flex h-full overflow-hidden">
             <Sidebar
                 isAdmin={isAdmin}
                 canAccessVault={canAccessVault}

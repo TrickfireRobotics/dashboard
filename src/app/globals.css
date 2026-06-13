@@ -110,6 +110,11 @@
     ::-webkit-scrollbar-thumb:hover {
         background: #4a4a4a;
     }
+    html,
+    body {
+        height: 100%;
+        overflow: hidden;
+    }
     body {
         @apply bg-background text-foreground;
         font-family: var(--font-overpass), system-ui, sans-serif;
