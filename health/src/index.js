@@ -10,7 +10,7 @@ async function check(env) {
         const body = await res.text();
         if (!res.ok || !body.includes("ok")) {
             down = true;
-            reason = `HTTP ${res.status} — ${body.slice(0, 200)}`;
+            reason = `HTTP ${res.status} - ${body.slice(0, 200)}`;
         }
     } catch (err) {
         down = true;

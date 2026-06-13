@@ -19,10 +19,10 @@ All steps below are run **on the server** unless noted otherwise.
 11. [Headscale Setup](#11-headscale-setup)
 12. [Minecraft Server Setup](#12-minecraft-server-setup)
 13. [BlueMap Setup](#13-bluemap-setup)
-12. [Updating an Existing Deployment](#updating-an-existing-deployment)
-13. [Backups](#backups)
-14. [Database Safety](#database-safety)
-15. [Troubleshooting](#troubleshooting)
+14. [Updating an Existing Deployment](#updating-an-existing-deployment)
+15. [Backups](#backups)
+16. [Database Safety](#database-safety)
+17. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -284,8 +284,8 @@ pnpm dlx wrangler secret put DISCORD_WEBHOOK_URL   # paste the Discord webhook U
 
 ### How it works
 
-- **Cron trigger** — runs every 5 minutes automatically.
-- **HTTP handler** — visiting the Worker URL triggers an instant check, useful for testing.
+- **Cron trigger** - runs every 5 minutes automatically.
+- **HTTP handler** - visiting the Worker URL triggers an instant check, useful for testing.
 - On failure, posts a Discord embed with the reason and timestamp, and pings the on-call members.
 
 ### Updating the ping list
