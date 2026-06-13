@@ -97,9 +97,9 @@ export function VaultManager({
                             <TableRow>
                                 <TableHead>Name</TableHead>
                                 <TableHead>Type</TableHead>
-                                <TableHead>Username</TableHead>
+                                <TableHead className="hidden md:table-cell">Username</TableHead>
                                 <TableHead>Secret</TableHead>
-                                <TableHead>Added</TableHead>
+                                <TableHead className="hidden md:table-cell">Added</TableHead>
                                 {isAdmin ? (
                                     <TableHead className="text-right">Actions</TableHead>
                                 ) : null}
@@ -119,7 +119,7 @@ export function VaultManager({
                                     <TableCell className="text-muted-foreground">
                                         {TYPE_LABEL[e.type]}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground font-mono text-xs">
+                                    <TableCell className="text-muted-foreground hidden font-mono text-xs md:table-cell">
                                         {e.type === "login" ? e.username : "-"}
                                     </TableCell>
                                     <TableCell>
@@ -129,7 +129,7 @@ export function VaultManager({
                                             <SecretField entryId={e.id} />
                                         )}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
+                                    <TableCell className="text-muted-foreground hidden md:table-cell">
                                         {formatDate(e.createdAt)}
                                     </TableCell>
                                     {isAdmin ? (

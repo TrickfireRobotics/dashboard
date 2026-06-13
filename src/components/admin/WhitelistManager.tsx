@@ -83,11 +83,11 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Username</TableHead>
-                                <TableHead>Requested by</TableHead>
-                                <TableHead>Source</TableHead>
-                                <TableHead>Note</TableHead>
+                                <TableHead className="hidden md:table-cell">Requested by</TableHead>
+                                <TableHead className="hidden md:table-cell">Source</TableHead>
+                                <TableHead className="hidden md:table-cell">Note</TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Submitted</TableHead>
+                                <TableHead className="hidden md:table-cell">Submitted</TableHead>
                                 <TableHead className="text-right">Action</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -97,19 +97,19 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
                                     <TableCell className="text-foreground font-medium">
                                         {r.username}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
+                                    <TableCell className="text-muted-foreground hidden md:table-cell">
                                         {r.requesterName ?? "-"}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
+                                    <TableCell className="text-muted-foreground hidden md:table-cell">
                                         {r.addedDirectly ? "Direct add" : "Member request"}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground max-w-40 whitespace-normal">
+                                    <TableCell className="text-muted-foreground hidden max-w-40 whitespace-normal md:table-cell">
                                         {r.requestNote ?? r.adminNote ?? "-"}
                                     </TableCell>
                                     <TableCell>
                                         <WhitelistStatusBadge status={r.status} />
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
+                                    <TableCell className="text-muted-foreground hidden md:table-cell">
                                         {formatDate(r.createdAt)}
                                     </TableCell>
                                     <TableCell className="text-right">

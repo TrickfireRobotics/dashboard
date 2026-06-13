@@ -66,8 +66,8 @@ export function FeatureRequests({ requests }: { requests: FeatureRequestRow[] })
                         <TableRow>
                             <TableHead>User</TableHead>
                             <TableHead>Feature</TableHead>
-                            <TableHead>Note</TableHead>
-                            <TableHead>Requested</TableHead>
+                            <TableHead className="hidden md:table-cell">Note</TableHead>
+                            <TableHead className="hidden md:table-cell">Requested</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -85,10 +85,10 @@ export function FeatureRequests({ requests }: { requests: FeatureRequestRow[] })
                                         </p>
                                     </TableCell>
                                     <TableCell>{featureLabel}</TableCell>
-                                    <TableCell className="text-muted-foreground text-sm">
+                                    <TableCell className="text-muted-foreground hidden text-sm md:table-cell">
                                         {r.requestNote ?? "-"}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
+                                    <TableCell className="text-muted-foreground hidden md:table-cell">
                                         {formatDate(r.requestedAt)}
                                     </TableCell>
                                     <TableCell className="text-right">

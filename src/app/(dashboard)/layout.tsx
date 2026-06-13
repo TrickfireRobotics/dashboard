@@ -44,7 +44,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
                 grantedFeatures={grantedFeatures}
             />
             <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-                <TopNav />
+                <TopNav
+                    isAdmin={isAdmin}
+                    canAccessVault={canAccessVault}
+                    name={session.user.name}
+                    email={session.user.email}
+                    grantedFeatures={grantedFeatures}
+                />
                 <main className="flex-1 overflow-y-auto p-6">{children}</main>
             </div>
         </div>
