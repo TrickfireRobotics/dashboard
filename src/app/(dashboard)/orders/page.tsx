@@ -4,9 +4,10 @@ import { redirect } from "next/navigation";
 
 import { OrderBalancesSummary } from "@/components/orders/OrderBalancesSummary";
 import { OrderTable, type MemberOrderRow } from "@/components/orders/OrderTable";
+import { TeamOrderTable, type TeamOrderRow } from "@/components/orders/TeamOrderTable";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
-import { order, stfBucket } from "@/lib/db/schema";
+import { order, stfBucket, user as userTable } from "@/lib/db/schema";
 import { getGiftFundValueCents, getStfBucketsWithBalances } from "@/lib/finance";
 import { getSessionUser } from "@/lib/session";
 
@@ -14,7 +15,7 @@ export default async function OrdersPage() {
     const user = await getSessionUser();
     if (!user) redirect("/login");
 
-    const rows: MemberOrderRow[] = db
+    const myOrders: MemberOrderRow[] = db
         .select({
             id: order.id,
             itemName: order.itemName,
@@ -32,6 +33,25 @@ export default async function OrdersPage() {
         .orderBy(desc(order.createdAt))
         .all();
 
+    const teamOrders: TeamOrderRow[] = db
+        .select({
+            id: order.id,
+            itemName: order.itemName,
+            fundType: order.fundType,
+            stfBucketName: stfBucket.name,
+            requesterName: userTable.name,
+            requesterEmail: userTable.email,
+            quantity: order.quantity,
+            unitCostCents: order.unitCostCents,
+            status: order.status,
+            createdAt: order.createdAt,
+        })
+        .from(order)
+        .leftJoin(stfBucket, eq(order.stfBucketId, stfBucket.id))
+        .leftJoin(userTable, eq(order.userId, userTable.id))
+        .orderBy(desc(order.createdAt))
+        .all();
+
     const giftBalanceCents = getGiftFundValueCents();
     const stfBuckets = getStfBucketsWithBalances();
 
@@ -41,7 +61,7 @@ export default async function OrdersPage() {
                 <div>
                     <h1 className="text-3xl">My Orders</h1>
                     <p className="text-muted-foreground">
-                        Your submitted orders and their review status.
+                        Track your orders and see everything the team has submitted.
                     </p>
                 </div>
                 <Button nativeButton={false} render={<Link href="/orders/new" />}>
@@ -51,7 +71,26 @@ export default async function OrdersPage() {
 
             <OrderBalancesSummary giftBalanceCents={giftBalanceCents} stfBuckets={stfBuckets} />
 
-            <OrderTable orders={rows} />
+            <section className="space-y-4">
+                <div>
+                    <h2 className="text-lg font-semibold">Your orders</h2>
+                    <p className="text-muted-foreground text-sm">
+                        Every order you&apos;ve submitted, across all statuses.
+                    </p>
+                </div>
+                <OrderTable orders={myOrders} />
+            </section>
+
+            <section className="space-y-4">
+                <div>
+                    <h2 className="text-lg font-semibold">Team orders</h2>
+                    <p className="text-muted-foreground text-sm">
+                        Every order in the system, across all statuses. Officers review and act on
+                        these in the order queue.
+                    </p>
+                </div>
+                <TeamOrderTable orders={teamOrders} />
+            </section>
         </div>
     );
 }
