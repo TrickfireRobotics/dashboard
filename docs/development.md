@@ -27,19 +27,23 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 
 ## Commands
 
-| Command             | Description                                                      |
-| ------------------- | ---------------------------------------------------------------- |
-| `pnpm dev`          | Start the dev server with hot reload                             |
-| `pnpm build`        | Production build                                                 |
-| `pnpm start`        | Start the production server (requires a prior build)             |
-| `pnpm lint`         | Run ESLint                                                       |
-| `pnpm format`       | Auto-format all files with Prettier                              |
-| `pnpm format:check` | Check formatting without writing (used in CI)                    |
-| `pnpm db:generate`  | Generate migrations from schema changes                          |
-| `pnpm db:migrate`   | Apply all pending migrations                                     |
-| `pnpm db:seed`      | Seed the 6 teams + admin user (idempotent)                       |
-| `pnpm db:reset`     | Drop and recreate the local database (**blocked in production**) |
-| `pnpm db:studio`    | Open Drizzle Studio - visual database browser (dev only)         |
+| Command              | Description                                                      |
+| -------------------- | ---------------------------------------------------------------- |
+| `pnpm dev`           | Start the dev server with hot reload                             |
+| `pnpm build`         | Production build                                                 |
+| `pnpm start`         | Start the production server (requires a prior build)             |
+| `pnpm lint`          | Run ESLint                                                       |
+| `pnpm format`        | Auto-format all files with Prettier                              |
+| `pnpm format:check`  | Check formatting without writing (used in CI)                    |
+| `pnpm db:generate`   | Generate migrations from schema changes                          |
+| `pnpm db:migrate`    | Apply all pending migrations                                     |
+| `pnpm db:seed`       | Seed the 6 teams + admin user (idempotent)                       |
+| `pnpm db:reset`      | Drop and recreate the local database (**blocked in production**) |
+| `pnpm db:studio`     | Open Drizzle Studio - visual database browser (dev only)         |
+| `pnpm test`          | Run the unit test suite once                                     |
+| `pnpm test:watch`    | Re-run tests on save (use while developing)                      |
+| `pnpm test:ui`       | Open the Vitest browser UI                                       |
+| `pnpm test:coverage` | Generate a coverage report                                       |
 
 ## Environment Variables
 
