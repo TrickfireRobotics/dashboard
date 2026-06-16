@@ -1,6 +1,6 @@
 # Developer Notes
 
-Collection of info and informations about the codebase environment, setup and design choices.
+Collection of info about the codebase environment, setup and design choices.
 
 ## Dev environment
 
@@ -45,6 +45,30 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 | `pnpm test:ui`       | Open the Vitest browser UI                                       |
 | `pnpm test:coverage` | Generate a coverage report                                       |
 
+## CI & Git Hooks
+
+### GitHub Actions
+
+Three workflows run automatically:
+
+| Workflow         | Trigger            | What it does                                                        |
+| ---------------- | ------------------ | ------------------------------------------------------------------- |
+| **Code Quality** | Push / PR → `main` | ESLint, Prettier check, TypeScript check                            |
+| **Tests**        | Push / PR → `main` | Vitest unit test suite                                              |
+| **Deploy**       | Push → `main`      | Pulls latest and runs `scripts/deploy.sh` on the self-hosted server |
+
+Both Code Quality and Tests must pass before a PR can be merged (branch protection on `main`).
+
+### Git Hooks (Husky)
+
+| Hook         | When         | What it does                                                                                     |
+| ------------ | ------------ | ------------------------------------------------------------------------------------------------ |
+| `pre-commit` | Every commit | Runs `lint-staged` — ESLint + Prettier on staged files only                                      |
+| `commit-msg` | Every commit | Runs `commitlint` — enforces [Conventional Commits](https://www.conventionalcommits.org/) format |
+| `pre-push`   | Every push   | Runs the full test suite — blocks the push if any test fails                                     |
+
+Commit messages must follow the `type: description` format, e.g. `feat: add order export`, `fix: correct balance calculation`. Valid types: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `test`, `ci`.
+
 ## Environment Variables
 
 | Variable                      | Required  | Description                                                                                                         |
@@ -76,6 +100,10 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 | `SEED_ADMIN_NAME`             | No        | Display name for the seeded admin                                                                                   |
 | `GITHUB_ORG`                  | No        | GitHub organization name (e.g. `trickfirerobotics`) — enables the GitHub admin page                                 |
 | `GITHUB_TOKEN`                | No        | Fine-grained PAT with **Organization → Members: Read and write** permission                                         |
+| `NEXT_PUBLIC_SENTRY_DSN`      | No        | Sentry DSN — errors are silently dropped when unset                                                                 |
+| `SENTRY_AUTH_TOKEN`           | Build     | Sentry auth token for source map uploads — only needed during `pnpm build`                                          |
+| `SENTRY_ORG`                  | Build     | Sentry org slug — only needed during `pnpm build`                                                                   |
+| `SENTRY_PROJECT`              | Build     | Sentry project slug — only needed during `pnpm build`                                                               |
 
 > [!CAUTION]
 > Never commit `.env.local` or `.env.production`. `BETTER_AUTH_SECRET` lets anyone forge session tokens - if it leaks, rotate it immediately by changing the value and restarting the server (all existing sessions are invalidated). Rotating or losing `VAULT_ENCRYPTION_KEY` makes every existing vault entry permanently unrecoverable - back it up.

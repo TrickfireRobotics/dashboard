@@ -38,6 +38,7 @@
         "@base-ui/react": "^1.5.0",
         "@hookform/resolvers": "^5.4.0",
         "@radix-ui/react-slot": "^1.2.5",
+        "@sentry/nextjs": "^10.58.0",
         "better-auth": "^1.6.18",
         "better-sqlite3": "^12.10.1",
         "class-variance-authority": "^0.7.1",
@@ -81,7 +82,6 @@
         "tailwindcss": "^4",
         "tsx": "^4.22.4",
         "typescript": "^6",
-        "vite-tsconfig-paths": "^6.1.1",
         "vitest": "^4.1.9"
     }
 }

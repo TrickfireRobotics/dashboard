@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -18,6 +19,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     if (!session.user.approved) {
         redirect("/pending");
     }
+
+    Sentry.setUser({ id: session.user.id, email: session.user.email });
 
     const isAdmin = session.user.role === "admin";
     const canAccessVault = isAdmin || session.user.canAccessVault === true;
