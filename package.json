@@ -11,6 +11,10 @@
         "format:check": "prettier --check .",
         "typecheck": "tsc --noEmit",
         "check": "pnpm lint && pnpm format:check && pnpm typecheck",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:ui": "vitest --ui",
+        "test:coverage": "vitest run --coverage",
         "db:generate": "drizzle-kit generate",
         "db:migrate": "drizzle-kit migrate",
         "db:seed": "tsx scripts/seed.ts",
@@ -63,6 +67,8 @@
         "@types/node": "^25",
         "@types/react": "^19",
         "@types/react-dom": "^19",
+        "@vitest/coverage-v8": "^4.1.9",
+        "@vitest/ui": "^4.1.9",
         "drizzle-kit": "^0.31.10",
         "eslint": "^9",
         "eslint-config-next": "16.2.9",
@@ -74,6 +80,8 @@
         "shadcn": "^4.11.0",
         "tailwindcss": "^4",
         "tsx": "^4.22.4",
-        "typescript": "^6"
+        "typescript": "^6",
+        "vite-tsconfig-paths": "^6.1.1",
+        "vitest": "^4.1.9"
     }
 }
