@@ -23,8 +23,12 @@ export function LiveClock() {
 
     return (
         <div className="text-right">
-            <p className="font-heading text-3xl text-white tabular-nums">{time}</p>
-            <p className="text-muted-foreground text-sm">{date}</p>
+            <p suppressHydrationWarning className="font-heading text-3xl text-white tabular-nums">
+                {time}
+            </p>
+            <p suppressHydrationWarning className="text-muted-foreground text-sm">
+                {date}
+            </p>
         </div>
     );
 }

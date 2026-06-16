@@ -90,9 +90,9 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
             });
             if (!res.ok) {
                 const err = await res.json().catch(() => null);
-                throw new Error(err?.error ?? "Failed to create quarter");
+                throw new Error(err?.error ?? "Failed to create school year");
             }
-            toast.success("Quarter created");
+            toast.success("School year created");
             setNewQuarterName("");
             await refresh();
         } catch (err) {
@@ -196,7 +196,7 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                 const err = await res.json().catch(() => null);
                 throw new Error(err?.error ?? "Reset failed");
             }
-            toast.success("Quarter reset complete");
+            toast.success("School year reset complete");
             setResetStep(0);
             setResetConfirmName("");
             setNextQuarterName("");
@@ -212,29 +212,29 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
         <div className="space-y-10">
             <section className="space-y-4">
                 <div>
-                    <h2 className="text-lg font-semibold">STF quarter</h2>
+                    <h2 className="text-lg font-semibold">STF school year</h2>
                     <p className="text-muted-foreground text-sm">
-                        Active quarter: {activeQuarter?.name ?? "None"}
+                        Active school year: {activeQuarter?.name ?? "None"}
                     </p>
                 </div>
                 {!activeQuarter ? (
                     <div className="flex flex-wrap items-end gap-3">
                         <div className="space-y-1">
-                            <Label htmlFor="new-quarter">Quarter name</Label>
+                            <Label htmlFor="new-quarter">School year</Label>
                             <Input
                                 id="new-quarter"
-                                placeholder="Fall 2025"
+                                placeholder="2025-2026"
                                 value={newQuarterName}
                                 onChange={(e) => setNewQuarterName(e.target.value)}
                             />
                         </div>
                         <Button onClick={createQuarter} disabled={busy === "quarter"}>
-                            Create quarter
+                            Create school year
                         </Button>
                     </div>
                 ) : (
                     <Button variant="destructive" onClick={() => setResetStep(1)}>
-                        Reset quarter
+                        Reset school year
                     </Button>
                 )}
             </section>
@@ -386,12 +386,12 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                     {resetStep === 1 ? (
                         <>
                             <DialogHeader>
-                                <DialogTitle>Reset quarter?</DialogTitle>
+                                <DialogTitle>Reset school year?</DialogTitle>
                                 <DialogDescription>
                                     This will archive all STF buckets for{" "}
                                     <strong>{activeQuarter?.name}</strong> and clear them for the
-                                    new quarter. Gift fund orders and value are not affected. This
-                                    cannot be undone.
+                                    new school year. Gift fund orders and value are not affected.
+                                    This cannot be undone.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="flex justify-end gap-2">
@@ -409,12 +409,12 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                                 <DialogTitle>Confirm reset</DialogTitle>
                                 <DialogDescription>
                                     Type <strong>{activeQuarter?.name}</strong> to confirm, then
-                                    enter the name for the incoming quarter.
+                                    enter the name for the incoming school year.
                                 </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-3">
                                 <div className="space-y-1">
-                                    <Label htmlFor="confirm-quarter">Current quarter name</Label>
+                                    <Label htmlFor="confirm-quarter">Current school year</Label>
                                     <Input
                                         id="confirm-quarter"
                                         value={resetConfirmName}
@@ -422,10 +422,10 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <Label htmlFor="next-quarter">New quarter name</Label>
+                                    <Label htmlFor="next-quarter">New school year</Label>
                                     <Input
                                         id="next-quarter"
-                                        placeholder="Winter 2026"
+                                        placeholder="2026-2027"
                                         value={nextQuarterName}
                                         onChange={(e) => setNextQuarterName(e.target.value)}
                                     />

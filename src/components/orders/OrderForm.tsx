@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -144,10 +144,10 @@ export function OrderForm({ initialOrder }: { initialOrder?: OrderFormInitial })
               },
     });
 
-    const fundType = form.watch("fundType");
-    const stfBucketId = form.watch("stfBucketId");
-    const quantity = form.watch("quantity");
-    const unitCost = form.watch("unitCost");
+    const [fundType, stfBucketId, quantity, unitCost] = useWatch({
+        control: form.control,
+        name: ["fundType", "stfBucketId", "quantity", "unitCost"],
+    });
 
     useEffect(() => {
         fetch("/api/orders/balances")

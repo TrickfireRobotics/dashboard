@@ -45,7 +45,7 @@ export function OrderBalancesSummary({ giftBalanceCents, stfBuckets }: OrderBala
             </div>
             {stfBuckets.length === 0 ? (
                 <p className="text-muted-foreground text-xs">
-                    No active STF buckets are configured for this quarter.
+                    No active STF buckets are configured for this school year.
                 </p>
             ) : null}
         </div>

@@ -1,12 +1,13 @@
 "use client";
 
 import { RefreshCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePoll } from "@/lib/use-poll";
 
 type Status = {
     online: boolean;
@@ -39,11 +40,7 @@ export function NetworkStatusCard() {
         }
     }, []);
 
-    useEffect(() => {
-        load();
-        const id = setInterval(load, 30_000);
-        return () => clearInterval(id);
-    }, [load]);
+    usePoll(load, 30_000);
 
     const isOnline = status?.online ?? false;
 

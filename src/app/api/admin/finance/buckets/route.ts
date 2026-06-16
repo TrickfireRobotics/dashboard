@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const quarter = getActiveQuarter();
     if (!quarter) {
         return NextResponse.json(
-            { error: "No active STF quarter. Create one before adding buckets." },
+            { error: "No active STF school year. Create one before adding buckets." },
             { status: 400 }
         );
     }
@@ -49,13 +49,13 @@ export async function PUT(req: NextRequest) {
     const body = await req.json().catch(() => null);
     const quarterName = body?.quarterName?.trim();
     if (!quarterName) {
-        return NextResponse.json({ error: "Quarter name is required" }, { status: 400 });
+        return NextResponse.json({ error: "School year name is required" }, { status: 400 });
     }
 
     const existing = getActiveQuarter();
     if (existing) {
         return NextResponse.json(
-            { error: `Active quarter already exists: ${existing.name}` },
+            { error: `Active school year already exists: ${existing.name}` },
             { status: 400 }
         );
     }

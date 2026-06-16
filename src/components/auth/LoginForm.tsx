@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -105,7 +105,7 @@ export function LoginForm({ notice }: { notice?: string }) {
         resolver: zodResolver(credentialsSchema),
         defaultValues: { name: "", email: "", password: "", confirmPassword: "" },
     });
-    const watchedPassword = credForm.watch("password");
+    const watchedPassword = useWatch({ control: credForm.control, name: "password" });
     const otpForm = useForm<OtpValues>({
         resolver: zodResolver(otpSchema),
         defaultValues: { otp: "" },
@@ -238,7 +238,7 @@ export function LoginForm({ notice }: { notice?: string }) {
         }
 
         toast.success("Email verified - welcome!");
-        window.location.href = "/dashboard";
+        router.replace("/dashboard");
     }
 
     async function onForgotSubmit(values: ForgotValues) {

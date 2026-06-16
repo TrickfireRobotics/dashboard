@@ -23,12 +23,12 @@ export async function POST(req: NextRequest) {
 
     const active = getActiveQuarter();
     if (!active) {
-        return NextResponse.json({ error: "No active quarter to reset" }, { status: 400 });
+        return NextResponse.json({ error: "No active school year to reset" }, { status: 400 });
     }
 
     if (active.name !== parsed.data.quarterName) {
         return NextResponse.json(
-            { error: `Quarter name does not match. Expected "${active.name}".` },
+            { error: `School year name does not match. Expected "${active.name}".` },
             { status: 400 }
         );
     }

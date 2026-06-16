@@ -18,6 +18,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import type { OnshapeCompany, OnshapeMember, OnshapeTeam, OnshapeTeamMember } from "@/lib/onshape";
+import { usePoll } from "@/lib/use-poll";
 import { formatDate } from "@/lib/utils";
 
 type Tab = "members" | "teams";
@@ -67,9 +68,7 @@ function MembersTab() {
         }
     }, []);
 
-    useEffect(() => {
-        load();
-    }, [load]);
+    usePoll(load);
 
     async function addMember() {
         if (!email.trim()) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import type { NetworkNode } from "@/lib/network";
+import { usePoll } from "@/lib/use-poll";
 
 function OnlineDot({ online }: { online: boolean }) {
     return (
@@ -48,9 +49,7 @@ export function AdminNetworkManager() {
         }
     }, []);
 
-    useEffect(() => {
-        load();
-    }, [load]);
+    usePoll(load);
 
     async function deleteDevice(id: string) {
         setBusy(id);

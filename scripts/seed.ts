@@ -51,10 +51,10 @@ async function main() {
     if (!quarter) {
         quarter = db
             .insert(stfQuarter)
-            .values({ name: "Fall 2025", isActive: true })
+            .values({ name: "2025-2026", isActive: true })
             .returning()
             .get();
-        console.log(`Seeded active quarter: ${quarter.name}`);
+        console.log(`Seeded active school year: ${quarter.name}`);
     }
 
     const defaultBuckets = [

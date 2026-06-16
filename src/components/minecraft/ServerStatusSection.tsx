@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { OnlinePlayersCard } from "./OnlinePlayersCard";
 import { ServerInfoCard } from "./ServerInfoCard";
+import { usePoll } from "@/lib/use-poll";
 
 type PlayerSample = { name: string; uuid: string; isBot: boolean };
 
@@ -33,11 +34,7 @@ export function ServerStatusSection() {
         }
     }, []);
 
-    useEffect(() => {
-        load();
-        const id = setInterval(load, 30_000);
-        return () => clearInterval(id);
-    }, [load]);
+    usePoll(load, 30_000);
 
     return (
         // display:contents makes this wrapper transparent to the CSS grid,

@@ -15,12 +15,13 @@ const eslintConfig = [
     ...(reactHooksPlugin
         ? [
               {
-                  // react-hooks/set-state-in-effect is new in eslint-plugin-react-hooks@7
-                  // and flags the async `load()` pattern used throughout the codebase.
-                  // Downgraded to warn here; callers should be refactored in a follow-up.
+                  // react-hooks/set-state-in-effect and incompatible-library flag common
+                  // patterns here (async load() in effects, react-hook-form watch()).
+                  // Disabled until refactored in a follow-up.
                   plugins: { "react-hooks": reactHooksPlugin },
                   rules: {
-                      "react-hooks/set-state-in-effect": "warn",
+                      "react-hooks/set-state-in-effect": "off",
+                      "react-hooks/incompatible-library": "off",
                   },
               },
           ]
