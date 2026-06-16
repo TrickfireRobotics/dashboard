@@ -14,7 +14,8 @@ Internal portal for [TrickFire Robotics](https://trickfirerobotics.com). Members
 | Network         | [Tailscale](https://tailscale.com) - shared tailnet, managed via Tailscale API                                       |
 | Package manager | [`pnpm`](https://pnpm.io/)                                                                                           |
 
-## Local Development
+<details>
+<summary><h2>Local Development</h2></summary>
 
 ### Option A - Dev Container
 
@@ -36,6 +37,22 @@ Open `http://localhost:3000` and log in with the credentials from `SEED_ADMIN_*`
 
 > [!TIP]
 > Most env vars are optional for local dev - the app degrades gracefully. `BETTER_AUTH_SECRET` is the only one you must set. Generate it with `openssl rand -hex 32`.
+
+## Commands
+
+| Command             | Description                                                      |
+| ------------------- | ---------------------------------------------------------------- |
+| `pnpm dev`          | Start the dev server with hot reload                             |
+| `pnpm build`        | Production build                                                 |
+| `pnpm start`        | Start the production server (requires a prior build)             |
+| `pnpm lint`         | Run ESLint                                                       |
+| `pnpm format`       | Auto-format all files with Prettier                              |
+| `pnpm format:check` | Check formatting without writing (used in CI)                    |
+| `pnpm db:generate`  | Generate migrations from schema changes                          |
+| `pnpm db:migrate`   | Apply all pending migrations                                     |
+| `pnpm db:seed`      | Seed the 6 teams + admin user (idempotent)                       |
+| `pnpm db:reset`     | Drop and recreate the local database (**blocked in production**) |
+| `pnpm db:studio`    | Open Drizzle Studio - visual database browser (dev only)         |
 
 ## Environment Variables
 
@@ -99,21 +116,7 @@ curl -s https://dashboard.trickfirerobotics.com/api/vault/12/key \
 
 Secrets are encrypted at rest with AES-256-GCM using `VAULT_ENCRYPTION_KEY`. In local dev, if that variable is unset, a key is auto-generated and saved to `db/vault.key` (gitignored).
 
-## Commands
-
-| Command             | Description                                                      |
-| ------------------- | ---------------------------------------------------------------- |
-| `pnpm dev`          | Start the dev server with hot reload                             |
-| `pnpm build`        | Production build                                                 |
-| `pnpm start`        | Start the production server (requires a prior build)             |
-| `pnpm lint`         | Run ESLint                                                       |
-| `pnpm format`       | Auto-format all files with Prettier                              |
-| `pnpm format:check` | Check formatting without writing (used in CI)                    |
-| `pnpm db:generate`  | Generate migrations from schema changes                          |
-| `pnpm db:migrate`   | Apply all pending migrations                                     |
-| `pnpm db:seed`      | Seed the 6 teams + admin user (idempotent)                       |
-| `pnpm db:reset`     | Drop and recreate the local database (**blocked in production**) |
-| `pnpm db:studio`    | Open Drizzle Studio - visual database browser (dev only)         |
+</details>
 
 ## Docs
 
