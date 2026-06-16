@@ -24,6 +24,7 @@ import type {
     GithubTeam,
     GithubTeamMember,
 } from "@/lib/github";
+import { usePoll } from "@/lib/use-poll";
 import { formatDate } from "@/lib/utils";
 
 type Tab = "members" | "invitations" | "teams";
@@ -53,9 +54,7 @@ function MembersTab() {
         }
     }, []);
 
-    useEffect(() => {
-        load();
-    }, [load]);
+    usePoll(load);
 
     async function addMember() {
         const value = invitee.trim();
@@ -219,9 +218,7 @@ function InvitationsTab() {
         }
     }, []);
 
-    useEffect(() => {
-        load();
-    }, [load]);
+    usePoll(load);
 
     async function cancel(id: number) {
         setBusy(id);

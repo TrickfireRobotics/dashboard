@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -110,7 +110,7 @@ export function VaultEntryDialog({
         });
     }, [open, entry, form]);
 
-    const type = form.watch("type");
+    const type = useWatch({ control: form.control, name: "type" });
 
     async function onSubmit(values: FormValues) {
         setSubmitting(true);

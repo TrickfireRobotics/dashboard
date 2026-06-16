@@ -1,11 +1,12 @@
 "use client";
 
 import { Cpu, HardDrive, MemoryStick, Timer } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { SystemStats } from "@/app/api/system/stats/route";
+import { usePoll } from "@/lib/use-poll";
 
 function metricColor(pct: number): string {
     if (pct > 85) return "var(--destructive)";
@@ -71,11 +72,7 @@ export function SystemVitals() {
         }
     }, []);
 
-    useEffect(() => {
-        load();
-        const id = setInterval(load, 10_000);
-        return () => clearInterval(id);
-    }, [load]);
+    usePoll(load, 10_000);
 
     if (!stats) {
         return (

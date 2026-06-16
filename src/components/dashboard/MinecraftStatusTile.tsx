@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ServerStatus } from "@/lib/minecraft";
+import { usePoll } from "@/lib/use-poll";
 
 function PingDot({ online }: { online: boolean }) {
     if (!online) return <span className="bg-muted-foreground/40 size-2.5 rounded-full" />;
@@ -28,11 +29,7 @@ export function MinecraftStatusTile() {
         }
     }, []);
 
-    useEffect(() => {
-        load();
-        const id = setInterval(load, 30_000);
-        return () => clearInterval(id);
-    }, [load]);
+    usePoll(load, 30_000);
 
     if (!status) {
         return (
