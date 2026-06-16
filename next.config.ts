@@ -59,9 +59,15 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
-    org: process.env.SENTRY_ORG,
-    project: process.env.SENTRY_PROJECT,
-    silent: true,
+    org: "trickfire-robotics",
+    project: "dashboard",
+    silent: !process.env.CI,
+    widenClientFileUpload: true,
     tunnelRoute: "/monitoring",
-    sourcemaps: { deleteSourcemapsAfterUpload: true },
+
+    webpack: {
+        treeshake: {
+            removeDebugLogging: true,
+        },
+    },
 });

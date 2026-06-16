@@ -1,7 +1,8 @@
 import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
-    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    dsn: "https://a1b56f6c70f602a20d90fbfd367e93d2@o4511577249021952.ingest.us.sentry.io/4511577305317376",
     tracesSampleRate: 0.1,
-    enabled: process.env.NODE_ENV === "production",
+    enableLogs: true,
+    sendDefaultPii: true,
 });
