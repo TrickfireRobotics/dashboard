@@ -2,36 +2,84 @@ import { z } from "zod";
 
 const emptyToUndefined = (v: unknown) => (v === "" || v === null ? undefined : v);
 
-const optionalPrice = z.preprocess(emptyToUndefined, z.coerce.number().min(0).max(1_000_000));
-
-const optionalUrl = z.preprocess(
-    emptyToUndefined,
-    z.string().trim().url("Enter a valid URL").max(500)
-);
-
 // Parts orders -------------------------------------------------------------
 
-export const orderInputSchema = z.object({
-    itemName: z.string().trim().min(1, "Item name is required").max(200),
-    vendorUrl: optionalUrl.optional(),
-    description: z.string().trim().max(2000).optional(),
-    partType: z.string().trim().max(100).optional(),
-    partNumber: z.string().trim().max(100).optional(),
-    quantity: z.coerce.number().int().min(1, "At least 1").max(9999),
-    unitPrice: optionalPrice.optional(),
-    teamId: z.coerce.number().int().positive().optional(),
-});
+const fundTypeSchema = z.enum(["STF", "Gift"]);
+
+export const orderInputSchema = z
+    .object({
+        fundType: fundTypeSchema,
+        stfBucketId: z.coerce.number().int().positive().optional(),
+        vendor: z.string().trim().min(1, "Vendor is required").max(200),
+        link: z.string().trim().url("Enter a valid URL").max(500),
+        itemName: z.string().trim().min(1, "Item name is required").max(200),
+        partNumber: z.string().trim().max(100).optional(),
+        quantity: z.coerce.number().int().min(1, "At least 1").max(9999),
+        unitCost: z.coerce.number().min(0.01, "Unit cost is required").max(1_000_000),
+        notes: z.string().trim().max(2000).optional(),
+    })
+    .superRefine((data, ctx) => {
+        if (data.fundType === "STF") {
+            if (!data.stfBucketId) {
+                ctx.addIssue({
+                    code: "custom",
+                    message: "Select an STF bucket",
+                    path: ["stfBucketId"],
+                });
+            }
+            if (!data.partNumber?.trim()) {
+                ctx.addIssue({
+                    code: "custom",
+                    message: "Part number is required for STF orders",
+                    path: ["partNumber"],
+                });
+            }
+        }
+        if (data.fundType === "Gift" && !data.notes?.trim()) {
+            ctx.addIssue({
+                code: "custom",
+                message: "Notes are required for Gift orders",
+                path: ["notes"],
+            });
+        }
+    });
 
 export const orderActionSchema = z.object({
-    action: z.enum(["approve", "reject", "ordered"]),
-    adminNote: z.string().trim().max(2000).optional(),
+    action: z.enum(["approve", "deny"]),
+    denialComment: z.string().trim().max(2000).optional(),
 });
 
 export const ORDER_ACTION_STATUS = {
     approve: "approved",
-    reject: "rejected",
-    ordered: "ordered",
+    deny: "denied",
 } as const;
+
+// Finance ------------------------------------------------------------------
+
+export const stfBucketInputSchema = z.object({
+    name: z.string().trim().min(1, "Name is required").max(100),
+    startingBalance: z.coerce.number().min(0).max(10_000_000),
+});
+
+export const stfBucketUpdateSchema = z
+    .object({
+        name: z.string().trim().min(1).max(100).optional(),
+        startingBalance: z.coerce.number().min(0).max(10_000_000).optional(),
+        isActive: z.boolean().optional(),
+    })
+    .refine((v) => Object.values(v).some((x) => x !== undefined), {
+        message: "Nothing to update",
+    });
+
+export const giftFundAdjustSchema = z.object({
+    newValue: z.coerce.number().min(0).max(10_000_000),
+    note: z.string().trim().max(500).optional(),
+});
+
+export const quarterResetSchema = z.object({
+    quarterName: z.string().trim().min(1).max(100),
+    newQuarterName: z.string().trim().min(1).max(100),
+});
 
 // API keys -----------------------------------------------------------------
 

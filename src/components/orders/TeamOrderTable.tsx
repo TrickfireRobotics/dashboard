@@ -1,12 +1,7 @@
 "use client";
 
-import { Pencil, Trash2 } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
 import {
     Select,
     SelectContent,
@@ -27,15 +22,16 @@ import { formatDate, formatPriceCents } from "@/lib/utils";
 
 import { OrderStatusBadge } from "./OrderStatusBadge";
 
-export type MemberOrderRow = {
+export type TeamOrderRow = {
     id: number;
     itemName: string;
     fundType: FundType;
     stfBucketName: string | null;
+    requesterName: string | null;
+    requesterEmail: string | null;
     quantity: number;
     unitCostCents: number;
     status: OrderStatus;
-    denialComment: string | null;
     createdAt: Date;
 };
 
@@ -47,16 +43,14 @@ function totalCostCents(row: { quantity: number; unitCostCents: number }) {
     return row.quantity * row.unitCostCents;
 }
 
-function canModifyOrder(status: OrderStatus) {
-    return status === "pending" || status === "denied";
+function requesterLabel(row: TeamOrderRow) {
+    return row.requesterName ?? row.requesterEmail ?? "-";
 }
 
-export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
-    const router = useRouter();
+export function TeamOrderTable({ orders }: { orders: TeamOrderRow[] }) {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
     const [fundFilter, setFundFilter] = useState<FundFilter>("all");
     const [sortKey, setSortKey] = useState<SortKey>("newest");
-    const [deletingId, setDeletingId] = useState<number | null>(null);
 
     const filteredOrders = useMemo(() => {
         let rows = orders.filter((order) => {
@@ -86,29 +80,10 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
         return rows;
     }, [fundFilter, orders, sortKey, statusFilter]);
 
-    async function handleDelete(order: MemberOrderRow) {
-        if (!confirm(`Delete your order for "${order.itemName}"? This cannot be undone.`)) return;
-
-        setDeletingId(order.id);
-        try {
-            const res = await fetch(`/api/orders/${order.id}`, { method: "DELETE" });
-            if (!res.ok) {
-                const data = await res.json().catch(() => null);
-                throw new Error(data?.error ?? "Failed to delete order");
-            }
-            toast.success("Order deleted");
-            router.refresh();
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Something went wrong");
-        } finally {
-            setDeletingId(null);
-        }
-    }
-
     if (orders.length === 0) {
         return (
             <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
-                You have not submitted any orders yet.
+                No orders have been submitted yet.
             </div>
         );
     }
@@ -197,6 +172,7 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead>Submitted by</TableHead>
                                 <TableHead>Item</TableHead>
                                 <TableHead className="hidden md:table-cell">
                                     Fund / bucket
@@ -205,14 +181,15 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
                                     Total
                                 </TableHead>
                                 <TableHead>Status</TableHead>
-                                <TableHead>Submitted</TableHead>
-                                <TableHead className="hidden md:table-cell">Officer note</TableHead>
-                                <TableHead className="w-24 text-right">Actions</TableHead>
+                                <TableHead className="hidden md:table-cell">Submitted</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredOrders.map((o) => (
                                 <TableRow key={o.id}>
+                                    <TableCell className="text-muted-foreground">
+                                        {requesterLabel(o)}
+                                    </TableCell>
                                     <TableCell className="text-foreground font-medium">
                                         {o.itemName}
                                     </TableCell>
@@ -226,37 +203,8 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
                                     <TableCell>
                                         <OrderStatusBadge status={o.status} />
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
+                                    <TableCell className="text-muted-foreground hidden md:table-cell">
                                         {formatDate(o.createdAt)}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground hidden max-w-50 whitespace-normal md:table-cell">
-                                        {o.denialComment ?? "-"}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        {canModifyOrder(o.status) ? (
-                                            <div className="flex justify-end gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    nativeButton={false}
-                                                    render={<Link href={`/orders/${o.id}/edit`} />}
-                                                    aria-label={`Edit order for ${o.itemName}`}
-                                                >
-                                                    <Pencil className="size-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    onClick={() => handleDelete(o)}
-                                                    disabled={deletingId === o.id}
-                                                    aria-label={`Delete order for ${o.itemName}`}
-                                                >
-                                                    <Trash2 className="text-destructive size-4" />
-                                                </Button>
-                                            </div>
-                                        ) : (
-                                            <span className="text-muted-foreground">-</span>
-                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}

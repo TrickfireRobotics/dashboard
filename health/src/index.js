@@ -58,12 +58,14 @@ async function check(env) {
     }
 }
 
-export default {
+const worker = {
     async scheduled(event, env, ctx) {
         ctx.waitUntil(check(env));
     },
-    async fetch(request, env, ctx) {
+    async fetch(request, env) {
         await check(env);
         return new Response("ok");
     },
 };
+
+export default worker;

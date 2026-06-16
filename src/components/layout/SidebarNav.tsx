@@ -3,6 +3,7 @@
 import {
     Boxes,
     ClipboardList,
+    DollarSign,
     Gamepad2,
     GitBranch,
     KeyRound,
@@ -42,6 +43,7 @@ export const vaultNav: NavItem = { href: "/api-keys", label: "API Keys", icon: K
 
 export const adminNav: NavItem[] = [
     { href: "/admin/orders", label: "Order Queue", icon: ClipboardList },
+    { href: "/admin/finance", label: "Finance", icon: DollarSign },
     { href: "/admin/users", label: "Users", icon: Users },
     { href: "/admin/minecraft", label: "Whitelist", icon: Server },
     { href: "/admin/server", label: "Server", icon: Gamepad2 },
