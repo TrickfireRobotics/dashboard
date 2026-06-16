@@ -127,7 +127,7 @@ const stfBalance = validateOrderBalance("STF", stfData.stfBucketId, stfTotal);
 assert(stfBalance.ok, "STF balance check should pass before insert");
 
 const quarter = getActiveQuarter();
-assert(quarter != null, "Active quarter required");
+assert(quarter != null, "Active school year required");
 
 const stfOrder = db
     .insert(order)

@@ -26,7 +26,7 @@ const admin = db.select().from(user).limit(1).get();
 assert(admin != null, "Need a user");
 
 const quarter = getActiveQuarter();
-assert(quarter != null, "Need active quarter");
+assert(quarter != null, "Need active school year");
 
 const mechanical = db.select().from(stfBucket).where(eq(stfBucket.name, "Mechanical")).get();
 assert(mechanical != null, "Need Mechanical bucket");

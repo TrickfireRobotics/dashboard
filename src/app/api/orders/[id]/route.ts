@@ -57,7 +57,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const activeQuarter = d.fundType === "STF" ? getActiveQuarter() : null;
     if (d.fundType === "STF" && !activeQuarter) {
         return NextResponse.json(
-            { error: "No active STF quarter is configured. Contact an officer." },
+            { error: "No active STF school year is configured. Contact an officer." },
             { status: 400 }
         );
     }

@@ -116,7 +116,7 @@ export function RemainingBalanceCaption({ cents, className }: RemainingBalanceCa
                 className
             )}
         >
-            {over ? "Over budget this quarter" : "remaining this quarter"}
+            {over ? "Over budget this school year" : "remaining this school year"}
         </p>
     );
 }

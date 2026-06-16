@@ -21,7 +21,7 @@ export default async function AdminFinancePage() {
             <div>
                 <h1 className="text-3xl">Finance</h1>
                 <p className="text-muted-foreground">
-                    Manage STF buckets, gift fund value, and quarterly resets.
+                    Manage STF buckets, gift fund value, and school year resets.
                 </p>
             </div>
 
