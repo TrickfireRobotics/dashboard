@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { getGiftFundValueCents, getStfBucketsWithBalances } from "@/lib/finance";
-import { getSessionUser } from "@/lib/session";
+import { getGiftFundValueCents, getStfBucketsWithBalances } from "@/lib/finance/finance";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function GET() {
     const user = await getSessionUser();

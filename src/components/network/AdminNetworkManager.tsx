@@ -13,7 +13,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import type { NetworkNode } from "@/lib/network";
+import type { NetworkNode } from "@/lib/integrations/network";
 import { usePoll } from "@/lib/use-poll";
 
 function OnlineDot({ online }: { online: boolean }) {

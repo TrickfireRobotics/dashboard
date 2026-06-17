@@ -23,7 +23,7 @@ import type {
     GithubOrg,
     GithubTeam,
     GithubTeamMember,
-} from "@/lib/github";
+} from "@/lib/integrations/github";
 import { usePoll } from "@/lib/use-poll";
 import { formatDate } from "@/lib/utils";
 

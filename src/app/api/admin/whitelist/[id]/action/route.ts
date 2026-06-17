@@ -3,8 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { minecraftWhitelist } from "@/lib/db/schema";
-import { sendCommand } from "@/lib/azalea";
-import { getSessionUser } from "@/lib/session";
+import { sendCommand } from "@/lib/integrations/azalea";
+import { getSessionUser } from "@/lib/auth/session";
 import { whitelistActionSchema } from "@/lib/validation";
 
 const STATUS = { approve: "approved", reject: "rejected" } as const;

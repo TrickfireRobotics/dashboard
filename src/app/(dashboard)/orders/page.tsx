@@ -8,8 +8,8 @@ import { TeamOrderTable, type TeamOrderRow } from "@/components/orders/TeamOrder
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { order, stfBucket, user as userTable } from "@/lib/db/schema";
-import { getGiftFundValueCents, getStfBucketsWithBalances } from "@/lib/finance";
-import { getSessionUser } from "@/lib/session";
+import { getGiftFundValueCents, getStfBucketsWithBalances } from "@/lib/finance/finance";
+import { getSessionUser } from "@/lib/auth/session";
 
 export default async function OrdersPage() {
     const user = await getSessionUser();

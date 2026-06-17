@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { minecraftWhitelist } from "@/lib/db/schema";
-import { getSessionUser } from "@/lib/session";
+import { getSessionUser } from "@/lib/auth/session";
 import { whitelistRequestSchema } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {

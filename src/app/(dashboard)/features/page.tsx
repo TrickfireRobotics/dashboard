@@ -5,7 +5,7 @@ import { FeaturesPanel } from "@/components/features/FeaturesPanel";
 import { db } from "@/lib/db";
 import { userFeature } from "@/lib/db/schema";
 import { FEATURE_KEYS, FEATURES, type FeatureKey } from "@/lib/features";
-import { getSessionUser } from "@/lib/session";
+import { getSessionUser } from "@/lib/auth/session";
 
 export default async function FeaturesPage({
     searchParams,

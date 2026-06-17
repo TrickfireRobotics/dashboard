@@ -3,8 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { vaultEntry } from "@/lib/db/schema";
-import { canReadVaultEntry, getSessionUser } from "@/lib/session";
-import { decryptSecret } from "@/lib/vault-crypto";
+import { canReadVaultEntry, getSessionUser } from "@/lib/auth/session";
+import { decryptSecret } from "@/lib/security/vault-crypto";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const user = await getSessionUser();

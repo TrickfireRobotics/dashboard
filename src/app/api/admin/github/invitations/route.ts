@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { GithubError, getPendingInvitations } from "@/lib/github";
-import { getSessionUser } from "@/lib/session";
+import { GithubError, getPendingInvitations } from "@/lib/integrations/github";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function GET() {
     const user = await getSessionUser();

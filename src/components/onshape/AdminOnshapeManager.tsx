@@ -17,7 +17,12 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import type { OnshapeCompany, OnshapeMember, OnshapeTeam, OnshapeTeamMember } from "@/lib/onshape";
+import type {
+    OnshapeCompany,
+    OnshapeMember,
+    OnshapeTeam,
+    OnshapeTeamMember,
+} from "@/lib/integrations/onshape";
 import { usePoll } from "@/lib/use-poll";
 import { formatDate } from "@/lib/utils";
 

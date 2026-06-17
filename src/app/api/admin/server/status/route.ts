@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { isConfigured, isRunning, readConfig } from "@/lib/azalea";
-import { getSessionUser } from "@/lib/session";
+import { isConfigured, isRunning, readConfig } from "@/lib/integrations/azalea";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function GET() {
     const admin = await getSessionUser();

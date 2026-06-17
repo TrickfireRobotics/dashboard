@@ -2,9 +2,13 @@ import { desc } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
-import { getGiftFundValueCents, getStfBucketsWithBalances, ensureGiftFundRow } from "@/lib/finance";
+import {
+    getGiftFundValueCents,
+    getStfBucketsWithBalances,
+    ensureGiftFundRow,
+} from "@/lib/finance/finance";
 import { giftFundLog, stfQuarter } from "@/lib/db/schema";
-import { getSessionUser } from "@/lib/session";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function GET() {
     const user = await getSessionUser();

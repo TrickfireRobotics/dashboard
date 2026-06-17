@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 import { user, userFeature } from "@/lib/db/schema";
-import { getSessionUser } from "@/lib/session";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function GET() {
     const admin = await getSessionUser();

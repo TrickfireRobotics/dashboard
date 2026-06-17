@@ -9,8 +9,8 @@ import {
     sendOrderApprovedEmail,
     sendOrderDeniedEmail,
     validateOrderBalance,
-} from "@/lib/finance";
-import { getSessionUser } from "@/lib/session";
+} from "@/lib/finance/finance";
+import { getSessionUser } from "@/lib/auth/session";
 import { ORDER_ACTION_STATUS, orderActionSchema } from "@/lib/validation";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

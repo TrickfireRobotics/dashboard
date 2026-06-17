@@ -1,5 +1,5 @@
 import { AdminOnshapeManager } from "@/components/onshape/AdminOnshapeManager";
-import { getOnshapeCompany, isOnshapeConfigured } from "@/lib/onshape";
+import { getOnshapeCompany, isOnshapeConfigured } from "@/lib/integrations/onshape";
 
 export default async function AdminOnshapePage() {
     const configured = isOnshapeConfigured();

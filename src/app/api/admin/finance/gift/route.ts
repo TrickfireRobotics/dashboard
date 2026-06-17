@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { adjustGiftFund, ensureGiftFundRow } from "@/lib/finance";
-import { getSessionUser } from "@/lib/session";
+import { adjustGiftFund, ensureGiftFundRow } from "@/lib/finance/finance";
+import { getSessionUser } from "@/lib/auth/session";
 import { giftFundAdjustSchema } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {

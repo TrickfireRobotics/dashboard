@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { getNetworkNodes, isNetworkConfigured } from "@/lib/network";
-import { getSessionUser } from "@/lib/session";
+import { getNetworkNodes, isNetworkConfigured } from "@/lib/integrations/network";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function GET() {
     const user = await getSessionUser();

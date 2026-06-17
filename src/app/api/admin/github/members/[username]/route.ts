@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { GithubError, removeMember } from "@/lib/github";
-import { getSessionUser } from "@/lib/session";
+import { GithubError, removeMember } from "@/lib/integrations/github";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function DELETE(
     _req: NextRequest,

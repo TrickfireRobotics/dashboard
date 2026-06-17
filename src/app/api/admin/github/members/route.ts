@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
-import { GithubError, getOrgMembers, inviteMember } from "@/lib/github";
-import { getSessionUser } from "@/lib/session";
+import { GithubError, getOrgMembers, inviteMember } from "@/lib/integrations/github";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function GET() {
     const user = await getSessionUser();

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { getPlaytimeLeaderboard } from "@/lib/minecraft-stats";
-import { getSessionUser } from "@/lib/session";
+import { getPlaytimeLeaderboard } from "@/lib/integrations/minecraft-stats";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function GET() {
     const user = await getSessionUser();

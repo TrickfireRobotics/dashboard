@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { networkJoinRequest, minecraftWhitelist, order, user, userFeature } from "@/lib/db/schema";
-import { getSessionUser } from "@/lib/session";
+import { getSessionUser } from "@/lib/auth/session";
 
 export default async function DashboardHome() {
     const sessionUser = await getSessionUser();

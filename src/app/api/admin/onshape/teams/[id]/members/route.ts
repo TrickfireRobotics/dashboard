@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getOnshapeTeamMembers, OnshapeError } from "@/lib/onshape";
-import { getSessionUser } from "@/lib/session";
+import { getOnshapeTeamMembers, OnshapeError } from "@/lib/integrations/onshape";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const user = await getSessionUser();

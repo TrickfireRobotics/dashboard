@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { order } from "@/lib/db/schema";
-import { getActiveQuarter, orderTotalCents, validateOrderBalance } from "@/lib/finance";
-import { getSessionUser } from "@/lib/session";
+import { getActiveQuarter, orderTotalCents, validateOrderBalance } from "@/lib/finance/finance";
+import { getSessionUser } from "@/lib/auth/session";
 import { orderInputSchema } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {

@@ -3,8 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { order, orderHistory } from "@/lib/db/schema";
-import { getActiveQuarter, orderTotalCents, validateOrderBalance } from "@/lib/finance";
-import { getSessionUser } from "@/lib/session";
+import { getActiveQuarter, orderTotalCents, validateOrderBalance } from "@/lib/finance/finance";
+import { getSessionUser } from "@/lib/auth/session";
 import { orderInputSchema } from "@/lib/validation";
 
 function parseOrderId(params: { id: string }) {

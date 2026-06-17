@@ -5,7 +5,7 @@ import { VaultManager, type VaultMember } from "@/components/vault/VaultManager"
 import type { VaultEntryRow } from "@/components/vault/VaultEntryDialog";
 import { db } from "@/lib/db";
 import { user, vaultEntry, vaultEntryAccess } from "@/lib/db/schema";
-import { canUseVault, getSessionUser } from "@/lib/session";
+import { canUseVault, getSessionUser } from "@/lib/auth/session";
 
 export default async function ApiKeysPage() {
     const sessionUser = await getSessionUser();

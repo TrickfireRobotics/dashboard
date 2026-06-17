@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { user } from "@/lib/db/schema";
-import { getSessionUser } from "@/lib/session";
+import { getSessionUser } from "@/lib/auth/session";
 import { updateUserSchema } from "@/lib/validation";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

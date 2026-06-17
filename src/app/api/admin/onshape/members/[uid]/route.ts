@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { OnshapeError, removeOnshapeMember } from "@/lib/onshape";
-import { getSessionUser } from "@/lib/session";
+import { OnshapeError, removeOnshapeMember } from "@/lib/integrations/onshape";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ uid: string }> }) {
     const user = await getSessionUser();

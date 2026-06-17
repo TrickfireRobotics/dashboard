@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { AzaleaConfig } from "@/lib/azalea";
+import type { AzaleaConfig } from "@/lib/integrations/azalea";
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
     return (

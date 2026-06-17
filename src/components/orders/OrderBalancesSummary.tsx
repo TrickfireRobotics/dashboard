@@ -1,5 +1,5 @@
 import { BalanceAmount } from "@/components/BalanceAmount";
-import type { StfBucketBalance } from "@/lib/finance";
+import type { StfBucketBalance } from "@/lib/finance/finance";
 import { cn } from "@/lib/utils";
 
 type OrderBalancesSummaryProps = {

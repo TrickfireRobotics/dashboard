@@ -6,7 +6,7 @@ import { OrderForm } from "@/components/orders/OrderForm";
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { order } from "@/lib/db/schema";
-import { getSessionUser } from "@/lib/session";
+import { getSessionUser } from "@/lib/auth/session";
 
 type PageProps = {
     params: Promise<{ id: string }>;

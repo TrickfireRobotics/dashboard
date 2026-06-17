@@ -4,8 +4,8 @@ import { RunSettingsCard } from "@/components/admin/server/RunSettingsCard";
 import { ServerConfigEditor } from "@/components/admin/server/ServerConfigEditor";
 import { ServerControlCard } from "@/components/admin/server/ServerControlCard";
 import { ServerLogViewer } from "@/components/admin/server/ServerLogViewer";
-import { isConfigured, isRunning, readConfig } from "@/lib/azalea";
-import { getSessionUser } from "@/lib/session";
+import { isConfigured, isRunning, readConfig } from "@/lib/integrations/azalea";
+import { getSessionUser } from "@/lib/auth/session";
 
 export default async function AdminServerPage() {
     const user = await getSessionUser();

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { GithubError, getTeamMembers } from "@/lib/github";
-import { getSessionUser } from "@/lib/session";
+import { GithubError, getTeamMembers } from "@/lib/integrations/github";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
     const user = await getSessionUser();

@@ -2,7 +2,11 @@ import { desc } from "drizzle-orm";
 
 import { FinanceManager } from "@/components/finance/FinanceManager";
 import { db } from "@/lib/db";
-import { ensureGiftFundRow, getGiftFundValueCents, getStfBucketsWithBalances } from "@/lib/finance";
+import {
+    ensureGiftFundRow,
+    getGiftFundValueCents,
+    getStfBucketsWithBalances,
+} from "@/lib/finance/finance";
 import { giftFundLog, stfQuarter } from "@/lib/db/schema";
 
 export default async function AdminFinancePage() {

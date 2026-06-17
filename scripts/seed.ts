@@ -24,10 +24,10 @@ const TEAMS = [
 ];
 
 async function main() {
-    const { auth } = await import("../src/lib/auth");
+    const { auth } = await import("../src/lib/auth/auth");
     const { db } = await import("../src/lib/db");
     const { giftFund, stfBucket, stfQuarter, team, user } = await import("../src/lib/db/schema");
-    const { GIFT_FUND_ID } = await import("../src/lib/finance");
+    const { GIFT_FUND_ID } = await import("../src/lib/finance/finance");
     const { eq } = await import("drizzle-orm");
 
     for (const name of TEAMS) {

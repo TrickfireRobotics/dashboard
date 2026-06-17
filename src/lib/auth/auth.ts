@@ -2,9 +2,9 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP } from "better-auth/plugins";
 
-import { db } from "./db";
-import * as schema from "./db/schema";
-import { sendEmail } from "./email";
+import { db } from "../db";
+import * as schema from "../db/schema";
+import { sendEmail } from "../integrations/email";
 
 const extraOrigins = (process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? "")
     .split(",")

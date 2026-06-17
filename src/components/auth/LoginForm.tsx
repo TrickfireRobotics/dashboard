@@ -12,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { emailOtp, signIn, signUp } from "@/lib/auth-client";
+import { emailOtp, signIn, signUp } from "@/lib/auth/client";
 
 const toAuthEmail = (value: string) => (value.includes("@") ? value : `${value}@admin.local`);
 

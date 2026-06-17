@@ -7,7 +7,7 @@ import {
     GIFT_EXCEL_HEADERS,
     stfOrderCalculations,
     STF_EXCEL_HEADERS,
-} from "../src/lib/order-export";
+} from "../src/lib/finance/order-export";
 
 function assert(condition: boolean, message: string) {
     if (!condition) throw new Error(message);

@@ -7,7 +7,7 @@ import { UserTable, type AdminUserRow } from "@/components/admin/UserTable";
 import { db } from "@/lib/db";
 import { user, userFeature } from "@/lib/db/schema";
 import type { FeatureKey } from "@/lib/features";
-import { getSessionUser } from "@/lib/session";
+import { getSessionUser } from "@/lib/auth/session";
 
 export default async function AdminUsersPage() {
     const current = await getSessionUser();

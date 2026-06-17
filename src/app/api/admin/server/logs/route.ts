@@ -6,8 +6,8 @@ import {
     subscribeDashboardLogs,
     subscribeServerLogTail,
     type LogEvent,
-} from "@/lib/azalea";
-import { getSessionUser } from "@/lib/session";
+} from "@/lib/integrations/azalea";
+import { getSessionUser } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 

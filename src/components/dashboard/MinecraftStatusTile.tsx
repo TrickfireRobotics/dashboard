@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 
 import { CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { ServerStatus } from "@/lib/minecraft";
+import type { ServerStatus } from "@/lib/integrations/minecraft";
 import { usePoll } from "@/lib/use-poll";
 
 function PingDot({ online }: { online: boolean }) {

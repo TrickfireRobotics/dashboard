@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 
-import { sendEmail } from "@/lib/email";
+import { sendEmail } from "@/lib/integrations/email";
 import { db } from "@/lib/db";
 import {
     giftFund,

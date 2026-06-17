@@ -2,8 +2,8 @@ import { and, eq } from "drizzle-orm";
 import { headers } from "next/headers";
 
 import { auth } from "./auth";
-import { db } from "./db";
-import { vaultEntryAccess } from "./db/schema";
+import { db } from "../db";
+import { vaultEntryAccess } from "../db/schema";
 
 export type SessionUser = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>["user"];
 

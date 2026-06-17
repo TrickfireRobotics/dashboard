@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { NetworkStatusCard } from "@/components/network/NetworkStatusCard";
 import { NodeList } from "@/components/network/NodeList";
-import { getSessionUser } from "@/lib/session";
+import { getSessionUser } from "@/lib/auth/session";
 
 export default async function NetworkPage() {
     const user = await getSessionUser();

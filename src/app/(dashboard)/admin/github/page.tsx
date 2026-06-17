@@ -1,5 +1,5 @@
 import { AdminGithubManager } from "@/components/github/AdminGithubManager";
-import { getOrg, isGithubConfigured } from "@/lib/github";
+import { getOrg, isGithubConfigured } from "@/lib/integrations/github";
 
 export default async function AdminGithubPage() {
     const configured = isGithubConfigured();

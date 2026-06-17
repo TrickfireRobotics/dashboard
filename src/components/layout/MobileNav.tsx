@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { signOut } from "@/lib/auth-client";
+import { signOut } from "@/lib/auth/client";
 import { NavContent } from "./SidebarNav";
 import type { FeatureKey } from "@/lib/features";
 

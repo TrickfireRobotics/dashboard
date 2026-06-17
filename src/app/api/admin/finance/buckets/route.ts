@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { stfBucket, stfQuarter } from "@/lib/db/schema";
-import { getActiveQuarter } from "@/lib/finance";
-import { getSessionUser } from "@/lib/session";
+import { getActiveQuarter } from "@/lib/finance/finance";
+import { getSessionUser } from "@/lib/auth/session";
 import { stfBucketInputSchema } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {

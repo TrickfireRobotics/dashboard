@@ -63,7 +63,7 @@ export default withSentryConfig(nextConfig, {
     project: "dashboard",
     silent: !process.env.CI,
     widenClientFileUpload: true,
-    tunnelRoute: "/monitoring",
+    tunnelRoute: "/api/intake",
 
     webpack: {
         treeshake: {

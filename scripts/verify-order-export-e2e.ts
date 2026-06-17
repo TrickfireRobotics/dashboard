@@ -11,12 +11,12 @@ import { eq } from "drizzle-orm";
 
 import { db } from "../src/lib/db";
 import { order, stfBucket, user } from "../src/lib/db/schema";
-import { getActiveQuarter } from "../src/lib/finance";
+import { getActiveQuarter } from "../src/lib/finance/finance";
 import {
     formatApprovedGiftOrders,
     formatApprovedStfOrders,
     formatOrderForExcel,
-} from "../src/lib/order-export";
+} from "../src/lib/finance/order-export";
 
 function assert(condition: unknown, message: string): asserts condition {
     if (!condition) throw new Error(message);

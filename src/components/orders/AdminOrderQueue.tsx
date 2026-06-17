@@ -22,7 +22,7 @@ import {
     formatApprovedGiftOrders,
     formatApprovedStfOrders,
     formatOrderForExcel,
-} from "@/lib/order-export";
+} from "@/lib/finance/order-export";
 import { formatDate, formatPriceCents } from "@/lib/utils";
 
 import { OrderStatusBadge } from "./OrderStatusBadge";

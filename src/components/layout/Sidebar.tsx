@@ -7,7 +7,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import { signOut } from "@/lib/auth-client";
+import { signOut } from "@/lib/auth/client";
 import { NavContent } from "./SidebarNav";
 import type { FeatureKey } from "@/lib/features";
 

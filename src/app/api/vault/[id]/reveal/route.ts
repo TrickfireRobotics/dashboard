@@ -3,8 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { vaultEntry } from "@/lib/db/schema";
-import { canReadVaultEntry, getSessionUser } from "@/lib/session";
-import { decryptSecret } from "@/lib/vault-crypto";
+import { canReadVaultEntry, getSessionUser } from "@/lib/auth/session";
+import { decryptSecret } from "@/lib/security/vault-crypto";
 
 // Login secrets never ship in the page payload - they are decrypted on demand
 // here, only for users who hold a per-entry grant (or are an admin).

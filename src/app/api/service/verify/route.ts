@@ -1,10 +1,10 @@
 import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { hashApiKey } from "@/lib/api-key";
+import { hashApiKey } from "@/lib/security/api-key";
 import { db } from "@/lib/db";
 import { apiKey, user } from "@/lib/db/schema";
-import { clientIp, rateLimit } from "@/lib/rate-limit";
+import { clientIp, rateLimit } from "@/lib/security/rate-limit";
 
 // Public endpoint reachable via Cloudflare Tunnel - sim scripts authenticate
 // with an X-API-Key header. Rate limited per client IP.

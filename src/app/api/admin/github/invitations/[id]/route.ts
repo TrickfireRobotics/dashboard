@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { GithubError, cancelInvitation } from "@/lib/github";
-import { getSessionUser } from "@/lib/session";
+import { GithubError, cancelInvitation } from "@/lib/integrations/github";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const user = await getSessionUser();

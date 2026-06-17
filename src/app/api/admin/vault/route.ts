@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { vaultEntry } from "@/lib/db/schema";
-import { getSessionUser } from "@/lib/session";
-import { encryptSecret } from "@/lib/vault-crypto";
+import { getSessionUser } from "@/lib/auth/session";
+import { encryptSecret } from "@/lib/security/vault-crypto";
 import { vaultEntrySchema } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {

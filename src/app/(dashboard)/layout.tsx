@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNav } from "@/components/layout/TopNav";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/auth";
 import { db } from "@/lib/db";
 import { userFeature } from "@/lib/db/schema";
 import type { FeatureKey } from "@/lib/features";

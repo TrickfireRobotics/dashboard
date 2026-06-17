@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { deleteNetworkNode } from "@/lib/network";
-import { getSessionUser } from "@/lib/session";
+import { deleteNetworkNode } from "@/lib/integrations/network";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const user = await getSessionUser();

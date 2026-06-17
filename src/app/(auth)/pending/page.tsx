@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { PendingActions } from "@/components/auth/PendingActions";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/auth";
 
 export default async function PendingPage() {
     const session = await auth.api.getSession({ headers: await headers() });

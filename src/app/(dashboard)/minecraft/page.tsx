@@ -9,7 +9,7 @@ import { WhitelistStatusBadge } from "@/components/minecraft/WhitelistStatusBadg
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
 import { minecraftWhitelist } from "@/lib/db/schema";
-import { getSessionUser } from "@/lib/session";
+import { getSessionUser } from "@/lib/auth/session";
 import { formatDate } from "@/lib/utils";
 
 export default async function MinecraftPage() {

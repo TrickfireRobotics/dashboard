@@ -20,14 +20,14 @@ import {
     getStfBucketsWithBalances,
     orderTotalCents,
     validateOrderBalance,
-} from "../src/lib/finance";
+} from "../src/lib/finance/finance";
 import { orderInputSchema } from "../src/lib/validation";
 import {
     formatApprovedGiftOrders,
     formatApprovedStfOrders,
     formatStfOrderRow,
     stfOrderCalculations,
-} from "../src/lib/order-export";
+} from "../src/lib/finance/order-export";
 
 function assert(condition: boolean, message: string) {
     if (!condition) throw new Error(message);

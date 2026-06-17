@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
-import { addOnshapeMember, getOnshapeMembers, OnshapeError } from "@/lib/onshape";
-import { getSessionUser } from "@/lib/session";
+import { addOnshapeMember, getOnshapeMembers, OnshapeError } from "@/lib/integrations/onshape";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function GET() {
     const user = await getSessionUser();

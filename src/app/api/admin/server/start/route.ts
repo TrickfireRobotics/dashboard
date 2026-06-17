@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { startServer } from "@/lib/azalea";
-import { getSessionUser } from "@/lib/session";
+import { startServer } from "@/lib/integrations/azalea";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function POST() {
     const admin = await getSessionUser();

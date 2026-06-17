@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
-import { getServerStatus } from "@/lib/minecraft";
-import { getSessionUser } from "@/lib/session";
+import { getServerStatus } from "@/lib/integrations/minecraft";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function GET() {
     const user = await getSessionUser();

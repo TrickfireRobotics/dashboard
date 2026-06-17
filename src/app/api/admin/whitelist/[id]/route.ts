@@ -3,8 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { minecraftWhitelist } from "@/lib/db/schema";
-import { sendCommand } from "@/lib/azalea";
-import { getSessionUser } from "@/lib/session";
+import { sendCommand } from "@/lib/integrations/azalea";
+import { getSessionUser } from "@/lib/auth/session";
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const admin = await getSessionUser();

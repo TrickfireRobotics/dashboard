@@ -2,7 +2,7 @@ import os from "os";
 
 import { currentLoad, fsSize, mem } from "systeminformation";
 
-import { getSessionUser } from "@/lib/session";
+import { getSessionUser } from "@/lib/auth/session";
 
 export type SystemStats = {
     cpu: { loadPercent: number };
