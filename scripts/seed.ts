@@ -26,8 +26,10 @@ const TEAMS = [
 async function main() {
     const { auth } = await import("../src/lib/auth/auth");
     const { db } = await import("../src/lib/db");
-    const { giftFund, stfBucket, stfQuarter, team, user } = await import("../src/lib/db/schema");
+    const { giftFund, order, stfBucket, stfQuarter, team, user } =
+        await import("../src/lib/db/schema");
     const { GIFT_FUND_ID } = await import("../src/lib/finance/finance");
+    const { financeSettings } = await import("../src/lib/db/schema");
     const { eq } = await import("drizzle-orm");
 
     for (const name of TEAMS) {
@@ -76,6 +78,18 @@ async function main() {
     }
     console.log("Seeded STF buckets.");
 
+    const existingSettings = db
+        .select()
+        .from(financeSettings)
+        .where(eq(financeSettings.id, 1))
+        .get();
+    if (!existingSettings) {
+        db.insert(financeSettings)
+            .values({ id: 1, taxPercentBps: 1100, shippingPercentBps: 2000 })
+            .run();
+        console.log("Seeded finance settings.");
+    }
+
     const rawEmail = process.env.SEED_ADMIN_EMAIL;
     const email = rawEmail?.includes("@") ? rawEmail : `${rawEmail}@admin.local`;
     const password = process.env.SEED_ADMIN_PASSWORD;
@@ -98,6 +112,228 @@ async function main() {
         .run();
 
     console.log(`Ensured ${email} has role=admin, isActive=true, approved=true.`);
+
+    const adminUser = db.select().from(user).where(eq(user.email, email)).get();
+    const mechanical = db.select().from(stfBucket).where(eq(stfBucket.name, "Mechanical")).get();
+    const electronics = db.select().from(stfBucket).where(eq(stfBucket.name, "Electronics")).get();
+
+    const SEED_ITEM_PREFIX = "[seed] ";
+    const seedOrders = [
+        {
+            itemName: `${SEED_ITEM_PREFIX}1/4-20 hex bolt assortment`,
+            fundType: "STF" as const,
+            stfBucketName: "Mechanical",
+            vendor: "McMaster-Carr",
+            link: "https://example.com/mcmaster-bolts",
+            partNumber: "91290A115",
+            quantity: 2,
+            unitCostCents: 2450,
+            notes: "Assorted lengths for drivetrain assembly",
+            status: "ordered" as const,
+        },
+        {
+            itemName: `${SEED_ITEM_PREFIX}REV NEO brushless motor`,
+            fundType: "STF" as const,
+            stfBucketName: "Mechanical",
+            vendor: "REV Robotics",
+            link: "https://example.com/rev-neo",
+            partNumber: "REV-21-1650",
+            quantity: 4,
+            unitCostCents: 12_500,
+            notes: null,
+            status: "ordered" as const,
+        },
+        {
+            itemName: `${SEED_ITEM_PREFIX}Pit organization tape`,
+            fundType: "Gift" as const,
+            stfBucketName: null,
+            vendor: "Amazon",
+            link: "https://example.com/pit-tape",
+            partNumber: null,
+            quantity: 6,
+            unitCostCents: 899,
+            notes: "Colored tape for pit cable management",
+            status: "ordered" as const,
+        },
+        {
+            itemName: `${SEED_ITEM_PREFIX}Aluminum 1x1x1/8 wall tube`,
+            fundType: "STF" as const,
+            stfBucketName: "Mechanical",
+            vendor: "Online Metals",
+            link: "https://example.com/aluminum-tube",
+            partNumber: "OM-1X1-125",
+            quantity: 3,
+            unitCostCents: 18_750,
+            notes: "Frame rail stock",
+            status: "ordered" as const,
+        },
+        {
+            itemName: `${SEED_ITEM_PREFIX}Limelight 3 vision camera`,
+            fundType: "STF" as const,
+            stfBucketName: "Electronics",
+            vendor: "Limelight",
+            link: "https://example.com/limelight-3",
+            partNumber: "LL3",
+            quantity: 1,
+            unitCostCents: 39_900,
+            notes: null,
+            status: "ordered" as const,
+        },
+        {
+            itemName: `${SEED_ITEM_PREFIX}Polycarbonate sheet 1/4"`,
+            fundType: "STF" as const,
+            stfBucketName: "Mechanical",
+            vendor: "TAP Plastics",
+            link: "https://example.com/polycarbonate",
+            partNumber: "PC-025",
+            quantity: 2,
+            unitCostCents: 6200,
+            notes: "Bumper backing plate material",
+            status: "approved" as const,
+        },
+        {
+            itemName: `${SEED_ITEM_PREFIX}Kraken X60 motor controller`,
+            fundType: "STF" as const,
+            stfBucketName: "Electronics",
+            vendor: "WCP",
+            link: "https://example.com/kraken-x60",
+            partNumber: "WCP-KRAKEN-X60",
+            quantity: 2,
+            unitCostCents: 14_900,
+            notes: "Drivetrain motor controllers",
+            status: "approved" as const,
+        },
+        {
+            itemName: `${SEED_ITEM_PREFIX}NEO Vortex motor`,
+            fundType: "STF" as const,
+            stfBucketName: "Mechanical",
+            vendor: "REV Robotics",
+            link: "https://example.com/neo-vortex",
+            partNumber: "REV-21-1651",
+            quantity: 2,
+            unitCostCents: 11_200,
+            notes: null,
+            status: "approved" as const,
+        },
+        {
+            itemName: `${SEED_ITEM_PREFIX}Blue Nitrile gloves (case)`,
+            fundType: "Gift" as const,
+            stfBucketName: null,
+            vendor: "Uline",
+            link: "https://example.com/nitrile-gloves",
+            partNumber: null,
+            quantity: 1,
+            unitCostCents: 3200,
+            notes: "Pit safety supplies",
+            status: "approved" as const,
+        },
+        {
+            itemName: `${SEED_ITEM_PREFIX}Zip ties assortment`,
+            fundType: "Gift" as const,
+            stfBucketName: null,
+            vendor: "Amazon",
+            link: "https://example.com/zip-ties",
+            partNumber: null,
+            quantity: 3,
+            unitCostCents: 1299,
+            notes: "Cable management for robot and pit",
+            status: "approved" as const,
+        },
+        {
+            itemName: `${SEED_ITEM_PREFIX}VersaHub gearbox kit`,
+            fundType: "STF" as const,
+            stfBucketName: "Mechanical",
+            vendor: "VEXPro",
+            link: "https://example.com/versahub",
+            partNumber: "217-7050",
+            quantity: 1,
+            unitCostCents: 8750,
+            notes: "Elevator pivot gearbox",
+            status: "approved" as const,
+        },
+        {
+            itemName: `${SEED_ITEM_PREFIX}CAN wire spool`,
+            fundType: "STF" as const,
+            stfBucketName: "Electronics",
+            vendor: "West Coast Products",
+            link: "https://example.com/can-wire",
+            partNumber: "WCP-CAN-50",
+            quantity: 1,
+            unitCostCents: 4500,
+            notes: null,
+            status: "pending" as const,
+        },
+        {
+            itemName: `${SEED_ITEM_PREFIX}Over-budget titanium fastener`,
+            fundType: "STF" as const,
+            stfBucketName: "Mechanical",
+            vendor: "McMaster-Carr",
+            link: "https://example.com/titanium-bolt",
+            partNumber: "91290A999",
+            quantity: 1,
+            unitCostCents: 99_900,
+            notes: "Denied — use steel alternative",
+            status: "denied" as const,
+            denialComment: "Too expensive for this application. Resubmit with steel hardware.",
+        },
+    ];
+
+    if (adminUser && quarter && mechanical && electronics) {
+        const reviewedAt = new Date("2025-10-15");
+        const bucketByName = {
+            Mechanical: mechanical.id,
+            Electronics: electronics.id,
+        };
+        let inserted = 0;
+        let reset = 0;
+
+        for (const seed of seedOrders) {
+            const stfBucketId =
+                seed.fundType === "STF" && seed.stfBucketName
+                    ? bucketByName[seed.stfBucketName as keyof typeof bucketByName]
+                    : null;
+
+            const values = {
+                userId: adminUser.id,
+                fundType: seed.fundType,
+                stfBucketId,
+                quarterId: seed.fundType === "STF" ? quarter.id : null,
+                vendor: seed.vendor,
+                link: seed.link,
+                itemName: seed.itemName,
+                partNumber: seed.partNumber,
+                quantity: seed.quantity,
+                unitCostCents: seed.unitCostCents,
+                notes: seed.notes,
+                status: seed.status,
+                denialComment: "denialComment" in seed ? seed.denialComment : null,
+                reviewedBy: seed.status !== "pending" ? adminUser.id : null,
+                reviewedAt: seed.status !== "pending" ? reviewedAt : null,
+            };
+
+            const exists = db.select().from(order).where(eq(order.itemName, seed.itemName)).get();
+            if (exists) {
+                db.update(order).set(values).where(eq(order.id, exists.id)).run();
+                reset++;
+                continue;
+            }
+
+            db.insert(order).values(values).run();
+            inserted++;
+        }
+
+        const ordered = seedOrders.filter((o) => o.status === "ordered").length;
+        const approved = seedOrders.filter((o) => o.status === "approved").length;
+        const pending = seedOrders.filter((o) => o.status === "pending").length;
+        const denied = seedOrders.filter((o) => o.status === "denied").length;
+
+        if (inserted > 0 || reset > 0) {
+            console.log(
+                `Sample orders: ${inserted} inserted, ${reset} reset (${ordered} ordered, ${approved} approved, ${pending} pending, ${denied} denied).`
+            );
+        }
+    }
+
     console.log("Seed complete.");
 }
 

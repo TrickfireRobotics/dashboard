@@ -33,6 +33,7 @@ import {
     StfBucketSelectItemContent,
 } from "@/components/BalanceAmount";
 import type { FundType, OrderStatus } from "@/lib/db/schema";
+import { computeOrderTotalCents, displayPercentToBps } from "@/lib/finance/order-pricing";
 import { cn, formatPriceCents } from "@/lib/utils";
 
 type StfBucketBalance = {
@@ -44,6 +45,10 @@ type StfBucketBalance = {
 type Balances = {
     giftBalanceCents: number;
     stfBuckets: StfBucketBalance[];
+    orderPricing: {
+        taxPercent: number;
+        shippingPercent: number;
+    };
 };
 
 const formSchema = z
@@ -159,9 +164,15 @@ export function OrderForm({ initialOrder }: { initialOrder?: OrderFormInitial })
     const totalCostCents = useMemo(() => {
         const qty = Number(quantity);
         const cost = Number(unitCost);
+        const pricing = balances?.orderPricing;
         if (!Number.isFinite(qty) || !Number.isFinite(cost) || qty < 1 || cost <= 0) return null;
-        return Math.round(qty * cost * 100);
-    }, [quantity, unitCost]);
+        if (!pricing) return null;
+        const unitCostCents = Math.round(cost * 100);
+        return computeOrderTotalCents(qty, unitCostCents, {
+            taxPercentBps: displayPercentToBps(pricing.taxPercent),
+            shippingPercentBps: displayPercentToBps(pricing.shippingPercent),
+        });
+    }, [quantity, unitCost, balances?.orderPricing]);
 
     const balanceError = useMemo(() => {
         if (!fundType || totalCostCents == null || !balances) return null;
@@ -425,7 +436,7 @@ export function OrderForm({ initialOrder }: { initialOrder?: OrderFormInitial })
                             </FormControl>
                             {totalCostCents != null ? (
                                 <FormDescription>
-                                    Total cost:{" "}
+                                    Total cost (incl. tax &amp; shipping):{" "}
                                     <span className="text-foreground font-medium">
                                         {formatPriceCents(totalCostCents)}
                                     </span>

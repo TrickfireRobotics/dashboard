@@ -23,6 +23,11 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import type { FundType, OrderStatus } from "@/lib/db/schema";
+import {
+    computeOrderTotalCents,
+    displayPercentToBps,
+    type OrderPricingSettings,
+} from "@/lib/finance/order-pricing";
 import { formatDate, formatPriceCents } from "@/lib/utils";
 
 import { OrderStatusBadge } from "./OrderStatusBadge";
@@ -43,20 +48,36 @@ type StatusFilter = "all" | OrderStatus;
 type FundFilter = "all" | FundType;
 type SortKey = "newest" | "oldest" | "item-asc" | "item-desc" | "total-desc" | "total-asc";
 
-function totalCostCents(row: { quantity: number; unitCostCents: number }) {
-    return row.quantity * row.unitCostCents;
+function totalCostCents(
+    row: { quantity: number; unitCostCents: number },
+    pricing: OrderPricingSettings
+) {
+    return computeOrderTotalCents(row.quantity, row.unitCostCents, pricing);
 }
 
 function canModifyOrder(status: OrderStatus) {
     return status === "pending" || status === "denied";
 }
 
-export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
+export function OrderTable({
+    orders,
+    orderPricing,
+}: {
+    orders: MemberOrderRow[];
+    orderPricing: { taxPercent: number; shippingPercent: number };
+}) {
     const router = useRouter();
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
     const [fundFilter, setFundFilter] = useState<FundFilter>("all");
     const [sortKey, setSortKey] = useState<SortKey>("newest");
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const pricingSettings = useMemo<OrderPricingSettings>(
+        () => ({
+            taxPercentBps: displayPercentToBps(orderPricing.taxPercent),
+            shippingPercentBps: displayPercentToBps(orderPricing.shippingPercent),
+        }),
+        [orderPricing.taxPercent, orderPricing.shippingPercent]
+    );
 
     const filteredOrders = useMemo(() => {
         let rows = orders.filter((order) => {
@@ -74,9 +95,9 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
                 case "item-desc":
                     return b.itemName.localeCompare(a.itemName);
                 case "total-desc":
-                    return totalCostCents(b) - totalCostCents(a);
+                    return totalCostCents(b, pricingSettings) - totalCostCents(a, pricingSettings);
                 case "total-asc":
-                    return totalCostCents(a) - totalCostCents(b);
+                    return totalCostCents(a, pricingSettings) - totalCostCents(b, pricingSettings);
                 case "newest":
                 default:
                     return b.createdAt.getTime() - a.createdAt.getTime();
@@ -84,7 +105,7 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
         });
 
         return rows;
-    }, [fundFilter, orders, sortKey, statusFilter]);
+    }, [fundFilter, orders, pricingSettings, sortKey, statusFilter]);
 
     async function handleDelete(order: MemberOrderRow) {
         if (!confirm(`Delete your order for "${order.itemName}"? This cannot be undone.`)) return;
@@ -117,6 +138,7 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
         all: "All statuses",
         pending: "Pending",
         approved: "Approved",
+        ordered: "Ordered",
         denied: "Denied",
     };
 
@@ -150,6 +172,7 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
                         <SelectItem value="all">All statuses</SelectItem>
                         <SelectItem value="pending">Pending</SelectItem>
                         <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="ordered">Ordered</SelectItem>
                         <SelectItem value="denied">Denied</SelectItem>
                     </SelectContent>
                 </Select>
@@ -221,7 +244,7 @@ export function OrderTable({ orders }: { orders: MemberOrderRow[] }) {
                                         {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
                                     </TableCell>
                                     <TableCell className="hidden text-right md:table-cell">
-                                        {formatPriceCents(totalCostCents(o))}
+                                        {formatPriceCents(totalCostCents(o, pricingSettings))}
                                     </TableCell>
                                     <TableCell>
                                         <OrderStatusBadge status={o.status} />

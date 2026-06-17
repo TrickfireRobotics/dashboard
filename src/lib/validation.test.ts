@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
     orderInputSchema,
     giftFundAdjustSchema,
+    financeSettingsUpdateSchema,
+    markOrderedSchema,
     vaultEntrySchema,
     whitelistRequestSchema,
     stfBucketInputSchema,
@@ -102,6 +104,65 @@ describe("giftFundAdjustSchema", () => {
     it("rejects a value above the maximum", () => {
         const result = giftFundAdjustSchema.safeParse({ newValue: 10_000_001 });
         expect(result.success).toBe(false);
+    });
+});
+
+describe("financeSettingsUpdateSchema", () => {
+    it("accepts valid tax and shipping percentages", () => {
+        expect(() =>
+            financeSettingsUpdateSchema.parse({ taxPercent: 11, shippingPercent: 20 })
+        ).not.toThrow();
+    });
+
+    it("accepts zero for tax and shipping", () => {
+        expect(() =>
+            financeSettingsUpdateSchema.parse({ taxPercent: 0, shippingPercent: 0 })
+        ).not.toThrow();
+    });
+
+    it("rejects negative tax", () => {
+        const result = financeSettingsUpdateSchema.safeParse({
+            taxPercent: -1,
+            shippingPercent: 10,
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it("rejects negative shipping", () => {
+        const result = financeSettingsUpdateSchema.safeParse({
+            taxPercent: 10,
+            shippingPercent: -0.01,
+        });
+        expect(result.success).toBe(false);
+    });
+
+    it("rejects percentages above 100", () => {
+        expect(
+            financeSettingsUpdateSchema.safeParse({ taxPercent: 101, shippingPercent: 10 }).success
+        ).toBe(false);
+        expect(
+            financeSettingsUpdateSchema.safeParse({ taxPercent: 10, shippingPercent: 100.01 })
+                .success
+        ).toBe(false);
+    });
+});
+
+describe("markOrderedSchema", () => {
+    it("accepts an empty body to move all approved orders", () => {
+        expect(() => markOrderedSchema.parse({})).not.toThrow();
+    });
+
+    it("accepts a list of order ids", () => {
+        expect(() => markOrderedSchema.parse({ orderIds: [1, 2, 3] })).not.toThrow();
+    });
+
+    it("rejects an empty orderIds array", () => {
+        const result = markOrderedSchema.safeParse({ orderIds: [] });
+        expect(result.success).toBe(false);
+    });
+
+    it("rejects invalid order ids", () => {
+        expect(markOrderedSchema.safeParse({ orderIds: [0, -1] }).success).toBe(false);
     });
 });
 

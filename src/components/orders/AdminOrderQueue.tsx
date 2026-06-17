@@ -1,7 +1,7 @@
 "use client";
 
-import { Copy } from "lucide-react";
-import { Fragment } from "react";
+import { Copy, PackageCheck, Trash2 } from "lucide-react";
+import { Fragment, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -23,6 +23,11 @@ import {
     formatApprovedStfOrders,
     formatOrderForExcel,
 } from "@/lib/finance/order-export";
+import {
+    computeOrderTotalCents,
+    displayPercentToBps,
+    type OrderPricingSettings,
+} from "@/lib/finance/order-pricing";
 import { formatDate, formatPriceCents } from "@/lib/utils";
 
 import { OrderStatusBadge } from "./OrderStatusBadge";
@@ -47,8 +52,11 @@ export type AdminOrderRow = {
 
 type Action = "approve" | "deny";
 
-function totalCostCents(row: { quantity: number; unitCostCents: number }) {
-    return row.quantity * row.unitCostCents;
+function toPricingSettings(orderPricing: OrderPricing): OrderPricingSettings {
+    return {
+        taxPercentBps: displayPercentToBps(orderPricing.taxPercent),
+        shippingPercentBps: displayPercentToBps(orderPricing.shippingPercent),
+    };
 }
 
 async function copyText(text: string, label: string) {
@@ -64,20 +72,33 @@ async function copyText(text: string, label: string) {
     }
 }
 
-export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
+export type OrderPricing = {
+    taxPercent: number;
+    shippingPercent: number;
+};
+
+export function AdminOrderQueue({
+    orders,
+    orderPricing,
+}: {
+    orders: AdminOrderRow[];
+    orderPricing: OrderPricing;
+}) {
     const router = useRouter();
     const [expandedId, setExpandedId] = useState<number | null>(null);
     const [denialComment, setDenialComment] = useState("");
     const [pending, setPending] = useState<Action | null>(null);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [markingOrdered, setMarkingOrdered] = useState(false);
+    const [selectedApprovedIds, setSelectedApprovedIds] = useState<Set<number>>(new Set());
+    const pricingSettings = toPricingSettings(orderPricing);
 
     const pendingOrders = orders.filter((o) => o.status === "pending");
-    const otherOrders = orders.filter((o) => o.status !== "pending");
-    const approvedStfCount = orders.filter(
-        (o) => o.status === "approved" && o.fundType === "STF"
-    ).length;
-    const approvedGiftCount = orders.filter(
-        (o) => o.status === "approved" && o.fundType === "Gift"
-    ).length;
+    const approvedOrders = orders.filter((o) => o.status === "approved");
+    const orderedOrders = orders.filter((o) => o.status === "ordered");
+    const deniedOrders = orders.filter((o) => o.status === "denied");
+    const approvedStfCount = approvedOrders.filter((o) => o.fundType === "STF").length;
+    const approvedGiftCount = approvedOrders.filter((o) => o.fundType === "Gift").length;
 
     async function runAction(order: AdminOrderRow, action: Action) {
         setPending(action);
@@ -105,6 +126,83 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
         }
     }
 
+    async function markApprovedAsOrdered(orderIds?: number[]) {
+        const count = orderIds?.length ?? approvedOrders.length;
+        if (count === 0) return;
+
+        const message =
+            count === 1
+                ? "Move 1 approved order to the ordered archive? It will no longer appear in Excel exports."
+                : `Move ${count} approved order${count === 1 ? "" : "s"} to the ordered archive? They will no longer appear in Excel exports.`;
+        if (!confirm(message)) return;
+
+        setMarkingOrdered(true);
+        try {
+            const res = await fetch("/api/orders/mark-ordered", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(orderIds ? { orderIds } : {}),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                throw new Error(data?.error ?? "Failed to mark orders as ordered");
+            }
+            const data = await res.json();
+            toast.success(
+                data.movedCount === 1
+                    ? "1 order moved to ordered"
+                    : `${data.movedCount} orders moved to ordered`
+            );
+            setExpandedId(null);
+            setSelectedApprovedIds(new Set());
+            router.refresh();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Something went wrong");
+        } finally {
+            setMarkingOrdered(false);
+        }
+    }
+
+    function toggleApprovedSelection(orderId: number) {
+        setSelectedApprovedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(orderId)) next.delete(orderId);
+            else next.add(orderId);
+            return next;
+        });
+    }
+
+    function toggleAllApprovedSelection() {
+        setSelectedApprovedIds((prev) => {
+            if (prev.size === approvedOrders.length) return new Set();
+            return new Set(approvedOrders.map((o) => o.id));
+        });
+    }
+
+    async function deleteOrder(order: AdminOrderRow) {
+        const message =
+            order.status === "approved" || order.status === "ordered"
+                ? `Delete ${order.status} order for "${order.itemName}"? This removes it from the archive and restores any gift fund deduction.`
+                : `Delete order for "${order.itemName}"? This cannot be undone.`;
+        if (!confirm(message)) return;
+
+        setDeletingId(order.id);
+        try {
+            const res = await fetch(`/api/orders/${order.id}`, { method: "DELETE" });
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                throw new Error(data?.error ?? "Failed to delete order");
+            }
+            toast.success("Order deleted");
+            setExpandedId(null);
+            router.refresh();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Something went wrong");
+        } finally {
+            setDeletingId(null);
+        }
+    }
+
     if (orders.length === 0) {
         return (
             <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
@@ -115,7 +213,7 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
 
     return (
         <div className="space-y-8">
-            {(approvedStfCount > 0 || approvedGiftCount > 0) && (
+            {(approvedStfCount > 0 || approvedGiftCount > 0 || approvedOrders.length > 0) && (
                 <div className="flex flex-wrap gap-2">
                     <Button
                         variant="outline"
@@ -123,7 +221,7 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
                         disabled={approvedStfCount === 0}
                         onClick={() =>
                             copyText(
-                                formatApprovedStfOrders(orders),
+                                formatApprovedStfOrders(orders, pricingSettings),
                                 `${approvedStfCount} approved STF order${approvedStfCount === 1 ? "" : "s"}`
                             )
                         }
@@ -145,6 +243,14 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
                         <Copy className="size-4" />
                         Copy all approved Gift ({approvedGiftCount})
                     </Button>
+                    <Button
+                        size="sm"
+                        disabled={approvedOrders.length === 0 || markingOrdered}
+                        onClick={() => markApprovedAsOrdered()}
+                    >
+                        <PackageCheck className="size-4" />
+                        Mark all approved as ordered ({approvedOrders.length})
+                    </Button>
                 </div>
             )}
             <OrderSection
@@ -160,11 +266,13 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
                 pending={pending}
                 onAction={runAction}
                 showActions
+                orderPricing={orderPricing}
             />
-            {otherOrders.length > 0 ? (
+            {approvedOrders.length > 0 ? (
                 <OrderSection
-                    title="Archive"
-                    orders={otherOrders}
+                    title="Approved"
+                    description="Ready to copy for vendor ordering. Select parts and move to ordered once placed."
+                    orders={approvedOrders}
                     expandedId={expandedId}
                     onToggle={(id) => setExpandedId((prev) => (prev === id ? null : id))}
                     denialComment={denialComment}
@@ -172,6 +280,63 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
                     pending={pending}
                     onAction={runAction}
                     showActions={false}
+                    orderPricing={orderPricing}
+                    onDelete={deleteOrder}
+                    deletingId={deletingId}
+                    selection={{
+                        selectedIds: selectedApprovedIds,
+                        onToggle: toggleApprovedSelection,
+                        onToggleAll: toggleAllApprovedSelection,
+                        allSelected:
+                            selectedApprovedIds.size === approvedOrders.length &&
+                            approvedOrders.length > 0,
+                        someSelected:
+                            selectedApprovedIds.size > 0 &&
+                            selectedApprovedIds.size < approvedOrders.length,
+                    }}
+                    headerAction={
+                        <Button
+                            size="sm"
+                            disabled={selectedApprovedIds.size === 0 || markingOrdered}
+                            onClick={() => markApprovedAsOrdered(Array.from(selectedApprovedIds))}
+                        >
+                            <PackageCheck className="size-4" />
+                            Move selected to ordered ({selectedApprovedIds.size})
+                        </Button>
+                    }
+                />
+            ) : null}
+            {deniedOrders.length > 0 ? (
+                <OrderSection
+                    title="Denied"
+                    orders={deniedOrders}
+                    expandedId={expandedId}
+                    onToggle={(id) => setExpandedId((prev) => (prev === id ? null : id))}
+                    denialComment={denialComment}
+                    onDenialCommentChange={setDenialComment}
+                    pending={pending}
+                    onAction={runAction}
+                    showActions={false}
+                    orderPricing={orderPricing}
+                    onDelete={deleteOrder}
+                    deletingId={deletingId}
+                />
+            ) : null}
+            {orderedOrders.length > 0 ? (
+                <OrderSection
+                    title="Ordered"
+                    description="Parts that have already been placed with vendors."
+                    orders={orderedOrders}
+                    expandedId={expandedId}
+                    onToggle={(id) => setExpandedId((prev) => (prev === id ? null : id))}
+                    denialComment={denialComment}
+                    onDenialCommentChange={setDenialComment}
+                    pending={pending}
+                    onAction={runAction}
+                    showActions={false}
+                    orderPricing={orderPricing}
+                    onDelete={deleteOrder}
+                    deletingId={deletingId}
                 />
             ) : null}
         </div>
@@ -180,6 +345,7 @@ export function AdminOrderQueue({ orders }: { orders: AdminOrderRow[] }) {
 
 function OrderSection({
     title,
+    description,
     orders,
     expandedId,
     onToggle,
@@ -188,8 +354,14 @@ function OrderSection({
     pending,
     onAction,
     showActions,
+    orderPricing,
+    onDelete,
+    deletingId,
+    selection,
+    headerAction,
 }: {
     title: string;
+    description?: string;
     orders: AdminOrderRow[];
     expandedId: number | null;
     onToggle: (id: number) => void;
@@ -198,16 +370,52 @@ function OrderSection({
     pending: Action | null;
     onAction: (order: AdminOrderRow, action: Action) => void;
     showActions: boolean;
+    orderPricing: OrderPricing;
+    onDelete?: (order: AdminOrderRow) => void;
+    deletingId?: number | null;
+    selection?: {
+        selectedIds: Set<number>;
+        onToggle: (id: number) => void;
+        onToggleAll: () => void;
+        allSelected: boolean;
+        someSelected: boolean;
+    };
+    headerAction?: ReactNode;
 }) {
     if (orders.length === 0) return null;
 
+    const pricingSettings = toPricingSettings(orderPricing);
+    const columnCount = selection ? 7 : 6;
+
     return (
         <div className="space-y-3">
-            <h2 className="text-lg font-semibold">{title}</h2>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                    <h2 className="text-lg font-semibold">{title}</h2>
+                    {description ? (
+                        <p className="text-muted-foreground text-sm">{description}</p>
+                    ) : null}
+                </div>
+                {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
+            </div>
             <div className="border-border rounded-lg border">
                 <Table>
                     <TableHeader>
                         <TableRow>
+                            {selection ? (
+                                <TableHead className="w-10">
+                                    <input
+                                        type="checkbox"
+                                        aria-label="Select all approved orders"
+                                        checked={selection.allSelected}
+                                        ref={(el) => {
+                                            if (el) el.indeterminate = selection.someSelected;
+                                        }}
+                                        onChange={selection.onToggleAll}
+                                        className="border-input size-4 rounded border"
+                                    />
+                                </TableHead>
+                            ) : null}
                             <TableHead>Submitted by</TableHead>
                             <TableHead>Item</TableHead>
                             <TableHead className="hidden md:table-cell">Fund / bucket</TableHead>
@@ -228,6 +436,17 @@ function OrderSection({
                                         className="cursor-pointer"
                                         onClick={() => onToggle(o.id)}
                                     >
+                                        {selection ? (
+                                            <TableCell onClick={(e) => e.stopPropagation()}>
+                                                <input
+                                                    type="checkbox"
+                                                    aria-label={`Select order for ${o.itemName}`}
+                                                    checked={selection.selectedIds.has(o.id)}
+                                                    onChange={() => selection.onToggle(o.id)}
+                                                    className="border-input size-4 rounded border"
+                                                />
+                                            </TableCell>
+                                        ) : null}
                                         <TableCell className="text-muted-foreground">
                                             {o.requesterName ?? o.requesterEmail ?? "-"}
                                         </TableCell>
@@ -239,7 +458,13 @@ function OrderSection({
                                             {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
                                         </TableCell>
                                         <TableCell className="hidden text-right md:table-cell">
-                                            {formatPriceCents(totalCostCents(o))}
+                                            {formatPriceCents(
+                                                computeOrderTotalCents(
+                                                    o.quantity,
+                                                    o.unitCostCents,
+                                                    pricingSettings
+                                                )
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-muted-foreground hidden md:table-cell">
                                             {formatDate(o.createdAt)}
@@ -250,7 +475,10 @@ function OrderSection({
                                     </TableRow>
                                     {expanded ? (
                                         <TableRow key={`${o.id}-detail`}>
-                                            <TableCell colSpan={6} className="bg-muted/30">
+                                            <TableCell
+                                                colSpan={columnCount}
+                                                className="bg-muted/30"
+                                            >
                                                 <OrderDetail
                                                     order={o}
                                                     showActions={showActions}
@@ -258,6 +486,9 @@ function OrderSection({
                                                     onDenialCommentChange={onDenialCommentChange}
                                                     pending={pending}
                                                     onAction={onAction}
+                                                    orderPricing={orderPricing}
+                                                    onDelete={onDelete}
+                                                    deletingId={deletingId}
                                                 />
                                             </TableCell>
                                         </TableRow>
@@ -279,6 +510,9 @@ function OrderDetail({
     onDenialCommentChange,
     pending,
     onAction,
+    orderPricing,
+    onDelete,
+    deletingId,
 }: {
     order: AdminOrderRow;
     showActions: boolean;
@@ -286,8 +520,13 @@ function OrderDetail({
     onDenialCommentChange: (v: string) => void;
     pending: Action | null;
     onAction: (order: AdminOrderRow, action: Action) => void;
+    orderPricing: OrderPricing;
+    onDelete?: (order: AdminOrderRow) => void;
+    deletingId?: number | null;
 }) {
-    const excelRow = formatOrderForExcel(order);
+    const pricingSettings = toPricingSettings(orderPricing);
+    const excelRow = formatOrderForExcel(order, false, pricingSettings);
+    const total = computeOrderTotalCents(order.quantity, order.unitCostCents, pricingSettings);
 
     return (
         <div className="space-y-4 py-2">
@@ -295,7 +534,7 @@ function OrderDetail({
                 <Detail label="Vendor" value={order.vendor} />
                 <Detail label="Quantity" value={String(order.quantity)} />
                 <Detail label="Unit cost" value={formatPriceCents(order.unitCostCents)} />
-                <Detail label="Total cost" value={formatPriceCents(totalCostCents(order))} />
+                <Detail label="Total cost" value={formatPriceCents(total)} />
                 <Detail label="Part number" value={order.partNumber ?? "-"} />
                 <div className="col-span-2">
                     <dt className="text-muted-foreground">Link</dt>
@@ -374,6 +613,18 @@ function OrderDetail({
                         </Button>
                     </div>
                 </>
+            ) : onDelete ? (
+                <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => onDelete(order)}
+                        disabled={deletingId === order.id}
+                    >
+                        <Trash2 className="size-4" />
+                        Delete order
+                    </Button>
+                </div>
             ) : null}
         </div>
     );

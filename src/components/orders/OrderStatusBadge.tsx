@@ -12,6 +12,7 @@ const STATUS: Record<
 > = {
     pending: { label: "Pending", variant: "outline" },
     approved: { label: "Approved", variant: "default" },
+    ordered: { label: "Ordered", variant: "secondary" },
     denied: { label: "Denied", variant: "destructive" },
 };
 
