@@ -13,16 +13,21 @@ import {
     type FundType,
 } from "@/lib/db/schema";
 import {
-    computeOrderTotalCents,
     DEFAULT_ORDER_PRICING,
+    orderChargeCents,
+    stfOrderTotalCents,
     type OrderPricingSettings,
 } from "@/lib/finance/order-pricing";
 
 export const GIFT_FUND_ID = 1;
 export const FINANCE_SETTINGS_ID = 1;
 
-export function orderTotalCents(quantity: number, unitCostCents: number): number {
-    return computeOrderTotalCents(quantity, unitCostCents, getOrderPricingSettings());
+export function orderTotalCents(
+    quantity: number,
+    unitCostCents: number,
+    fundType: FundType
+): number {
+    return orderChargeCents(fundType, quantity, unitCostCents, getOrderPricingSettings());
 }
 
 export function getOrderPricingSettings(): OrderPricingSettings {
@@ -93,7 +98,7 @@ export function getBucketApprovedSpendCents(bucketId: number, quarterId: number)
         .all();
 
     return rows.reduce(
-        (sum, row) => sum + computeOrderTotalCents(row.quantity, row.unitCostCents, settings),
+        (sum, row) => sum + stfOrderTotalCents(row.quantity, row.unitCostCents, settings),
         0
     );
 }

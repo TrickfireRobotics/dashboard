@@ -122,7 +122,7 @@ const admin = db.select().from(user).limit(1).get();
 assert(admin != null, "Need a user in the database");
 
 const stfUnitCents = Math.round(stfData.unitCost * 100);
-const stfTotal = orderTotalCents(stfData.quantity, stfUnitCents);
+const stfTotal = orderTotalCents(stfData.quantity, stfUnitCents, "STF");
 const stfBalance = validateOrderBalance("STF", stfData.stfBucketId, stfTotal);
 assert(stfBalance.ok, "STF balance check should pass before insert");
 
@@ -171,7 +171,7 @@ assert(getGiftFundValueCents() === 50_000, "Gift fund adjustment failed");
 
 const giftData = giftParsed.data!;
 const giftUnitCents = Math.round(giftData.unitCost * 100);
-const giftTotal = orderTotalCents(giftData.quantity, giftUnitCents);
+const giftTotal = orderTotalCents(giftData.quantity, giftUnitCents, "Gift");
 
 const giftOrder = db
     .insert(order)

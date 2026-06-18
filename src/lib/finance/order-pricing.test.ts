@@ -4,7 +4,9 @@ import {
     computeOrderTotalCents,
     DEFAULT_ORDER_PRICING,
     displayPercentToBps,
+    orderChargeCents,
     percentBpsToDisplay,
+    stfOrderTotalCents,
 } from "./order-pricing";
 
 describe("computeOrderTotalCents", () => {
@@ -20,6 +22,22 @@ describe("computeOrderTotalCents", () => {
 
     it("returns 0 when quantity is 0", () => {
         expect(computeOrderTotalCents(0, 5000)).toBe(0);
+    });
+});
+
+describe("stfOrderTotalCents", () => {
+    it("applies flux before tax and shipping", () => {
+        expect(stfOrderTotalCents(2, 5000, DEFAULT_ORDER_PRICING)).toBe(15_720);
+    });
+});
+
+describe("orderChargeCents", () => {
+    it("uses the gift formula for gift orders", () => {
+        expect(orderChargeCents("Gift", 2, 5000, DEFAULT_ORDER_PRICING)).toBe(13_100);
+    });
+
+    it("uses the STF formula for STF orders", () => {
+        expect(orderChargeCents("STF", 2, 5000, DEFAULT_ORDER_PRICING)).toBe(15_720);
     });
 });
 

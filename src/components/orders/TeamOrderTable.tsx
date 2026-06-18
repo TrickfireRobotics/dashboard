@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table";
 import type { FundType, OrderStatus } from "@/lib/db/schema";
 import {
-    computeOrderTotalCents,
+    orderChargeCents,
     displayPercentToBps,
     type OrderPricingSettings,
 } from "@/lib/finance/order-pricing";
@@ -45,10 +45,10 @@ type FundFilter = "all" | FundType;
 type SortKey = "newest" | "oldest" | "item-asc" | "item-desc" | "total-desc" | "total-asc";
 
 function totalCostCents(
-    row: { quantity: number; unitCostCents: number },
+    row: { fundType: FundType; quantity: number; unitCostCents: number },
     pricing: OrderPricingSettings
 ) {
-    return computeOrderTotalCents(row.quantity, row.unitCostCents, pricing);
+    return orderChargeCents(row.fundType, row.quantity, row.unitCostCents, pricing);
 }
 
 function requesterLabel(row: TeamOrderRow) {

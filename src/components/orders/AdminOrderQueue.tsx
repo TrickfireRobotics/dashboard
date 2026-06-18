@@ -24,7 +24,7 @@ import {
     formatOrderForExcel,
 } from "@/lib/finance/order-export";
 import {
-    computeOrderTotalCents,
+    orderChargeCents,
     displayPercentToBps,
     type OrderPricingSettings,
 } from "@/lib/finance/order-pricing";
@@ -459,7 +459,8 @@ function OrderSection({
                                         </TableCell>
                                         <TableCell className="hidden text-right md:table-cell">
                                             {formatPriceCents(
-                                                computeOrderTotalCents(
+                                                orderChargeCents(
+                                                    o.fundType,
                                                     o.quantity,
                                                     o.unitCostCents,
                                                     pricingSettings
@@ -526,7 +527,12 @@ function OrderDetail({
 }) {
     const pricingSettings = toPricingSettings(orderPricing);
     const excelRow = formatOrderForExcel(order, false, pricingSettings);
-    const total = computeOrderTotalCents(order.quantity, order.unitCostCents, pricingSettings);
+    const total = orderChargeCents(
+        order.fundType,
+        order.quantity,
+        order.unitCostCents,
+        pricingSettings
+    );
 
     return (
         <div className="space-y-4 py-2">

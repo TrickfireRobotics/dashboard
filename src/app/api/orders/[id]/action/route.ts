@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { order, orderHistory, user } from "@/lib/db/schema";
 import {
     deductGiftFundForApproval,
+    ensureFinanceSettingsRow,
     orderTotalCents,
     sendOrderApprovedEmail,
     sendOrderDeniedEmail,
@@ -45,8 +46,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         return NextResponse.json({ error: "Only pending orders can be reviewed" }, { status: 400 });
     }
 
+    ensureFinanceSettingsRow();
     const newStatus = ORDER_ACTION_STATUS[parsed.data.action];
-    const totalCostCents = orderTotalCents(existing.quantity, existing.unitCostCents);
+    const totalCostCents = orderTotalCents(
+        existing.quantity,
+        existing.unitCostCents,
+        existing.fundType
+    );
 
     if (parsed.data.action === "approve") {
         const balanceCheck = validateOrderBalance(

@@ -1,7 +1,11 @@
 import type { FundType, OrderStatus } from "@/lib/db/schema";
-import { DEFAULT_ORDER_PRICING, type OrderPricingSettings } from "@/lib/finance/order-pricing";
+import {
+    DEFAULT_ORDER_PRICING,
+    STF_PRICE_FLUX,
+    type OrderPricingSettings,
+} from "@/lib/finance/order-pricing";
 
-export const STF_PRICE_FLUX = 1.2;
+export { STF_PRICE_FLUX };
 
 export type OrderExportRow = {
     itemName: string;
