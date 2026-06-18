@@ -18,6 +18,11 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import type { FundType, OrderStatus } from "@/lib/db/schema";
+import {
+    computeOrderTotalCents,
+    displayPercentToBps,
+    type OrderPricingSettings,
+} from "@/lib/finance/order-pricing";
 import { formatDate, formatPriceCents } from "@/lib/utils";
 
 import { OrderStatusBadge } from "./OrderStatusBadge";
@@ -39,18 +44,38 @@ type StatusFilter = "all" | OrderStatus;
 type FundFilter = "all" | FundType;
 type SortKey = "newest" | "oldest" | "item-asc" | "item-desc" | "total-desc" | "total-asc";
 
-function totalCostCents(row: { quantity: number; unitCostCents: number }) {
-    return row.quantity * row.unitCostCents;
+function totalCostCents(
+    row: { quantity: number; unitCostCents: number },
+    pricing: OrderPricingSettings
+) {
+    return computeOrderTotalCents(row.quantity, row.unitCostCents, pricing);
 }
 
 function requesterLabel(row: TeamOrderRow) {
     return row.requesterName ?? row.requesterEmail ?? "-";
 }
 
-export function TeamOrderTable({ orders }: { orders: TeamOrderRow[] }) {
+export function TeamOrderTable({
+    orders,
+    orderPricing,
+    showFilters = true,
+    emptyMessage,
+}: {
+    orders: TeamOrderRow[];
+    orderPricing: { taxPercent: number; shippingPercent: number };
+    showFilters?: boolean;
+    emptyMessage?: string;
+}) {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
     const [fundFilter, setFundFilter] = useState<FundFilter>("all");
     const [sortKey, setSortKey] = useState<SortKey>("newest");
+    const pricingSettings = useMemo<OrderPricingSettings>(
+        () => ({
+            taxPercentBps: displayPercentToBps(orderPricing.taxPercent),
+            shippingPercentBps: displayPercentToBps(orderPricing.shippingPercent),
+        }),
+        [orderPricing.taxPercent, orderPricing.shippingPercent]
+    );
 
     const filteredOrders = useMemo(() => {
         let rows = orders.filter((order) => {
@@ -68,9 +93,9 @@ export function TeamOrderTable({ orders }: { orders: TeamOrderRow[] }) {
                 case "item-desc":
                     return b.itemName.localeCompare(a.itemName);
                 case "total-desc":
-                    return totalCostCents(b) - totalCostCents(a);
+                    return totalCostCents(b, pricingSettings) - totalCostCents(a, pricingSettings);
                 case "total-asc":
-                    return totalCostCents(a) - totalCostCents(b);
+                    return totalCostCents(a, pricingSettings) - totalCostCents(b, pricingSettings);
                 case "newest":
                 default:
                     return b.createdAt.getTime() - a.createdAt.getTime();
@@ -78,12 +103,12 @@ export function TeamOrderTable({ orders }: { orders: TeamOrderRow[] }) {
         });
 
         return rows;
-    }, [fundFilter, orders, sortKey, statusFilter]);
+    }, [fundFilter, orders, pricingSettings, sortKey, statusFilter]);
 
     if (orders.length === 0) {
         return (
             <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
-                No orders have been submitted yet.
+                {emptyMessage ?? "No orders have been submitted yet."}
             </div>
         );
     }
@@ -92,6 +117,7 @@ export function TeamOrderTable({ orders }: { orders: TeamOrderRow[] }) {
         all: "All statuses",
         pending: "Pending",
         approved: "Approved",
+        ordered: "Ordered",
         denied: "Denied",
     };
 
@@ -112,56 +138,59 @@ export function TeamOrderTable({ orders }: { orders: TeamOrderRow[] }) {
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <Select
-                    items={statusFilterItems}
-                    value={statusFilter}
-                    onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-                >
-                    <SelectTrigger className="w-full sm:w-44">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All statuses</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="approved">Approved</SelectItem>
-                        <SelectItem value="denied">Denied</SelectItem>
-                    </SelectContent>
-                </Select>
+            {showFilters ? (
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                    <Select
+                        items={statusFilterItems}
+                        value={statusFilter}
+                        onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+                    >
+                        <SelectTrigger className="w-full sm:w-44">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All statuses</SelectItem>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="approved">Approved</SelectItem>
+                            <SelectItem value="ordered">Ordered</SelectItem>
+                            <SelectItem value="denied">Denied</SelectItem>
+                        </SelectContent>
+                    </Select>
 
-                <Select
-                    items={fundFilterItems}
-                    value={fundFilter}
-                    onValueChange={(value) => setFundFilter(value as FundFilter)}
-                >
-                    <SelectTrigger className="w-full sm:w-36">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All funds</SelectItem>
-                        <SelectItem value="STF">STF</SelectItem>
-                        <SelectItem value="Gift">Gift</SelectItem>
-                    </SelectContent>
-                </Select>
+                    <Select
+                        items={fundFilterItems}
+                        value={fundFilter}
+                        onValueChange={(value) => setFundFilter(value as FundFilter)}
+                    >
+                        <SelectTrigger className="w-full sm:w-36">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All funds</SelectItem>
+                            <SelectItem value="STF">STF</SelectItem>
+                            <SelectItem value="Gift">Gift</SelectItem>
+                        </SelectContent>
+                    </Select>
 
-                <Select
-                    items={sortItems}
-                    value={sortKey}
-                    onValueChange={(value) => setSortKey(value as SortKey)}
-                >
-                    <SelectTrigger className="w-full sm:w-44">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="newest">Newest first</SelectItem>
-                        <SelectItem value="oldest">Oldest first</SelectItem>
-                        <SelectItem value="item-asc">Item A–Z</SelectItem>
-                        <SelectItem value="item-desc">Item Z–A</SelectItem>
-                        <SelectItem value="total-desc">Highest total</SelectItem>
-                        <SelectItem value="total-asc">Lowest total</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
+                    <Select
+                        items={sortItems}
+                        value={sortKey}
+                        onValueChange={(value) => setSortKey(value as SortKey)}
+                    >
+                        <SelectTrigger className="w-full sm:w-44">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="newest">Newest first</SelectItem>
+                            <SelectItem value="oldest">Oldest first</SelectItem>
+                            <SelectItem value="item-asc">Item A–Z</SelectItem>
+                            <SelectItem value="item-desc">Item Z–A</SelectItem>
+                            <SelectItem value="total-desc">Highest total</SelectItem>
+                            <SelectItem value="total-asc">Lowest total</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            ) : null}
 
             {filteredOrders.length === 0 ? (
                 <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
@@ -198,7 +227,7 @@ export function TeamOrderTable({ orders }: { orders: TeamOrderRow[] }) {
                                         {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
                                     </TableCell>
                                     <TableCell className="hidden text-right md:table-cell">
-                                        {formatPriceCents(totalCostCents(o))}
+                                        {formatPriceCents(totalCostCents(o, pricingSettings))}
                                     </TableCell>
                                     <TableCell>
                                         <OrderStatusBadge status={o.status} />

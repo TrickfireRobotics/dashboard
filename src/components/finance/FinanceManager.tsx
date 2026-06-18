@@ -24,6 +24,11 @@ import {
 } from "@/components/ui/table";
 import { formatDate, formatPriceCents } from "@/lib/utils";
 
+type OrderPricing = {
+    taxPercent: number;
+    shippingPercent: number;
+};
+
 type StfBucket = {
     id: number;
     name: string;
@@ -54,6 +59,7 @@ export type FinanceData = {
     stfBuckets: StfBucket[];
     quarters: Quarter[];
     giftLog: GiftLogEntry[];
+    orderPricing: OrderPricing;
 };
 
 export function FinanceManager({ initial }: { initial: FinanceData }) {
@@ -68,13 +74,20 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
     const [resetStep, setResetStep] = useState<0 | 1 | 2>(0);
     const [resetConfirmName, setResetConfirmName] = useState("");
     const [nextQuarterName, setNextQuarterName] = useState("");
+    const [taxPercent, setTaxPercent] = useState(String(initial.orderPricing.taxPercent));
+    const [shippingPercent, setShippingPercent] = useState(
+        String(initial.orderPricing.shippingPercent)
+    );
 
     const activeQuarter = data.quarters.find((q) => q.isActive);
 
     async function refresh() {
         const res = await fetch("/api/admin/finance");
         if (res.ok) {
-            setData(await res.json());
+            const next = await res.json();
+            setData(next);
+            setTaxPercent(String(next.orderPricing.taxPercent));
+            setShippingPercent(String(next.orderPricing.shippingPercent));
             router.refresh();
         }
     }
@@ -172,6 +185,34 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
             toast.success("Gift fund updated");
             setGiftValue("");
             setGiftNote("");
+            await refresh();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Something went wrong");
+        } finally {
+            setBusy(null);
+        }
+    }
+
+    async function saveOrderPricing() {
+        const tax = Number(taxPercent);
+        const shipping = Number(shippingPercent);
+        if (Number.isNaN(tax) || tax < 0 || Number.isNaN(shipping) || shipping < 0) {
+            toast.error("Tax and shipping must be zero or positive");
+            return;
+        }
+
+        setBusy("pricing");
+        try {
+            const res = await fetch("/api/admin/finance/settings", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ taxPercent: tax, shippingPercent: shipping }),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => null);
+                throw new Error(err?.error ?? "Failed to update order pricing");
+            }
+            toast.success("Order pricing updated");
             await refresh();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Something went wrong");
@@ -319,6 +360,43 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                         </Button>
                     </div>
                 ) : null}
+            </section>
+
+            <section className="space-y-4">
+                <div>
+                    <h2 className="text-lg font-semibold">Order pricing</h2>
+                    <p className="text-muted-foreground text-sm">
+                        Tax and shipping percentages applied to order totals for balance checks and
+                        spend tracking.
+                    </p>
+                </div>
+                <div className="flex flex-wrap items-end gap-3">
+                    <div className="space-y-1">
+                        <Label htmlFor="tax-percent">Tax (%)</Label>
+                        <Input
+                            id="tax-percent"
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={taxPercent}
+                            onChange={(e) => setTaxPercent(e.target.value)}
+                        />
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor="shipping-percent">Shipping (%)</Label>
+                        <Input
+                            id="shipping-percent"
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={shippingPercent}
+                            onChange={(e) => setShippingPercent(e.target.value)}
+                        />
+                    </div>
+                    <Button onClick={saveOrderPricing} disabled={busy === "pricing"}>
+                        Save pricing
+                    </Button>
+                </div>
             </section>
 
             <section className="space-y-4">

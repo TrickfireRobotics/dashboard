@@ -3,7 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { order, orderHistory } from "@/lib/db/schema";
-import { getActiveQuarter, orderTotalCents, validateOrderBalance } from "@/lib/finance/finance";
+import {
+    getActiveQuarter,
+    orderTotalCents,
+    restoreGiftFundForDeletion,
+    validateOrderBalance,
+} from "@/lib/finance/finance";
 import { getSessionUser } from "@/lib/auth/session";
 import { orderInputSchema } from "@/lib/validation";
 
@@ -13,8 +18,12 @@ function parseOrderId(params: { id: string }) {
     return orderId;
 }
 
+function isLockedOrderStatus(status: string) {
+    return status === "approved" || status === "ordered";
+}
+
 function memberCanModifyOrder(existing: { userId: string; status: string }, userId: string) {
-    return existing.userId === userId && existing.status !== "approved";
+    return existing.userId === userId && !isLockedOrderStatus(existing.status);
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -112,8 +121,19 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     if (!existing) {
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
-    if (!memberCanModifyOrder(existing, user.id)) {
+
+    const isAdmin = user.role === "admin";
+    if (isLockedOrderStatus(existing.status)) {
+        if (!isAdmin) {
+            return NextResponse.json({ error: "This order cannot be deleted" }, { status: 403 });
+        }
+    } else if (!memberCanModifyOrder(existing, user.id)) {
         return NextResponse.json({ error: "This order cannot be deleted" }, { status: 403 });
+    }
+
+    if (isLockedOrderStatus(existing.status) && existing.fundType === "Gift") {
+        const totalCostCents = orderTotalCents(existing.quantity, existing.unitCostCents);
+        restoreGiftFundForDeletion(orderId, totalCostCents, user.id);
     }
 
     db.delete(order).where(eq(order.id, orderId)).run();

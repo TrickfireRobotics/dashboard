@@ -1,20 +1,69 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 import { sendEmail } from "@/lib/integrations/email";
 import { db } from "@/lib/db";
 import {
+    financeSettings,
     giftFund,
     giftFundLog,
     order,
+    orderHistory,
     stfBucket,
     stfQuarter,
     type FundType,
 } from "@/lib/db/schema";
+import {
+    computeOrderTotalCents,
+    DEFAULT_ORDER_PRICING,
+    type OrderPricingSettings,
+} from "@/lib/finance/order-pricing";
 
 export const GIFT_FUND_ID = 1;
+export const FINANCE_SETTINGS_ID = 1;
 
 export function orderTotalCents(quantity: number, unitCostCents: number): number {
-    return quantity * unitCostCents;
+    return computeOrderTotalCents(quantity, unitCostCents, getOrderPricingSettings());
+}
+
+export function getOrderPricingSettings(): OrderPricingSettings {
+    const row = db
+        .select()
+        .from(financeSettings)
+        .where(eq(financeSettings.id, FINANCE_SETTINGS_ID))
+        .get();
+    if (!row) return DEFAULT_ORDER_PRICING;
+    return {
+        taxPercentBps: row.taxPercentBps,
+        shippingPercentBps: row.shippingPercentBps,
+    };
+}
+
+export function ensureFinanceSettingsRow() {
+    const existing = db
+        .select()
+        .from(financeSettings)
+        .where(eq(financeSettings.id, FINANCE_SETTINGS_ID))
+        .get();
+    if (!existing) {
+        db.insert(financeSettings)
+            .values({
+                id: FINANCE_SETTINGS_ID,
+                taxPercentBps: DEFAULT_ORDER_PRICING.taxPercentBps,
+                shippingPercentBps: DEFAULT_ORDER_PRICING.shippingPercentBps,
+            })
+            .run();
+    }
+}
+
+export function updateOrderPricingSettings(settings: OrderPricingSettings) {
+    ensureFinanceSettingsRow();
+    db.update(financeSettings)
+        .set({
+            taxPercentBps: settings.taxPercentBps,
+            shippingPercentBps: settings.shippingPercentBps,
+        })
+        .where(eq(financeSettings.id, FINANCE_SETTINGS_ID))
+        .run();
 }
 
 export function getActiveQuarter() {
@@ -27,20 +76,26 @@ export function getGiftFundValueCents(): number {
 }
 
 export function getBucketApprovedSpendCents(bucketId: number, quarterId: number): number {
-    const row = db
+    const settings = getOrderPricingSettings();
+    const rows = db
         .select({
-            total: sql<number>`coalesce(sum(${order.quantity} * ${order.unitCostCents}), 0)`,
+            quantity: order.quantity,
+            unitCostCents: order.unitCostCents,
         })
         .from(order)
         .where(
             and(
                 eq(order.stfBucketId, bucketId),
                 eq(order.quarterId, quarterId),
-                eq(order.status, "approved")
+                inArray(order.status, ["approved", "ordered"])
             )
         )
-        .get();
-    return row?.total ?? 0;
+        .all();
+
+    return rows.reduce(
+        (sum, row) => sum + computeOrderTotalCents(row.quantity, row.unitCostCents, settings),
+        0
+    );
 }
 
 export function getBucketRemainingCents(bucketId: number): number | null {
@@ -151,6 +206,54 @@ export function deductGiftFundForApproval(
             orderId,
         })
         .run();
+}
+
+export function restoreGiftFundForDeletion(
+    orderId: number,
+    totalCostCents: number,
+    changedBy: string | null
+) {
+    const current = getGiftFundValueCents();
+    const next = current + totalCostCents;
+
+    db.update(giftFund).set({ currentValueCents: next }).where(eq(giftFund.id, GIFT_FUND_ID)).run();
+
+    db.insert(giftFundLog)
+        .values({
+            changedBy,
+            changeType: "order_deleted",
+            previousValueCents: current,
+            newValueCents: next,
+            orderId,
+            note: "Refund for deleted approved order",
+        })
+        .run();
+}
+
+export function markApprovedOrdersAsOrdered(changedBy: string, orderIds?: number[]): number {
+    const approvedOrders =
+        orderIds && orderIds.length > 0
+            ? db
+                  .select()
+                  .from(order)
+                  .where(and(eq(order.status, "approved"), inArray(order.id, orderIds)))
+                  .all()
+            : db.select().from(order).where(eq(order.status, "approved")).all();
+
+    for (const existing of approvedOrders) {
+        db.update(order).set({ status: "ordered" }).where(eq(order.id, existing.id)).run();
+
+        db.insert(orderHistory)
+            .values({
+                orderId: existing.id,
+                fromStatus: "approved",
+                toStatus: "ordered",
+                changedBy,
+                note: "Marked as ordered",
+            })
+            .run();
+    }
+    return approvedOrders.length;
 }
 
 export function adjustGiftFund(

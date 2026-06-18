@@ -26,7 +26,7 @@ export default async function EditOrderPage({ params }: PageProps) {
         .get();
 
     if (!existing) notFound();
-    if (existing.status === "approved") {
+    if (existing.status === "approved" || existing.status === "ordered") {
         redirect("/orders");
     }
 

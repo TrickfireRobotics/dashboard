@@ -3,10 +3,13 @@ import { NextResponse } from "next/server";
 
 import { db } from "@/lib/db";
 import {
-    getGiftFundValueCents,
-    getStfBucketsWithBalances,
+    ensureFinanceSettingsRow,
     ensureGiftFundRow,
+    getGiftFundValueCents,
+    getOrderPricingSettings,
+    getStfBucketsWithBalances,
 } from "@/lib/finance/finance";
+import { percentBpsToDisplay } from "@/lib/finance/order-pricing";
 import { giftFundLog, stfQuarter } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
 
@@ -16,6 +19,7 @@ export async function GET() {
     if (user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     ensureGiftFundRow();
+    ensureFinanceSettingsRow();
 
     const quarters = db.select().from(stfQuarter).orderBy(desc(stfQuarter.createdAt)).all();
     const giftLog = db
@@ -25,10 +29,16 @@ export async function GET() {
         .limit(50)
         .all();
 
+    const pricing = getOrderPricingSettings();
+
     return NextResponse.json({
         giftBalanceCents: getGiftFundValueCents(),
         stfBuckets: getStfBucketsWithBalances(),
         quarters,
         giftLog,
+        orderPricing: {
+            taxPercent: percentBpsToDisplay(pricing.taxPercentBps),
+            shippingPercent: percentBpsToDisplay(pricing.shippingPercentBps),
+        },
     });
 }

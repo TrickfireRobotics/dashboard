@@ -6,9 +6,9 @@ import { user } from "./auth-schema";
 
 const now = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
 
-export type OrderStatus = "pending" | "approved" | "denied";
+export type OrderStatus = "pending" | "approved" | "denied" | "ordered";
 export type FundType = "STF" | "Gift";
-export type GiftFundChangeType = "order_approved" | "manual_adjustment";
+export type GiftFundChangeType = "order_approved" | "order_deleted" | "manual_adjustment";
 export type WhitelistStatus = "pending" | "approved" | "rejected";
 export type JoinRequestStatus = "pending" | "approved" | "rejected";
 export type VaultEntryType = "login" | "api_key";
@@ -41,6 +41,16 @@ export const stfBucket = sqliteTable("stf_bucket", {
 export const giftFund = sqliteTable("gift_fund", {
     id: integer("id").primaryKey(),
     currentValueCents: integer("current_value_cents").notNull().default(0),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" })
+        .default(now)
+        .$onUpdate(() => new Date())
+        .notNull(),
+});
+
+export const financeSettings = sqliteTable("finance_settings", {
+    id: integer("id").primaryKey(),
+    taxPercentBps: integer("tax_percent_bps").notNull().default(1100),
+    shippingPercentBps: integer("shipping_percent_bps").notNull().default(2000),
     updatedAt: integer("updated_at", { mode: "timestamp_ms" })
         .default(now)
         .$onUpdate(() => new Date())

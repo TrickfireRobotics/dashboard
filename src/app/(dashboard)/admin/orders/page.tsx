@@ -3,8 +3,12 @@ import { asc, desc, eq, sql } from "drizzle-orm";
 import { AdminOrderQueue, type AdminOrderRow } from "@/components/orders/AdminOrderQueue";
 import { db } from "@/lib/db";
 import { order, stfBucket, user } from "@/lib/db/schema";
+import { ensureFinanceSettingsRow, getOrderPricingSettings } from "@/lib/finance/finance";
+import { percentBpsToDisplay } from "@/lib/finance/order-pricing";
 
 export default async function AdminOrdersPage() {
+    ensureFinanceSettingsRow();
+    const pricing = getOrderPricingSettings();
     const rows: AdminOrderRow[] = db
         .select({
             id: order.id,
@@ -37,11 +41,18 @@ export default async function AdminOrdersPage() {
             <div>
                 <h1 className="text-3xl">Order Queue</h1>
                 <p className="text-muted-foreground">
-                    Review pending orders and browse the archive of approved and denied requests.
+                    Review pending orders, manage approved batches, and browse ordered and denied
+                    archives.
                 </p>
             </div>
 
-            <AdminOrderQueue orders={rows} />
+            <AdminOrderQueue
+                orders={rows}
+                orderPricing={{
+                    taxPercent: percentBpsToDisplay(pricing.taxPercentBps),
+                    shippingPercent: percentBpsToDisplay(pricing.shippingPercentBps),
+                }}
+            />
         </div>
     );
 }

@@ -8,12 +8,20 @@ import { TeamOrderTable, type TeamOrderRow } from "@/components/orders/TeamOrder
 import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { order, stfBucket, user as userTable } from "@/lib/db/schema";
-import { getGiftFundValueCents, getStfBucketsWithBalances } from "@/lib/finance/finance";
+import {
+    getGiftFundValueCents,
+    ensureFinanceSettingsRow,
+    getOrderPricingSettings,
+    getStfBucketsWithBalances,
+} from "@/lib/finance/finance";
+import { percentBpsToDisplay } from "@/lib/finance/order-pricing";
 import { getSessionUser } from "@/lib/auth/session";
 
 export default async function OrdersPage() {
     const user = await getSessionUser();
     if (!user) redirect("/login");
+
+    ensureFinanceSettingsRow();
 
     const myOrders: MemberOrderRow[] = db
         .select({
@@ -54,6 +62,12 @@ export default async function OrdersPage() {
 
     const giftBalanceCents = getGiftFundValueCents();
     const stfBuckets = getStfBucketsWithBalances();
+    const pricing = getOrderPricingSettings();
+    const orderPricing = {
+        taxPercent: percentBpsToDisplay(pricing.taxPercentBps),
+        shippingPercent: percentBpsToDisplay(pricing.shippingPercentBps),
+    };
+    const orderedParts = teamOrders.filter((o) => o.status === "ordered");
 
     return (
         <div className="space-y-6">
@@ -78,7 +92,7 @@ export default async function OrdersPage() {
                         Every order you&apos;ve submitted, across all statuses.
                     </p>
                 </div>
-                <OrderTable orders={myOrders} />
+                <OrderTable orders={myOrders} orderPricing={orderPricing} />
             </section>
 
             <section className="space-y-4">
@@ -89,7 +103,22 @@ export default async function OrdersPage() {
                         these in the order queue.
                     </p>
                 </div>
-                <TeamOrderTable orders={teamOrders} />
+                <TeamOrderTable orders={teamOrders} orderPricing={orderPricing} />
+            </section>
+
+            <section className="space-y-4">
+                <div>
+                    <h2 className="text-lg font-semibold">Ordered parts</h2>
+                    <p className="text-muted-foreground text-sm">
+                        Parts that officers have approved and placed with vendors.
+                    </p>
+                </div>
+                <TeamOrderTable
+                    orders={orderedParts}
+                    orderPricing={orderPricing}
+                    showFilters={false}
+                    emptyMessage="No parts have been ordered yet."
+                />
             </section>
         </div>
     );

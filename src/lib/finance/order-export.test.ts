@@ -7,10 +7,9 @@ import {
     formatApprovedStfOrders,
     formatApprovedGiftOrders,
     STF_PRICE_FLUX,
-    STF_TAX_RATE,
-    STF_SHIPPING_RATE,
     type OrderExportRow,
 } from "./order-export";
+import { DEFAULT_ORDER_PRICING } from "./order-pricing";
 
 const BASE_STF: OrderExportRow = {
     itemName: "Motor Controller",
@@ -42,13 +41,12 @@ const BASE_GIFT: OrderExportRow = {
 
 describe("stfOrderCalculations", () => {
     it("applies flux, tax, and shipping multipliers correctly", () => {
-        // qty=2, unitCostCents=5000 → unitCost=$50
-        const calc = stfOrderCalculations(2, 5000);
+        const calc = stfOrderCalculations(2, 5000, DEFAULT_ORDER_PRICING);
         expect(calc.unitCost).toBe(50);
         expect(calc.unitCostFlux).toBeCloseTo(50 * STF_PRICE_FLUX);
         expect(calc.preTaxTotal).toBeCloseTo(2 * 50 * STF_PRICE_FLUX);
-        expect(calc.tax).toBeCloseTo(calc.preTaxTotal * STF_TAX_RATE);
-        expect(calc.shipping).toBeCloseTo(calc.preTaxTotal * STF_SHIPPING_RATE);
+        expect(calc.tax).toBeCloseTo(calc.preTaxTotal * 0.11);
+        expect(calc.shipping).toBeCloseTo(calc.preTaxTotal * 0.2);
         expect(calc.total).toBeCloseTo(calc.preTaxTotal + calc.tax + calc.shipping);
     });
 
@@ -69,6 +67,15 @@ describe("stfOrderCalculations", () => {
     it("calculates total as preTaxTotal + tax + shipping", () => {
         const calc = stfOrderCalculations(3, 1000);
         expect(calc.total).toBeCloseTo(calc.preTaxTotal + calc.tax + calc.shipping, 10);
+    });
+
+    it("uses custom tax and shipping settings", () => {
+        const calc = stfOrderCalculations(2, 5000, {
+            taxPercentBps: 500,
+            shippingPercentBps: 1000,
+        });
+        expect(calc.tax).toBeCloseTo(calc.preTaxTotal * 0.05);
+        expect(calc.shipping).toBeCloseTo(calc.preTaxTotal * 0.1);
     });
 });
 
@@ -135,6 +142,7 @@ describe("formatOrderForExcel", () => {
     it("returns null for non-approved orders", () => {
         expect(formatOrderForExcel({ ...BASE_STF, status: "pending" })).toBeNull();
         expect(formatOrderForExcel({ ...BASE_STF, status: "denied" })).toBeNull();
+        expect(formatOrderForExcel({ ...BASE_STF, status: "ordered" })).toBeNull();
     });
 
     it("returns an STF row for an approved STF order", () => {
@@ -154,6 +162,7 @@ describe("formatApprovedStfOrders", () => {
     it("returns empty string when there are no approved STF orders", () => {
         expect(formatApprovedStfOrders([])).toBe("");
         expect(formatApprovedStfOrders([{ ...BASE_STF, status: "pending" }])).toBe("");
+        expect(formatApprovedStfOrders([{ ...BASE_STF, status: "ordered" }])).toBe("");
     });
 
     it("returns one row per approved STF order joined by newline", () => {
@@ -172,6 +181,7 @@ describe("formatApprovedGiftOrders", () => {
     it("returns empty string when there are no approved Gift orders", () => {
         expect(formatApprovedGiftOrders([])).toBe("");
         expect(formatApprovedGiftOrders([{ ...BASE_GIFT, status: "denied" }])).toBe("");
+        expect(formatApprovedGiftOrders([{ ...BASE_GIFT, status: "ordered" }])).toBe("");
     });
 
     it("returns one row per approved Gift order", () => {

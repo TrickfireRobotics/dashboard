@@ -1,8 +1,7 @@
 import type { FundType, OrderStatus } from "@/lib/db/schema";
+import { DEFAULT_ORDER_PRICING, type OrderPricingSettings } from "@/lib/finance/order-pricing";
 
 export const STF_PRICE_FLUX = 1.2;
-export const STF_TAX_RATE = 0.11;
-export const STF_SHIPPING_RATE = 0.2;
 
 export type OrderExportRow = {
     itemName: string;
@@ -67,20 +66,31 @@ function joinRow(cells: (string | number)[]): string {
     return cells.map((cell) => escapeTsvCell(String(cell))).join("\t");
 }
 
-export function stfOrderCalculations(quantity: number, unitCostCents: number) {
+export function stfOrderCalculations(
+    quantity: number,
+    unitCostCents: number,
+    settings: OrderPricingSettings = DEFAULT_ORDER_PRICING
+) {
     const unitCost = unitCostCents / 100;
     const unitCostFlux = unitCost * STF_PRICE_FLUX;
     const preTaxTotal = quantity * unitCostFlux;
-    const tax = preTaxTotal * STF_TAX_RATE;
-    const shipping = preTaxTotal * STF_SHIPPING_RATE;
+    const taxRate = settings.taxPercentBps / 10_000;
+    const shippingRate = settings.shippingPercentBps / 10_000;
+    const tax = preTaxTotal * taxRate;
+    const shipping = preTaxTotal * shippingRate;
     const total = preTaxTotal + tax + shipping;
     return { unitCost, unitCostFlux, preTaxTotal, tax, shipping, total };
 }
 
-export function formatStfOrderRow(order: OrderExportRow, includeHeader = false): string {
+export function formatStfOrderRow(
+    order: OrderExportRow,
+    includeHeader = false,
+    settings: OrderPricingSettings = DEFAULT_ORDER_PRICING
+): string {
     const { unitCost, unitCostFlux, preTaxTotal, tax, shipping, total } = stfOrderCalculations(
         order.quantity,
-        order.unitCostCents
+        order.unitCostCents,
+        settings
     );
 
     const row = joinRow([
@@ -118,17 +128,24 @@ export function formatGiftOrderRow(order: OrderExportRow, includeHeader = false)
     return `${joinRow([...GIFT_EXCEL_HEADERS])}\n${row}`;
 }
 
-export function formatOrderForExcel(order: OrderExportRow, includeHeader = false): string | null {
+export function formatOrderForExcel(
+    order: OrderExportRow,
+    includeHeader = false,
+    settings: OrderPricingSettings = DEFAULT_ORDER_PRICING
+): string | null {
     if (order.status !== "approved") return null;
-    if (order.fundType === "STF") return formatStfOrderRow(order, includeHeader);
+    if (order.fundType === "STF") return formatStfOrderRow(order, includeHeader, settings);
     if (order.fundType === "Gift") return formatGiftOrderRow(order, includeHeader);
     return null;
 }
 
-export function formatApprovedStfOrders(orders: OrderExportRow[]): string {
+export function formatApprovedStfOrders(
+    orders: OrderExportRow[],
+    settings: OrderPricingSettings = DEFAULT_ORDER_PRICING
+): string {
     const approved = orders.filter((o) => o.status === "approved" && o.fundType === "STF");
     if (approved.length === 0) return "";
-    return approved.map((o) => formatStfOrderRow(o)).join("\n");
+    return approved.map((o) => formatStfOrderRow(o, false, settings)).join("\n");
 }
 
 export function formatApprovedGiftOrders(orders: OrderExportRow[]): string {

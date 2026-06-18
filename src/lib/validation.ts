@@ -54,6 +54,10 @@ export const ORDER_ACTION_STATUS = {
     deny: "denied",
 } as const;
 
+export const markOrderedSchema = z.object({
+    orderIds: z.array(z.coerce.number().int().positive()).min(1).optional(),
+});
+
 // Finance ------------------------------------------------------------------
 
 export const stfBucketInputSchema = z.object({
@@ -79,6 +83,11 @@ export const giftFundAdjustSchema = z.object({
 export const quarterResetSchema = z.object({
     quarterName: z.string().trim().min(1).max(100),
     newQuarterName: z.string().trim().min(1).max(100),
+});
+
+export const financeSettingsUpdateSchema = z.object({
+    taxPercent: z.coerce.number().min(0, "Tax cannot be negative").max(100),
+    shippingPercent: z.coerce.number().min(0, "Shipping cannot be negative").max(100),
 });
 
 // API keys -----------------------------------------------------------------

@@ -6,5 +6,9 @@ export default defineConfig({
     },
     test: {
         environment: "node",
+        env: {
+            DATABASE_PATH: "db/test.db",
+        },
+        globalSetup: ["./vitest.global-setup.ts"],
     },
 });
