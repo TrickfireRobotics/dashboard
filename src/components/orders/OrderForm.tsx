@@ -33,7 +33,7 @@ import {
     StfBucketSelectItemContent,
 } from "@/components/BalanceAmount";
 import type { FundType, OrderStatus } from "@/lib/db/schema";
-import { computeOrderTotalCents, displayPercentToBps } from "@/lib/finance/order-pricing";
+import { orderChargeCents, displayPercentToBps } from "@/lib/finance/order-pricing";
 import { cn, formatPriceCents } from "@/lib/utils";
 
 type StfBucketBalance = {
@@ -166,13 +166,14 @@ export function OrderForm({ initialOrder }: { initialOrder?: OrderFormInitial })
         const cost = Number(unitCost);
         const pricing = balances?.orderPricing;
         if (!Number.isFinite(qty) || !Number.isFinite(cost) || qty < 1 || cost <= 0) return null;
-        if (!pricing) return null;
+        if (!pricing || !fundType) return null;
         const unitCostCents = Math.round(cost * 100);
-        return computeOrderTotalCents(qty, unitCostCents, {
+        const settings = {
             taxPercentBps: displayPercentToBps(pricing.taxPercent),
             shippingPercentBps: displayPercentToBps(pricing.shippingPercent),
-        });
-    }, [quantity, unitCost, balances?.orderPricing]);
+        };
+        return orderChargeCents(fundType, qty, unitCostCents, settings);
+    }, [quantity, unitCost, balances?.orderPricing, fundType]);
 
     const balanceError = useMemo(() => {
         if (!fundType || totalCostCents == null || !balances) return null;

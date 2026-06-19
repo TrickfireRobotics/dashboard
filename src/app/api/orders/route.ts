@@ -2,7 +2,12 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { order } from "@/lib/db/schema";
-import { getActiveQuarter, orderTotalCents, validateOrderBalance } from "@/lib/finance/finance";
+import {
+    getActiveQuarter,
+    ensureFinanceSettingsRow,
+    orderTotalCents,
+    validateOrderBalance,
+} from "@/lib/finance/finance";
 import { getSessionUser } from "@/lib/auth/session";
 import { orderInputSchema } from "@/lib/validation";
 
@@ -22,8 +27,9 @@ export async function POST(req: NextRequest) {
     }
 
     const d = parsed.data;
+    ensureFinanceSettingsRow();
     const unitCostCents = Math.round(d.unitCost * 100);
-    const totalCostCents = orderTotalCents(d.quantity, unitCostCents);
+    const totalCostCents = orderTotalCents(d.quantity, unitCostCents, d.fundType);
 
     const balanceCheck = validateOrderBalance(d.fundType, d.stfBucketId, totalCostCents);
     if (!balanceCheck.ok) {

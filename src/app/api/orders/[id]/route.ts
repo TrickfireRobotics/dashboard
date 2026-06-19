@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { order, orderHistory } from "@/lib/db/schema";
 import {
+    ensureFinanceSettingsRow,
     getActiveQuarter,
     orderTotalCents,
     restoreGiftFundForDeletion,
@@ -55,8 +56,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const d = parsed.data;
+    ensureFinanceSettingsRow();
     const unitCostCents = Math.round(d.unitCost * 100);
-    const totalCostCents = orderTotalCents(d.quantity, unitCostCents);
+    const totalCostCents = orderTotalCents(d.quantity, unitCostCents, d.fundType);
 
     const balanceCheck = validateOrderBalance(d.fundType, d.stfBucketId, totalCostCents);
     if (!balanceCheck.ok) {
@@ -132,7 +134,11 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     }
 
     if (isLockedOrderStatus(existing.status) && existing.fundType === "Gift") {
-        const totalCostCents = orderTotalCents(existing.quantity, existing.unitCostCents);
+        const totalCostCents = orderTotalCents(
+            existing.quantity,
+            existing.unitCostCents,
+            existing.fundType
+        );
         restoreGiftFundForDeletion(orderId, totalCostCents, user.id);
     }
 

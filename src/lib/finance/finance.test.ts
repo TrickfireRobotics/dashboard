@@ -44,20 +44,24 @@ afterEach(() => {
 });
 
 describe("orderTotalCents", () => {
-    it("includes default tax and shipping on the subtotal", () => {
-        expect(orderTotalCents(2, 5000)).toBe(13_100);
+    it("includes default tax and shipping on the gift subtotal", () => {
+        expect(orderTotalCents(2, 5000, "Gift")).toBe(13_100);
+    });
+
+    it("includes flux, tax, and shipping on the STF subtotal", () => {
+        expect(orderTotalCents(2, 5000, "STF")).toBe(15_720);
     });
 
     it("returns 0 when quantity is 0", () => {
-        expect(orderTotalCents(0, 5000)).toBe(0);
+        expect(orderTotalCents(0, 5000, "Gift")).toBe(0);
     });
 
     it("returns 0 when unit cost is 0", () => {
-        expect(orderTotalCents(5, 0)).toBe(0);
+        expect(orderTotalCents(5, 0, "STF")).toBe(0);
     });
 
     it("handles large quantities and costs without overflow", () => {
-        const result = orderTotalCents(9999, 999999);
+        const result = orderTotalCents(9999, 999999, "Gift");
         expect(Number.isFinite(result)).toBe(true);
         expect(result).toBe(
             computeExpectedTotal(
@@ -76,7 +80,8 @@ describe("updateOrderPricingSettings", () => {
         updateOrderPricingSettings({ taxPercentBps: 500, shippingPercentBps: 1000 });
 
         expect(getOrderPricingSettings()).toEqual({ taxPercentBps: 500, shippingPercentBps: 1000 });
-        expect(orderTotalCents(1, 10_000)).toBe(11_500);
+        expect(orderTotalCents(1, 10_000, "Gift")).toBe(11_500);
+        expect(orderTotalCents(1, 10_000, "STF")).toBe(13_800);
 
         updateOrderPricingSettings(previous);
         expect(getOrderPricingSettings()).toEqual(previous);
@@ -117,7 +122,7 @@ describe("getBucketApprovedSpendCents", () => {
             .get();
 
         const spendAfterApproved = getBucketApprovedSpendCents(bucketRecord.id, quarter.id);
-        expect(spendAfterApproved - spendBefore).toBe(orderTotalCents(1, 1000));
+        expect(spendAfterApproved - spendBefore).toBe(orderTotalCents(1, 1000, "STF"));
 
         db.update(order).set({ status: "ordered" }).where(eq(order.id, approved.id)).run();
         const spendAfterOrdered = getBucketApprovedSpendCents(bucketRecord.id, quarter.id);
@@ -151,7 +156,7 @@ describe("restoreGiftFundForDeletion", () => {
             .returning()
             .get();
 
-        const total = orderTotalCents(1, 5000);
+        const total = orderTotalCents(1, 5000, "Gift");
         deductGiftFundForApproval(giftOrder.id, total, requester.id);
 
         const afterDeduction = db
