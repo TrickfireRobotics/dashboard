@@ -50,6 +50,29 @@ export const auth = betterAuth({
         autoSignInAfterVerification: true,
     },
     user: {
+        changeEmail: {
+            enabled: true,
+            async sendChangeEmailVerification({
+                newEmail,
+                url,
+            }: {
+                newEmail: string;
+                url: string;
+            }) {
+                await sendEmail({
+                    to: newEmail,
+                    subject: "Confirm your new TrickFire email",
+                    html: `
+                        <div style="font-family:sans-serif;max-width:400px;margin:0 auto">
+                            <h2 style="color:#00fe00">Confirm email change</h2>
+                            <p>Click the button below to confirm your new email address.</p>
+                            <a href="${url}" style="display:inline-block;background:#00fe00;color:#000;font-weight:bold;padding:12px 24px;border-radius:6px;text-decoration:none;margin:16px 0">Confirm new email</a>
+                            <p style="color:#999;font-size:13px">If you didn't request this, ignore this email — your address will not change.</p>
+                        </div>
+                    `,
+                });
+            },
+        },
         additionalFields: {
             role: {
                 type: "string",
