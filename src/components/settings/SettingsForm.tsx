@@ -7,6 +7,16 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -31,11 +41,22 @@ const emailSchema = z.object({
 type NameValues = z.infer<typeof nameSchema>;
 type EmailValues = z.infer<typeof emailSchema>;
 
-export function SettingsForm({ name, email }: { name: string; email: string }) {
+export function SettingsForm({
+    name,
+    email,
+    onCooldown,
+    cooldownUntil,
+}: {
+    name: string;
+    email: string;
+    onCooldown: boolean;
+    cooldownUntil: string | null;
+}) {
     const router = useRouter();
     const [nameSubmitting, setNameSubmitting] = useState(false);
     const [emailSubmitting, setEmailSubmitting] = useState(false);
     const [emailSent, setEmailSent] = useState(false);
+    const [pendingName, setPendingName] = useState<string | null>(null);
 
     const nameForm = useForm<NameValues>({
         resolver: zodResolver(nameSchema),
@@ -47,20 +68,35 @@ export function SettingsForm({ name, email }: { name: string; email: string }) {
         defaultValues: { newEmail: "" },
     });
 
-    async function onNameSubmit(values: NameValues) {
+    function onNameSubmit(values: NameValues) {
         if (values.name === name) {
             toast.info("No change to save.");
             return;
         }
+        setPendingName(values.name);
+    }
+
+    async function confirmNameChange() {
+        if (!pendingName) return;
         setNameSubmitting(true);
-        const { error } = await authClient.updateUser({ name: values.name });
-        setNameSubmitting(false);
-        if (error) {
-            toast.error(error.message ?? "Failed to update name");
-            return;
+        try {
+            const res = await fetch("/api/user/name", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: pendingName }),
+            });
+            const data = await res.json().catch(() => null);
+            if (!res.ok) {
+                throw new Error(data?.error ?? "Failed to update name");
+            }
+            toast.success("Name updated.");
+            router.refresh();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Something went wrong");
+        } finally {
+            setNameSubmitting(false);
+            setPendingName(null);
         }
-        toast.success("Name updated.");
-        router.refresh();
     }
 
     async function onEmailSubmit(values: EmailValues) {
@@ -87,6 +123,11 @@ export function SettingsForm({ name, email }: { name: string; email: string }) {
             <Card>
                 <CardHeader>
                     <CardTitle>Display name</CardTitle>
+                    {onCooldown && cooldownUntil && (
+                        <CardDescription>
+                            You can change your name again on {cooldownUntil}.
+                        </CardDescription>
+                    )}
                 </CardHeader>
                 <CardContent>
                     <Form {...nameForm}>
@@ -98,19 +139,40 @@ export function SettingsForm({ name, email }: { name: string; email: string }) {
                                     <FormItem>
                                         <FormLabel>Name</FormLabel>
                                         <FormControl>
-                                            <Input {...field} />
+                                            <Input {...field} disabled={onCooldown} />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-                            <Button type="submit" disabled={nameSubmitting}>
+                            <Button type="submit" disabled={nameSubmitting || onCooldown}>
                                 {nameSubmitting ? "Saving…" : "Save name"}
                             </Button>
                         </form>
                     </Form>
                 </CardContent>
             </Card>
+
+            <AlertDialog
+                open={pendingName != null}
+                onOpenChange={(open) => !open && setPendingName(null)}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Change display name?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Your name will be changed to &ldquo;{pendingName}&rdquo;. You won&apos;t
+                            be able to change it again for 7 days.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmNameChange} disabled={nameSubmitting}>
+                            {nameSubmitting ? "Saving…" : "Change name"}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             <Card>
                 <CardHeader>

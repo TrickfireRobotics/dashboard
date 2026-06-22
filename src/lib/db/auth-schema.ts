@@ -18,6 +18,7 @@ export const user = sqliteTable("user", {
     isActive: integer("is_active", { mode: "boolean" }).default(true),
     canAccessVault: integer("can_access_vault", { mode: "boolean" }).default(false),
     approved: integer("approved", { mode: "boolean" }).default(false),
+    nameChangedAt: integer("name_changed_at"),
 });
 
 export const session = sqliteTable(

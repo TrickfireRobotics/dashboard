@@ -98,6 +98,12 @@ export const auth = betterAuth({
                 defaultValue: false,
                 input: false,
             },
+            nameChangedAt: {
+                type: "number",
+                required: false,
+                defaultValue: null,
+                input: false,
+            },
         },
     },
 });
