@@ -6,6 +6,16 @@ import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth/client";
 import { NavContent } from "./SidebarNav";
@@ -26,6 +36,7 @@ export function Sidebar({
 }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [confirmOpen, setConfirmOpen] = useState(false);
 
     async function handleSignOut() {
         setLoading(true);
@@ -60,23 +71,40 @@ export function Sidebar({
                 grantedFeatures={grantedFeatures}
             />
             <div className="border-sidebar-border flex items-center gap-3 border-t px-4 py-3">
-                <div className="min-w-0 flex-1">
+                <Link
+                    href="/settings"
+                    className="hover:bg-sidebar-accent min-w-0 flex-1 rounded-md p-1 transition-colors"
+                >
                     <p className="truncate text-sm font-medium" title={name}>
                         {name}
                     </p>
                     <p className="text-muted-foreground truncate text-xs" title={email}>
                         {email}
                     </p>
-                </div>
+                </Link>
                 <Button
                     variant="outline"
                     size="icon"
-                    onClick={handleSignOut}
                     disabled={loading}
                     className="h-9 w-9 shrink-0"
+                    onClick={() => setConfirmOpen(true)}
                 >
                     <LogOut className="size-4" />
                 </Button>
+                <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Sign out?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                You&apos;ll need to sign in again to access the dashboard.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleSignOut}>Sign out</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
             </div>
         </aside>
     );
