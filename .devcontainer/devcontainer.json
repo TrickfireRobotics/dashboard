@@ -29,6 +29,6 @@
     "containerEnv": {
         "DATABASE_PATH": "db/dashboard.db"
     },
-    "postCreateCommand": "corepack enable && pnpm install && cp -n .env.example .env.local && pnpm setup",
+    "postCreateCommand": "sudo corepack enable && pnpm install && cp -n .env.example .env.local && pnpm setup",
     "remoteUser": "node"
 }

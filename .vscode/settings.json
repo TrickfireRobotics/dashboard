@@ -21,6 +21,7 @@
         "node_modules": true,
         "tsconfig.tsbuildinfo": true,
         "next-env.d.ts": true,
-        ".husky/_*": true
+        ".husky/_*": true,
+        ".pnpm-store/": true
     }
 }
