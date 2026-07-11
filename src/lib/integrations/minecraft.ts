@@ -1,5 +1,5 @@
 import { status as queryStatus } from "minecraft-server-util";
-import { getBotNames } from "./azalea";
+import { getBotNames, isOfflineUUID } from "./azalea";
 
 export type PlayerSample = { name: string; uuid: string; isBot: boolean };
 
@@ -43,7 +43,7 @@ export async function getServerStatus(): Promise<ServerStatus> {
             res.players.sample?.map((player) => ({
                 name: player.name,
                 uuid: player.id,
-                isBot: bots.has(player.name),
+                isBot: bots.has(player.name) && isOfflineUUID(player.id, player.name),
             })) ?? [];
 
         value = {

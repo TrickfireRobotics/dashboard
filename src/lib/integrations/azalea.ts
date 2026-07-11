@@ -9,6 +9,7 @@ import {
     statSync,
     writeFileSync,
 } from "fs";
+import { createHash } from "crypto";
 import { createInterface } from "readline";
 import * as path from "path";
 import { RCON } from "minecraft-server-util";
@@ -103,14 +104,28 @@ export async function sendCommand(cmd: string): Promise<{ ok: boolean; error?: s
     }
 }
 
+const RCON_TIMEOUT_MS = 4_000;
+
 async function rconQuery(cmd: string): Promise<string | null> {
     const password = rconPassword();
     if (!password) return null;
     const client = new RCON();
     try {
-        await client.connect(rconHost(), rconPort());
-        await client.login(password);
-        const response = await client.execute(cmd);
+        await Promise.race([
+            (async () => {
+                await client.connect(rconHost(), rconPort());
+                await client.login(password);
+            })(),
+            new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("RCON connect timeout")), RCON_TIMEOUT_MS)
+            ),
+        ]);
+        const response = await Promise.race([
+            client.execute(cmd),
+            new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("RCON execute timeout")), RCON_TIMEOUT_MS)
+            ),
+        ]);
         return response;
     } catch {
         return null;
@@ -121,16 +136,44 @@ async function rconQuery(cmd: string): Promise<string | null> {
     }
 }
 
+let botNamesCache: { names: Set<string>; expiresAt: number } | null = null;
+
 /** Returns the set of player names currently in the `bots` scoreboard team via RCON.
  *  Falls back to an empty set on any error (e.g. server offline). */
 export async function getBotNames(): Promise<Set<string>> {
+    if (botNamesCache && botNamesCache.expiresAt > Date.now()) return botNamesCache.names;
+
     const response = await rconQuery("team list bots");
+    const names = parseTeamList(response);
+    botNamesCache = { names, expiresAt: Date.now() + 30_000 };
+    return names;
+}
+
+/**
+ * Returns true if the given UUID is the offline-mode UUID Carpet assigns to fake players.
+ * Carpet uses Java's UUID.nameUUIDFromBytes("OfflinePlayer:<name>") — MD5-based, version 3.
+ * Real players always have Mojang-issued version-4 UUIDs, so this distinguishes them even
+ * when a real player shares a name with a former bot.
+ */
+export function isOfflineUUID(uuid: string, name: string): boolean {
+    const hash = createHash("md5").update(`OfflinePlayer:${name}`).digest();
+    hash[6] = (hash[6] & 0x0f) | 0x30; // version 3
+    hash[8] = (hash[8] & 0x3f) | 0x80; // RFC 4122 variant
+    const hex = hash.toString("hex");
+    const expected = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+    return uuid.toLowerCase().replace(/-/g, "") === expected.replace(/-/g, "");
+}
+
+function parseTeamList(response: string | null): Set<string> {
     if (!response) return new Set();
-    // MC 1.21 response: "Team bots has N members: Name1, Name2" or "Team bots has 0 members"
-    const match = response.match(/members:\s*(.+)$/i);
-    if (!match) return new Set();
+    // MC 1.21 format: "Team [bots] has N member(s): Name1, Name2"
+    // Split on last colon to get the member list regardless of singular/plural wording.
+    const colonIdx = response.lastIndexOf(":");
+    if (colonIdx === -1) return new Set();
+    const list = response.slice(colonIdx + 1).trim();
+    if (!list) return new Set();
     return new Set(
-        match[1]
+        list
             .split(",")
             .map((s) => s.trim())
             .filter(Boolean)
