@@ -1,6 +1,7 @@
 import { status as queryStatus } from "minecraft-server-util";
+import { getBotNames } from "./azalea";
 
-export type PlayerSample = { name: string; uuid: string; isBot: boolean; skinSource?: string };
+export type PlayerSample = { name: string; uuid: string; isBot: boolean };
 
 export type ServerStatus = {
     online: boolean;
@@ -24,39 +25,26 @@ function port() {
     return Number(process.env.MINECRAFT_SERVER_PORT ?? 25565);
 }
 
-function botNames(): { name: string; skin?: string }[] {
-    return (process.env.MINECRAFT_BOT_NAMES ?? "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .map((entry) => {
-            const i = entry.indexOf(":");
-            if (i === -1) return { name: entry };
-            return { name: entry.slice(0, i).trim(), skin: entry.slice(i + 1).trim() || undefined };
-        });
-}
-
 // In-memory cache resets on server restart; first request after deploy is live.
 export async function getServerStatus(): Promise<ServerStatus> {
     if (cache && cache.expiresAt > Date.now()) return cache.value;
 
     const h = host();
     const p = port();
-    const bots = botNames();
 
     let value: ServerStatus;
     try {
-        const res = await queryStatus(h, p, { timeout: 5_000 });
+        const [res, bots] = await Promise.all([
+            queryStatus(h, p, { timeout: 5_000 }),
+            getBotNames(),
+        ]);
 
-        let botIndex = 0;
         const playerSample: PlayerSample[] =
-            res.players.sample?.map((player) => {
-                if (player.name === "Anonymous Player" && botIndex < bots.length) {
-                    const bot = bots[botIndex++];
-                    return { name: bot.name, uuid: player.id, isBot: true, skinSource: bot.skin };
-                }
-                return { name: player.name, uuid: player.id, isBot: false };
-            }) ?? [];
+            res.players.sample?.map((player) => ({
+                name: player.name,
+                uuid: player.id,
+                isBot: bots.has(player.name),
+            })) ?? [];
 
         value = {
             online: true,

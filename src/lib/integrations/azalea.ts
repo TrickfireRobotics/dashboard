@@ -103,6 +103,40 @@ export async function sendCommand(cmd: string): Promise<{ ok: boolean; error?: s
     }
 }
 
+async function rconQuery(cmd: string): Promise<string | null> {
+    const password = rconPassword();
+    if (!password) return null;
+    const client = new RCON();
+    try {
+        await client.connect(rconHost(), rconPort());
+        await client.login(password);
+        const response = await client.execute(cmd);
+        return response;
+    } catch {
+        return null;
+    } finally {
+        try {
+            client.close();
+        } catch {}
+    }
+}
+
+/** Returns the set of player names currently in the `bots` scoreboard team via RCON.
+ *  Falls back to an empty set on any error (e.g. server offline). */
+export async function getBotNames(): Promise<Set<string>> {
+    const response = await rconQuery("team list bots");
+    if (!response) return new Set();
+    // MC 1.21 response: "Team bots has N members: Name1, Name2" or "Team bots has 0 members"
+    const match = response.match(/members:\s*(.+)$/i);
+    if (!match) return new Set();
+    return new Set(
+        match[1]
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean)
+    );
+}
+
 export function getRecentLogs(): string[] {
     const dir = serverDir();
     if (!dir) return [];

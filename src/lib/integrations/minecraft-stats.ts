@@ -2,29 +2,16 @@ import { readdir, readFile } from "fs/promises";
 import path from "path";
 
 import { LRUCache } from "lru-cache";
+import { getBotNames } from "./azalea";
 
 export type LeaderboardEntry = {
     uuid: string;
     name: string;
     playTimeSeconds: number;
     isBot: boolean;
-    skinSource?: string;
 };
 
 const nameCache = new LRUCache<string, string>({ max: 500, ttl: 24 * 60 * 60 * 1000 });
-
-function parsedBots(): Map<string, string | undefined> {
-    const map = new Map<string, string | undefined>();
-    for (const entry of (process.env.MINECRAFT_BOT_NAMES ?? "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)) {
-        const i = entry.indexOf(":");
-        if (i === -1) map.set(entry, undefined);
-        else map.set(entry.slice(0, i).trim(), entry.slice(i + 1).trim() || undefined);
-    }
-    return map;
-}
 
 let leaderboardCache: { entries: LeaderboardEntry[]; expiresAt: number } | null = null;
 
@@ -63,8 +50,20 @@ export async function getPlaytimeLeaderboard(): Promise<LeaderboardEntry[]> {
         return [];
     }
 
+    const [entries, bots] = await Promise.all([collectEntries(statsPath, files), getBotNames()]);
+
+    for (const entry of entries) {
+        entry.isBot = bots.has(entry.name);
+    }
+
+    const filtered = entries.filter((e) => !e.isBot);
+    filtered.sort((a, b) => b.playTimeSeconds - a.playTimeSeconds);
+    leaderboardCache = { entries: filtered, expiresAt: Date.now() + 5 * 60 * 1000 };
+    return filtered;
+}
+
+async function collectEntries(statsPath: string, files: string[]): Promise<LeaderboardEntry[]> {
     const entries: LeaderboardEntry[] = [];
-    const bots = parsedBots();
 
     for (const file of files) {
         if (!file.endsWith(".json")) continue;
@@ -82,21 +81,16 @@ export async function getPlaytimeLeaderboard(): Promise<LeaderboardEntry[]> {
             const name = await getPlayerName(uuid);
             if (!name) continue;
 
-            const isBot = bots.has(name);
             entries.push({
                 uuid,
                 name,
                 playTimeSeconds: Math.floor(ticks / 20),
-                isBot,
-                skinSource: isBot ? bots.get(name) : undefined,
+                isBot: false, // filled in after getBotNames()
             });
         } catch {
             // skip malformed stat files
         }
     }
 
-    const filtered = entries.filter((e) => !e.isBot);
-    filtered.sort((a, b) => b.playTimeSeconds - a.playTimeSeconds);
-    leaderboardCache = { entries: filtered, expiresAt: Date.now() + 5 * 60 * 1000 };
-    return filtered;
+    return entries;
 }
