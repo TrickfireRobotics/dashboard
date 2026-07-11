@@ -2,7 +2,7 @@ import { readdir, readFile } from "fs/promises";
 import path from "path";
 
 import { LRUCache } from "lru-cache";
-import { getBotNames, isOfflineUUID } from "./azalea";
+import { isOfflineUUID } from "./azalea";
 
 export type LeaderboardEntry = {
     uuid: string;
@@ -50,10 +50,10 @@ export async function getPlaytimeLeaderboard(): Promise<LeaderboardEntry[]> {
         return [];
     }
 
-    const [entries, bots] = await Promise.all([collectEntries(statsPath, files), getBotNames()]);
+    const entries = await collectEntries(statsPath, files);
 
     for (const entry of entries) {
-        entry.isBot = bots.has(entry.name) && isOfflineUUID(entry.uuid, entry.name);
+        entry.isBot = isOfflineUUID(entry.uuid, entry.name);
     }
 
     const filtered = entries.filter((e) => !e.isBot);

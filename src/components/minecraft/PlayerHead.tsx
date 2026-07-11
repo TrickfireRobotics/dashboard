@@ -16,10 +16,18 @@ export function resolveAvatarSrc(name: string, skinSource?: string): string {
     return `https://mc-heads.net/avatar/${name}/${SIZE}`;
 }
 
-export function PlayerHead({ name, skinSource }: { name: string; skinSource?: string }) {
+export function PlayerHead({
+    name,
+    skinSource,
+    isSkin,
+}: {
+    name: string;
+    skinSource?: string;
+    isSkin?: boolean;
+}) {
     const src = resolveAvatarSrc(name, skinSource);
 
-    if (isRawSkinTexture(src)) {
+    if (isSkin || isRawSkinTexture(src)) {
         const px = SIZE / 8;
         const bgSize = 64 * px;
         const bgPos = -(8 * px);

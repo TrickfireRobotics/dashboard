@@ -14,6 +14,7 @@ type Props = {
 
 export function OnlinePlayersCard({ status, loading }: Props) {
     const players = status?.playerSample ?? [];
+    const botSkinUrl = process.env.MINECRAFT_BOT_SKIN_URL;
     const isOnline = status?.online ?? false;
 
     return (
@@ -46,7 +47,8 @@ export function OnlinePlayersCard({ status, loading }: Props) {
                             <li key={p.uuid} className="flex items-center gap-2.5 py-0.5">
                                 <PlayerHead
                                     name={p.name}
-                                    skinSource={p.isBot ? p.skinSource : undefined}
+                                    skinSource={p.isBot ? botSkinUrl : undefined}
+                                    isSkin={p.isBot && !!botSkinUrl}
                                 />
                                 <span className="text-foreground text-sm">{p.name}</span>
                                 {p.isBot && (
