@@ -17,6 +17,7 @@ type ServerStatus = {
     version: string | null;
     host: string;
     port: number;
+    botSkinUrl: string | null;
 };
 
 export function ServerStatusSection() {

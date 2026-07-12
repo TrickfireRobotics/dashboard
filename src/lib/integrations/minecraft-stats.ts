@@ -53,7 +53,7 @@ export async function getPlaytimeLeaderboard(): Promise<LeaderboardEntry[]> {
     const entries = await collectEntries(statsPath, files);
 
     for (const entry of entries) {
-        entry.isBot = isOfflineUUID(entry.uuid, entry.name);
+        entry.isBot = isOfflineUUID(entry.uuid);
     }
 
     const filtered = entries.filter((e) => !e.isBot);

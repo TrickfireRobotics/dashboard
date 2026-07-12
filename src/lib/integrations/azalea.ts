@@ -9,7 +9,6 @@ import {
     statSync,
     writeFileSync,
 } from "fs";
-import { createHash } from "crypto";
 import { createInterface } from "readline";
 import * as path from "path";
 import { RCON } from "minecraft-server-util";
@@ -150,18 +149,13 @@ export async function getBotNames(): Promise<Set<string>> {
 }
 
 /**
- * Returns true if the given UUID is the offline-mode UUID Carpet assigns to fake players.
- * Carpet uses Java's UUID.nameUUIDFromBytes("OfflinePlayer:<name>") — MD5-based, version 3.
- * Real players always have Mojang-issued version-4 UUIDs, so this distinguishes them even
- * when a real player shares a name with a former bot.
+ * Returns true if the UUID is a version-3 (offline-mode) UUID.
+ * On online-mode servers, Mojang issues version-4 UUIDs to all real players.
+ * Fake players (Carpet bots, any offline spawn) always get version-3 UUIDs,
+ * so this reliably identifies them without name-specific computation.
  */
-export function isOfflineUUID(uuid: string, name: string): boolean {
-    const hash = createHash("md5").update(`OfflinePlayer:${name}`).digest();
-    hash[6] = (hash[6] & 0x0f) | 0x30; // version 3
-    hash[8] = (hash[8] & 0x3f) | 0x80; // RFC 4122 variant
-    const hex = hash.toString("hex");
-    const expected = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
-    return uuid.toLowerCase().replace(/-/g, "") === expected.replace(/-/g, "");
+export function isOfflineUUID(uuid: string): boolean {
+    return uuid.replace(/-/g, "")[12] === "3";
 }
 
 function parseTeamList(response: string | null): Set<string> {

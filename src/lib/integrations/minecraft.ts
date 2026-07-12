@@ -1,5 +1,5 @@
 import { status as queryStatus } from "minecraft-server-util";
-import { isOfflineUUID } from "./azalea";
+import { getBotNames } from "./azalea";
 
 export type PlayerSample = { name: string; uuid: string; isBot: boolean };
 
@@ -13,6 +13,7 @@ export type ServerStatus = {
     host: string;
     port: number;
     checkedAt: number;
+    botSkinUrl: string | null;
 };
 
 const TTL_MS = 30_000;
@@ -32,15 +33,19 @@ export async function getServerStatus(): Promise<ServerStatus> {
     const h = host();
     const p = port();
 
+    const botSkinUrl = process.env.MINECRAFT_BOT_SKIN_URL ?? null;
     let value: ServerStatus;
     try {
-        const res = await queryStatus(h, p, { timeout: 5_000 });
+        const [res, botNames] = await Promise.all([
+            queryStatus(h, p, { timeout: 5_000 }),
+            getBotNames(),
+        ]);
 
         const playerSample: PlayerSample[] =
             res.players.sample?.map((player) => ({
                 name: player.name,
                 uuid: player.id,
-                isBot: isOfflineUUID(player.id, player.name),
+                isBot: botNames.has(player.name),
             })) ?? [];
 
         value = {
@@ -53,6 +58,7 @@ export async function getServerStatus(): Promise<ServerStatus> {
             host: h,
             port: p,
             checkedAt: Date.now(),
+            botSkinUrl,
         };
     } catch {
         value = {
@@ -65,6 +71,7 @@ export async function getServerStatus(): Promise<ServerStatus> {
             host: h,
             port: p,
             checkedAt: Date.now(),
+            botSkinUrl,
         };
     }
 

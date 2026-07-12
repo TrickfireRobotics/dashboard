@@ -8,13 +8,13 @@ import { PlayerHead } from "./PlayerHead";
 type Player = { name: string; uuid: string; isBot: boolean; skinSource?: string };
 
 type Props = {
-    status: { online: boolean; playerSample: Player[] | null } | null;
+    status: { online: boolean; playerSample: Player[] | null; botSkinUrl: string | null } | null;
     loading: boolean;
 };
 
 export function OnlinePlayersCard({ status, loading }: Props) {
     const players = status?.playerSample ?? [];
-    const botSkinUrl = process.env.MINECRAFT_BOT_SKIN_URL;
+    const botSkinUrl = status?.botSkinUrl ?? undefined;
     const isOnline = status?.online ?? false;
 
     return (
