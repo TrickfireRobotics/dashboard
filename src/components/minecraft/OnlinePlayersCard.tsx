@@ -13,7 +13,9 @@ type Props = {
 };
 
 export function OnlinePlayersCard({ status, loading }: Props) {
-    const players = status?.playerSample ?? [];
+    const players = [...(status?.playerSample ?? [])].sort(
+        (a, b) => Number(a.isBot) - Number(b.isBot)
+    );
     const botSkinUrl = status?.botSkinUrl ?? undefined;
     const isOnline = status?.online ?? false;
 
@@ -50,12 +52,12 @@ export function OnlinePlayersCard({ status, loading }: Props) {
                                     skinSource={p.isBot ? botSkinUrl : undefined}
                                     isSkin={p.isBot && !!botSkinUrl}
                                 />
-                                <span className="text-foreground text-sm">{p.name}</span>
                                 {p.isBot && (
                                     <Badge variant="secondary" className="text-xs">
                                         Bot
                                     </Badge>
                                 )}
+                                <span className="text-foreground text-sm">{p.name}</span>
                             </li>
                         ))}
                     </ul>
