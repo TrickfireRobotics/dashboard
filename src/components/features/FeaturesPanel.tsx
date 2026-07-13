@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -15,6 +16,7 @@ import {
     CardTitle,
 } from "@/components/ui/card";
 import type { FeatureKey } from "@/lib/features";
+import { FEATURES } from "@/lib/features";
 
 type FeatureRow = {
     key: FeatureKey;
@@ -76,11 +78,16 @@ export function FeaturesPanel({
             {features.map((f) => {
                 const isDenied = deniedKey === f.key;
                 const canRequest = f.status === null || f.status === "rejected";
-                return (
+                const isGranted = f.status === "granted";
+                const card = (
                     <Card
-                        key={f.key}
                         ref={isDenied ? deniedRef : undefined}
-                        className={isDenied ? "ring-destructive ring-2" : undefined}
+                        className={[
+                            isDenied ? "ring-destructive ring-2" : undefined,
+                            isGranted ? "transition-shadow hover:shadow-md" : undefined,
+                        ]
+                            .filter(Boolean)
+                            .join(" ")}
                     >
                         <CardHeader className="pb-2">
                             <div className="flex items-center justify-between gap-2">
@@ -124,6 +131,13 @@ export function FeaturesPanel({
                             </>
                         )}
                     </Card>
+                );
+                return isGranted ? (
+                    <Link key={f.key} href={FEATURES[f.key].route} className="block">
+                        {card}
+                    </Link>
+                ) : (
+                    <div key={f.key}>{card}</div>
                 );
             })}
         </div>
