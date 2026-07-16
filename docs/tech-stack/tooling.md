@@ -1,0 +1,83 @@
+---
+title: Code Quality Tooling
+description: ESLint, Prettier, Husky, lint-staged, commitlint, and what CI enforces.
+---
+
+## The tools and what each one is for
+
+| Tool                                                 | Job                                                                                                                                                                   |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [ESLint](https://eslint.org/)                        | Finds _bugs and bad patterns_ in code (unused variables, hook rule violations, unsafe patterns) - static analysis, not formatting.                                    |
+| [Prettier](https://prettier.io/)                     | Enforces one consistent _formatting_ style (indentation, quotes, line width) so nobody argues about it in review - opinionated and mostly non-configurable by design. |
+| [Husky](https://typicode.github.io/husky/)           | Runs shell commands automatically at git lifecycle points (commit, push) - the mechanism, not the policy.                                                             |
+| [lint-staged](https://github.com/okonet/lint-staged) | Runs a linter/formatter only against files that are actually staged for commit, not the whole repo - makes pre-commit checks fast.                                    |
+| [commitlint](https://commitlint.js.org/)             | Rejects a commit message that doesn't match a required format.                                                                                                        |
+
+## ESLint (`eslint.config.mjs`)
+
+Built from Next.js's own flat-config presets - `eslint-config-next/core-web-vitals` (React/Next.js correctness rules, including hook rules) and `eslint-config-next/typescript` (type-aware rules) - plus `eslint-config-prettier` to turn off any ESLint formatting rules that would otherwise conflict with Prettier.
+
+One notable local override: the `react-hooks` plugin instance is pulled out of the Next.js preset (rather than adding it as a separate devDependency) specifically to disable two rules - `react-hooks/set-state-in-effect` and `react-hooks/incompatible-library` - with a comment noting they're off "until refactored," because they currently flag legitimate existing patterns (an async `load()` inside a `useEffect`, and `react-hook-form`'s `watch()`). If you're touching code that trips one of these, that's a known, intentionally-silenced warning, not a new bug you introduced.
+
+```bash title="Terminal"
+pnpm lint
+```
+
+## Prettier (`prettier.config.mjs`)
+
+```js
+{
+  plugins: ["prettier-plugin-tailwindcss"],
+  semi: true, singleQuote: false, tabWidth: 4,
+  trailingComma: "es5", printWidth: 100, endOfLine: "lf",
+}
+```
+
+`prettier-plugin-tailwindcss` automatically sorts Tailwind utility classes into a canonical order inside `className` strings, so class order is never something to think about or bikeshed in review.
+
+```bash title="Terminal"
+pnpm format         # rewrite files in place
+pnpm format:check   # check only, no writes - what CI runs
+```
+
+## Git hooks (Husky)
+
+Two hooks are installed under `.husky/` (installed automatically via the `prepare` script, which runs on `pnpm install`):
+
+| Hook         | Runs         | Command                          |
+| ------------ | ------------ | -------------------------------- |
+| `pre-commit` | Every commit | `pnpm exec lint-staged`          |
+| `commit-msg` | Every commit | `pnpm exec commitlint --edit $1` |
+
+There is **no** `pre-push` hook - the test suite is not run locally on push. Tests are enforced in CI instead (see below), which is why a slow local push isn't blocked, but a broken PR still can't merge.
+
+`lint-staged` (configured in `package.json`, not a separate file) determines what runs on which staged files:
+
+```json
+"lint-staged": {
+    "*.{ts,tsx,js,jsx,mjs,cjs}": ["eslint --fix", "prettier --write"],
+    "*.{json,md,yml,yaml,css}": "prettier --write"
+}
+```
+
+## Commit messages (commitlint + Conventional Commits)
+
+`commitlint.config.cjs` just extends `@commitlint/config-conventional` - no custom rules. Every commit message must follow `type: description`:
+
+```
+feat: add order export button
+fix: minecraft whitelist not persisting
+refactor: split auth helpers into separate module
+```
+
+Valid types: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `test`, `ci`. A malformed message is rejected at commit time by the `commit-msg` hook, before it ever reaches a PR.
+
+## What CI enforces (`.github/workflows/`)
+
+| Workflow         | Trigger          | What it does                                                                                                      |
+| ---------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **Code Quality** | Push/PR → `main` | `pnpm lint`, `pnpm format:check`, `pnpm tsc --noEmit`                                                             |
+| **Tests**        | Push/PR → `main` | `pnpm test`                                                                                                       |
+| **Deploy**       | Push → `main`    | Pulls latest and runs `scripts/deploy.sh` on the self-hosted runner - see the [Deployment guide](/guides/deploy/) |
+
+Both **Code Quality** and **Tests** must pass before a PR can merge (branch protection on `main`). Run `pnpm check` locally (lint + format check + typecheck) before pushing to catch what CI would catch, without waiting on CI.

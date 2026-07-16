@@ -1,0 +1,85 @@
+---
+title: External Integrations
+description: How the code talks to Minecraft/RCON, GitHub, Resend, OnShape, Tailscale, and the host system - from a developer's perspective.
+---
+
+This page explains _how the integration code works_. For installing and configuring these services on the production server, see the [Server Integrations Setup guide](/guides/integrations/) instead - that page is ops-focused, this one is code-focused.
+
+Every integration in `src/lib/integrations/` follows the same philosophy: **degrade gracefully when unconfigured.** None of these are required for the app to run - if an env var is missing or the external service is unreachable, the relevant feature shows a "not configured" or "offline" state rather than crashing or throwing on every page load.
+
+## Minecraft server status (`src/lib/integrations/minecraft.ts`)
+
+Uses [`minecraft-server-util`](https://www.npmjs.com/package/minecraft-server-util)'s `status()` function to perform a Server List Ping - the same protocol the Minecraft client uses to show a server's MOTD/player count in its multiplayer list - against `MINECRAFT_SERVER_HOST`/`MINECRAFT_SERVER_PORT`:
+
+```ts
+const [res, botNames] = await Promise.all([queryStatus(h, p, { timeout: 5_000 }), getBotNames()]);
+```
+
+Results are cached in-memory for 30 seconds (reset on server restart) to avoid re-querying the Minecraft server on every dashboard poll. Each player in the sample is flagged `isBot` by checking membership in the set returned by `getBotNames()`.
+
+### Bot detection via RCON (`src/lib/integrations/azalea.ts`)
+
+The dashboard needs to distinguish real players from Carpet mod bots in the player list and playtime leaderboard. The current approach (see recent commits: "changed bot detection from anonymous player filtering to rcon bot team query") runs an RCON command against a Minecraft scoreboard team named `bots`:
+
+```ts
+export async function getBotNames(): Promise<Set<string>> {
+    if (botNamesCache && botNamesCache.expiresAt > Date.now()) return botNamesCache.names;
+    const response = await rconQuery("team list bots");
+    const names = parseTeamList(response);
+    botNamesCache = { names, expiresAt: Date.now() + 30_000 };
+    return names;
+}
+```
+
+`rconQuery()` opens an RCON connection (`new RCON()` from `minecraft-server-util`), races connect+login and command execution each against a 4-second timeout, and returns `null` on any failure rather than throwing - callers treat "no bot data" the same as "no bots" rather than surfacing an error to the whole status tile. `parseTeamList()` parses Minecraft's `"Team [bots] has N member(s): Name1, Name2"` response by splitting on the _last_ colon, which works regardless of the singular/plural wording Minecraft uses. An older heuristic, `isOfflineUUID()` (checking that a UUID's version nibble is `3`, which Mojang only issues to offline/fake players), still exists in the same file but is no longer the primary detection method.
+
+### Sending server commands
+
+`sendCommand()` in the same file is the generic RCON executor used by the admin server-control page (`/admin/server`) to run arbitrary console commands - it requires `MINECRAFT_RCON_PASSWORD` to be set and connects/logs in/executes/closes per call, same as `rconQuery()` but without the timeout race (used from an authenticated admin-only context, not a background poll).
+
+## Host system stats (`systeminformation`)
+
+Used in exactly one place: `src/app/api/system/stats/route.ts`, an authenticated `GET` endpoint backing an admin server-stats widget. It calls `currentLoad()`, `mem()`, and `fsSize()` from the [`systeminformation`](https://systeminformation.io/) package in parallel, plus Node's built-in `os.loadavg()`/`os.uptime()`, computes CPU/memory/disk percentages, and caches the result for 5 seconds:
+
+```ts
+const [load, memory, disks] = await Promise.all([currentLoad(), mem(), fsSize()]);
+```
+
+`better-sqlite3` and `systeminformation` are both listed in `next.config.ts`'s `serverExternalPackages` because they rely on native bindings/OS calls that shouldn't be bundled by webpack - see [Next.js & TypeScript](/tech-stack/nextjs-typescript/#nextconfigts---the-notable-bits).
+
+## GitHub org admin (`src/lib/integrations/github.ts`)
+
+Backs the `/admin/github` page - lets admins view org members, pending invitations, and teams, and send new invitations, without leaving the dashboard. Talks directly to `api.github.com` with `Authorization: Bearer <GITHUB_TOKEN>` and the `2022-11-28` API version header.
+
+The file's own doc comment states the security intent clearly: the token should be a **fine-grained PAT scoped only to "Organization → Members: Read and write"** - enough to list/invite/remove members, deliberately _not_ enough to promote anyone to org owner. Invitations are always sent as `direct_member`, and there is intentionally no role-promotion call in this client. If `GITHUB_TOKEN`/`GITHUB_ORG` are unset, or the API call fails, the page renders a "not configured"/"unreachable" empty state rather than erroring.
+
+## Resend (transactional email)
+
+`src/lib/integrations/email.ts` is a thin wrapper:
+
+```ts
+export async function sendEmail({ to, subject, html }) {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const { error } = await resend.emails.send({
+        from: process.env.EMAIL_FROM!,
+        to,
+        subject,
+        html,
+    });
+    if (error) throw new Error(`Resend error: ${error.message}`);
+}
+```
+
+Called from two places: `src/lib/auth/auth.ts` (email verification codes, password-reset codes, and email-change confirmations - see [Authentication & Authorization](/tech-stack/auth/)), and `src/lib/finance/finance.ts` (order-approved / order-denied notifications to the member who submitted the order).
+
+## OnShape
+
+`src/lib/integrations/onshape.ts` follows the same pattern as the GitHub client - a thin authenticated wrapper around OnShape's API (`ONSHAPE_BASE_URL`/`ONSHAPE_ACCESS_KEY`/`ONSHAPE_SECRET_KEY`/`ONSHAPE_COMPANY_ID`) backing the `/admin/onshape` page, degrading to a "not configured" state when unset.
+
+## Tailscale (Network tab)
+
+`src/lib/integrations/network.ts` talks to the Tailscale API (`TAILSCALE_API_KEY`/`TAILSCALE_TAILNET`) to list devices on the club's shared tailnet and surface join requests, backing the Network tab and `/admin/network`. See the [Server Integrations Setup guide](/guides/integrations/#tailscale-network-tab) for how the API key itself is generated and rotated.
+
+## Pl3xMap (world map proxy)
+
+Not a `src/lib/integrations` client - instead, `src/app/pl3xmap/[[...path]]` is a catch-all page route that proxies requests through to the Pl3xMap web server (`PL3XMAP_URL`), so the Minecraft world map can be embedded on the dashboard's own origin without exposing Pl3xMap's port to the internet directly. This is also why `next.config.ts` carves out a relaxed CSP/header exception specifically for `/pl3xmap/*` - the embedded map needs permissions the rest of the app's strict headers would otherwise block.

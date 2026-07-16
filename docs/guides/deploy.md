@@ -1,3 +1,8 @@
+---
+title: Deployment
+description: Production setup on the server, updating an existing deployment, backups, and troubleshooting.
+---
+
 # Deploying TrickFire Dashboard
 
 Production runs on a Debian AMD64 server behind a Cloudflare Tunnel. The app is built with `output: "standalone"` and uses a local SQLite database.

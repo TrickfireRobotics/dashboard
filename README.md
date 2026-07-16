@@ -16,8 +16,10 @@ Internal portal for [TrickFire Robotics](https://trickfirerobotics.com). Members
 
 ## Docs
 
-- [**Developer notes**](docs/development.md) - dev env setup, environment notes
-- [**Deployment guide**](docs/deploy.md) - production setup, updating, backups, troubleshooting
-- [**Integrations**](docs/integrations.md) - Tailscale, Minecraft server, Pl3xMap
-- [**Server hardening**](docs/server-hardening.md) - SSH, firewall, fail2ban, auto-updates
+Full documentation site: **[docs.trickfirerobotics.com/dashboard](https://docs.trickfirerobotics.com/dashboard/)** - getting started, architecture overview, and a page per framework/library explaining what it is and how we use it here.
+
+- [**Developer notes**](docs/guides/development.md) - dev env setup, environment notes
+- [**Deployment guide**](docs/guides/deploy.md) - production setup, updating, backups, troubleshooting
+- [**Integrations**](docs/guides/integrations.md) - Tailscale, Minecraft server, Pl3xMap
+- [**Server hardening**](docs/guides/server-hardening.md) - SSH, firewall, fail2ban, auto-updates
 - [**Contributing**](CONTRIBUTING.md) - workflow, branch naming, code style, PR guidelines

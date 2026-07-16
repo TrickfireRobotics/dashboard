@@ -9,3 +9,7 @@ allowBuilds:
 minimumReleaseAgeExclude:
     - react-hook-form@7.79.0
     - better-sqlite3@12.10.1
+    - trickfire-docs
+
+patchedDependencies:
+    trickfire-docs: patches/trickfire-docs.patch

@@ -1,3 +1,8 @@
+---
+title: Server Integrations Setup
+description: Installing and configuring Tailscale, the Minecraft server, and Pl3xMap on the production server.
+---
+
 # Integrations
 
 Optional services that extend dashboard functionality. Configure only what you need - the app degrades gracefully when any of these are absent.

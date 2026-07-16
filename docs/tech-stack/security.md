@@ -1,0 +1,99 @@
+---
+title: Security (Vault, API Keys, Rate Limiting)
+description: The API key vault's AES-256-GCM encryption, service API key hashing, and the in-memory rate limiter.
+---
+
+Three distinct security mechanisms live under `src/lib/security/`, solving three different problems. It's worth not conflating them - they're often confused because they're all "keys":
+
+| Mechanism               | File              | Problem it solves                                                                                                |
+| ----------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Vault encryption        | `vault-crypto.ts` | Store third-party credentials so an authorized human can read them back later                                    |
+| Service API key hashing | `api-key.ts`      | Let external scripts authenticate to this app's API, without this app ever storing the secret in a readable form |
+| Rate limiting           | `rate-limit.ts`   | Slow down abuse of unauthenticated/low-friction endpoints                                                        |
+
+## The API Key Vault
+
+The **API Keys** page is a shared credential store for admins to keep track of third-party API keys and service logins (Resend, Tailscale, etc.) in one place instead of a shared password doc. Two independent layers of access apply:
+
+- **Page visibility** - the `canAccessVault` field on a user (see [Authentication & Authorization](/tech-stack/auth/#what-each-additional-field-means)) controls whether they can open the vault page at all. Admins always can.
+- **Per-secret access** - reading any _individual_ entry additionally requires a grant in the `vaultEntryAccess` table, set via that entry's "Manage access" action. Having vault-page access does **not** imply access to every entry in it.
+
+Each entry is either a `login` (username + password, revealed in the UI on demand) or an `api_key` (never rendered in the UI - only retrievable via the API endpoint below, e.g. for pasting into another tool's config).
+
+### Encryption at rest - AES-256-GCM
+
+Vault secrets need to be decrypted back to their original value (unlike a password, which only ever needs to be _checked_, never _read_), so they're encrypted, not hashed. `src/lib/security/vault-crypto.ts`:
+
+```ts
+const ALGORITHM = "aes-256-gcm";
+const KEY_BYTES = 32; // AES-256
+const IV_BYTES = 12; // standard GCM nonce length
+
+export function encryptSecret(plaintext: string): string {
+    const iv = randomBytes(IV_BYTES);
+    const cipher = createCipheriv(ALGORITHM, getVaultKey(), iv);
+    const ciphertext = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
+    const tag = cipher.getAuthTag();
+    return `${iv.toString("hex")}.${tag.toString("hex")}.${ciphertext.toString("hex")}`;
+}
+```
+
+Each encrypted value is stored as one string - `iv.tag.ciphertext`, all hex - so it fits in a single database column. A fresh random IV (nonce) is generated per encryption call, which is required for GCM: reusing an IV with the same key breaks the encryption's confidentiality guarantees. The auth tag is GCM's built-in tamper-detection - `decryptSecret` will throw rather than return corrupted plaintext if the ciphertext was altered.
+
+**Key resolution**, in order:
+
+1. `VAULT_ENCRYPTION_KEY` env var, if set (must be exactly 64 hex characters / 32 bytes - generate with `openssl rand -hex 32`).
+2. If unset **and** `NODE_ENV === "production"` - throws immediately. Production is never allowed to silently fall back to a generated key.
+3. Otherwise (local dev) - generates a random key on first use and **persists it** to `db/vault.key` (next to the SQLite file, gitignored), so secrets stay decryptable across dev-server restarts. A console warning is printed the first time this happens.
+
+:::caution
+Losing `VAULT_ENCRYPTION_KEY` (or `db/vault.key` in dev) makes every existing vault entry permanently unrecoverable - there's no way to decrypt without it. Back it up separately from the database, and rotate it only if you're prepared to re-enter every stored secret.
+:::
+
+### Fetching a secret - the API endpoints
+
+```bash
+GET /api/vault/{id}/key      # api_key entries only - returns { name, key }
+GET /api/vault/{id}/reveal   # login entries only - returns { name, username, password }
+```
+
+Both endpoints are authenticated by the caller's dashboard session cookie (not a separate API key) and both:
+
+- Call `canReadVaultEntry(user, id)` (admin, or a matching `vaultEntryAccess` row).
+- Independently re-check `isActive`, because `/api/*` isn't covered by `middleware.ts` (see [Architecture Overview](/architecture/#how-a-page-request-is-authorized-three-layers)).
+- Set `Cache-Control: no-store` so a decrypted secret is never cached by a browser or intermediary.
+
+```bash
+curl -s https://dashboard.trickfirerobotics.com/api/vault/12/key \
+  -H "Cookie: better-auth.session_token=<your-session-cookie>"
+```
+
+## Service API keys (`src/lib/security/api-key.ts`)
+
+Separate from the vault entirely - these authenticate _external scripts_ (e.g. simulation tooling) calling into this app's API, not humans logging into the dashboard. Unlike vault secrets, these are **never** stored in a form that could be decrypted back - only a one-way SHA-256 hash is kept:
+
+```ts
+export function generateApiKey(): { raw: string; hash: string; prefix: string } {
+    const raw = `tf_${randomBytes(32).toString("hex")}`;
+    return { raw, hash: hashApiKey(raw), prefix: raw.slice(0, 8) };
+}
+```
+
+The raw key (`tf_...`) is shown to the admin exactly once at creation time and never persisted - only its hash and a short `prefix` (for identifying which key is which in a UI list, without revealing the whole thing) are stored in the `apiKey` table. A caller authenticates by sending the raw key; the server hashes what it received and compares against the stored hash.
+
+## Rate limiting (`src/lib/security/rate-limit.ts`)
+
+A simple in-memory [token bucket](https://en.wikipedia.org/wiki/Token_bucket), backed by an `lru-cache` keyed per caller (typically by IP, via `clientIp()`):
+
+```ts
+const CAPACITY = 30;
+const REFILL_PER_MS = CAPACITY / 60_000; // refills to full over 60s
+
+export function rateLimit(key: string): RateLimitResult {
+    // ...refill tokens proportional to elapsed time, then consume one if available
+}
+```
+
+Each key gets a bucket of 30 tokens that refills continuously back to 30 over a minute; every checked request consumes one token, and requests are rejected (with a computed `retryAfter` in seconds) once the bucket is empty. `clientIp()` reads `x-forwarded-for` (falling back to `cf-connecting-ip`) - both are injected by the Cloudflare Tunnel in front of production, which is what makes per-caller limiting possible despite the app itself only ever seeing traffic from the tunnel.
+
+Being in-memory (an `LRUCache`, not the database), this state resets whenever the process restarts and doesn't share state across multiple server instances - fine for this app's single-instance deployment, but worth knowing if that ever changes.
