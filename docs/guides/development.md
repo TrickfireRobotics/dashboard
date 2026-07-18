@@ -1,4 +1,7 @@
-# Developer Notes
+---
+title: Development Setup
+description: Dev environment options, commands, environment variables, CI, git hooks, and the API key vault.
+---
 
 Collection of info about the codebase environment, setup and design choices.
 

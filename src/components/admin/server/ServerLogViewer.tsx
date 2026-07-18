@@ -94,8 +94,7 @@ export function ServerLogViewer() {
         const sse = new EventSource("/api/admin/server/logs");
         sse.onmessage = (e) => {
             const payload = JSON.parse(e.data) as
-                | { type: "line"; line: string }
-                | { type: "reset" };
+                { type: "line"; line: string } | { type: "reset" };
             if (payload.type === "reset") {
                 setLines([]);
                 return;

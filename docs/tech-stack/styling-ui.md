@@ -1,0 +1,128 @@
+---
+title: Styling & UI Components
+description: Tailwind CSS v4, shadcn/ui, base-ui, cva, icons, and toasts - what they are and how we use them.
+---
+
+## Tailwind CSS v4
+
+[Tailwind](https://tailwindcss.com/) is a utility-first CSS framework: instead of writing custom CSS classes and hand-authoring their styles, you compose small pre-defined utility classes directly in your markup (`className="flex items-center gap-2 rounded-lg bg-primary"`). The build tool scans your source files, finds which utilities you actually used, and generates only that CSS.
+
+**Version 4 changed the setup model.** Older Tailwind projects have a `tailwind.config.js` with a JS object describing the theme. This project has no such file - v4 is configured entirely in CSS, in `src/app/globals.css`:
+
+```css title="src/app/globals.css"
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme inline {
+    --color-background: var(--background);
+    --color-primary: var(--primary);
+    /* ...every design token mapped from a CSS custom property... */
+}
+
+:root {
+    --background: #222222;
+    --foreground: #cccccc;
+    --primary: #00fe00; /* "TrickFire Green" */
+    --secondary: #e93cac; /* "Accent Pink" */
+    /* ...sidebar, chart, and destructive tokens... */
+}
+```
+
+The `@theme inline` block is what makes Tailwind aware of custom tokens like `bg-primary` or `text-foreground` - it maps a Tailwind utility name to a CSS variable defined in `:root`. If you need a new color or spacing token, add the CSS variable in `:root` and register it in `@theme inline`, rather than hardcoding a hex value in a component.
+
+`postcss.config.mjs` just loads the single `@tailwindcss/postcss` plugin - that's the whole PostCSS pipeline.
+
+### Dark mode is hardcoded, not toggleable
+
+`next-themes` is listed in `package.json`, but there's no `ThemeProvider` anywhere in the app and no light/dark toggle. `src/app/layout.tsx` sets `<html className="dark">` directly, and the CSS comment in `globals.css` says as much: `:root` is the single source of truth, forced dark via the `dark` class on `<html>`. If you're looking for where theme-switching happens - it doesn't, currently. Treat `next-themes` as unused until/unless a toggle is actually built.
+
+## shadcn/ui
+
+[shadcn/ui](https://ui.shadcn.com) isn't a component _library_ you `npm install` and import from - it's a CLI (the `shadcn` devDependency) that copies component source code directly into your repo, under `src/components/ui/`. You own and can freely edit these files; there's no upstream package to update or diverge from.
+
+`components.json` controls what the CLI generates:
+
+```json title="components.json"
+{
+    "style": "base-nova",
+    "baseColor": "neutral",
+    "cssVariables": true,
+    "iconLibrary": "lucide",
+    "aliases": {
+        "components": "@/components",
+        "utils": "@/lib/utils",
+        "ui": "@/components/ui",
+        "hooks": "@/hooks"
+    }
+}
+```
+
+Installed primitives (`src/components/ui/`): `alert-dialog`, `badge`, `button`, `card`, `dialog`, `dropdown-menu`, `form`, `input`, `label`, `select`, `sheet`, `skeleton`, `sonner`, `table`, `textarea`. Run `pnpm dlx shadcn@latest add <component>` to pull in more.
+
+### The component pattern
+
+Every primitive follows the same shape - wrap a headless primitive, style it with [`cva`](https://cva.style/docs) variants, merge classes with `cn()`:
+
+```tsx title="src/components/ui/button.tsx (abridged)"
+import { Button as ButtonPrimitive } from "@base-ui/react/button";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+const buttonVariants = cva("inline-flex items-center justify-center rounded-lg ...", {
+    variants: {
+        variant: {
+            default: "bg-primary text-primary-foreground ...",
+            outline: "...",
+            ghost: "...",
+        },
+        size: { default: "h-8 px-2.5 ...", sm: "h-7 ...", icon: "size-8" },
+    },
+    defaultVariants: { variant: "default", size: "default" },
+});
+
+function Button({
+    className,
+    variant,
+    size,
+    ...props
+}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+    return (
+        <ButtonPrimitive className={cn(buttonVariants({ variant, size, className }))} {...props} />
+    );
+}
+```
+
+A few things worth knowing:
+
+- **`@base-ui/react`** ([Base UI](https://base-ui.com/)) supplies the unstyled, accessible primitive behavior (focus handling, ARIA attributes, keyboard nav) - `Button` here wraps `@base-ui/react/button`, not Radix, even though `@radix-ui/react-slot` is also a dependency (used by a subset of other components that need the "render as a different element" `Slot` pattern).
+- **`cva`** (class-variance-authority) defines named variants (`variant`, `size`) that map to Tailwind class strings, so callers write `<Button variant="destructive" size="sm">` instead of memorizing class names.
+- **`cn()`** (`src/lib/utils.ts`) is `twMerge(clsx(inputs))` - `clsx` conditionally joins class strings, `tailwind-merge` then resolves conflicts (e.g. if both a variant and a caller's `className` set a `px-*` value, the later one wins instead of both being emitted).
+
+```ts title="src/lib/utils.ts"
+export function cn(...inputs: ClassValue[]) {
+    return twMerge(clsx(inputs));
+}
+```
+
+## Icons - `lucide-react`
+
+[Lucide](https://lucide.dev/) is the only icon set used in this codebase (per `components.json`'s `iconLibrary: "lucide"`), imported directly as components: `import { Trash2 } from "lucide-react"`.
+
+## Toasts - `sonner`
+
+[Sonner](https://sonner.emilkowal.ski/) renders toast notifications. It's mounted once, globally, in the root layout:
+
+```tsx title="src/app/layout.tsx"
+<Toaster richColors position="top-right" />
+```
+
+and triggered from client components after an async action, most commonly right after a `fetch` call:
+
+```ts
+toast.success("Order saved");
+// ...
+toast.error(err instanceof Error ? err.message : "Something went wrong");
+```
+
+You don't need to render your own `<Toaster />` anywhere else - just call `toast.success(...)` / `toast.error(...)` / `toast.info(...)` from any client component.

@@ -1,3 +1,8 @@
+---
+title: Server Hardening
+description: SSH key-only auth, firewall, fail2ban, and automatic security updates on the production server.
+---
+
 # Server Hardening
 
 Documents what was hardened on the production server (`tfserver`) and how to reproduce it from scratch on a fresh Debian install.

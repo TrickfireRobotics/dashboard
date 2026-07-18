@@ -11,7 +11,8 @@
                 "dbaeumer.vscode-eslint",
                 "bradlc.vscode-tailwindcss",
                 "ms-vscode.vscode-typescript-next",
-                "EditorConfig.EditorConfig"
+                "EditorConfig.EditorConfig",
+                "mkhl.shfmt"
             ],
             "settings": {
                 "editor.formatOnSave": true,
