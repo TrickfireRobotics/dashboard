@@ -186,7 +186,7 @@ cloudflared tunnel login
 cloudflared tunnel create trickfire-dashboard
 ```
 
-Create `~/.cloudflared/config.yml`:
+Create `/etc/cloudflared/trickfire-dashboard.yml` (named after the tunnel, not the generic `config.yml`, so it coexists with other tunnels on the same server):
 
 ```yaml
 tunnel: <tunnel-uuid>
@@ -200,8 +200,30 @@ ingress:
 
 ```bash
 cloudflared tunnel route dns trickfire-dashboard dashboard.trickfirerobotics.com
-sudo cloudflared service install
-sudo systemctl enable --now cloudflared
+```
+
+`cloudflared service install` always creates a unit named `cloudflared.service` regardless of the `--config` flag. To get a named service that can coexist with other tunnels, write the unit file manually:
+
+```bash
+sudo tee /etc/systemd/system/cloudflared-trickfire-dashboard.service << 'EOF'
+[Unit]
+Description=cloudflared - trickfire-dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+TimeoutStartSec=15
+Type=notify
+ExecStart=/usr/bin/cloudflared --no-autoupdate --config /etc/cloudflared/trickfire-dashboard.yml tunnel run
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable --now cloudflared-trickfire-dashboard
 ```
 
 > [!NOTE]
