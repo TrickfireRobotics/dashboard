@@ -48,3 +48,7 @@ next-env.d.ts
 
 # docs site build output
 /dist/
+
+# trickfire-docs
+.trickfire-docs/
+dist/
