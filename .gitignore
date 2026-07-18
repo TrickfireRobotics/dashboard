@@ -46,9 +46,5 @@ next-env.d.ts
 # Sentry Config File
 .env.sentry-build-plugin
 
-# docs site build output
-/dist/
-
 # trickfire-docs
 .trickfire-docs/
-dist/
