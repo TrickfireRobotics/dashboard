@@ -5,7 +5,7 @@ on:
         branches: [main]
         paths:
             - "docs/**"
-            - "docs.config.ts"
+            - "docs.config.json"
     workflow_dispatch:
 
 jobs:
