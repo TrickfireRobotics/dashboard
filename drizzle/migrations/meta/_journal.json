@@ -78,6 +78,13 @@
       "when": 1782168471318,
       "tag": "0010_loving_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1784613473079,
+      "tag": "0011_common_pepper_potts",
+      "breakpoints": true
     }
   ]
 }

@@ -256,6 +256,31 @@ export const networkJoinRequestRelations = relations(networkJoinRequest, ({ one 
     }),
 }));
 
+export const simExportCache = sqliteTable(
+    "sim_export_cache",
+    {
+        id: integer("id").primaryKey({ autoIncrement: true }),
+        documentId: text("document_id").notNull(),
+        workspaceId: text("workspace_id").notNull(),
+        elementId: text("element_id").notNull(),
+        archivePath: text("archive_path").notNull(),
+        archiveSizeBytes: integer("archive_size_bytes").notNull().default(0),
+        cachedAt: integer("cached_at", { mode: "timestamp_ms" }).default(now).notNull(),
+        lastAccessedAt: integer("last_accessed_at", { mode: "timestamp_ms" })
+            .default(now)
+            .notNull(),
+        accessCount: integer("access_count").notNull().default(1),
+    },
+    (table) => [
+        uniqueIndex("sim_export_cache_key").on(
+            table.documentId,
+            table.workspaceId,
+            table.elementId
+        ),
+        index("sim_export_cache_accessed").on(table.lastAccessedAt),
+    ]
+);
+
 export const userFeature = sqliteTable(
     "user_feature",
     {

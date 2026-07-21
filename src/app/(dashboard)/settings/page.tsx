@@ -1,7 +1,11 @@
+import { and, desc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 import { SettingsForm } from "@/components/settings/SettingsForm";
+import { SimApiKeyPanel } from "@/components/settings/SimApiKeyPanel";
 import { getSessionUser } from "@/lib/auth/session";
+import { db } from "@/lib/db";
+import { apiKey } from "@/lib/db/schema";
 import { NAME_CHANGE_COOLDOWN_MS } from "@/app/api/user/name/route";
 
 function nameCooldownProps(nameChangedAt: number | null) {
@@ -23,6 +27,18 @@ export default async function SettingsPage() {
 
     const { onCooldown, cooldownUntil } = nameCooldownProps(user.nameChangedAt ?? null);
 
+    const cliKeys = db
+        .select({
+            prefix: apiKey.keyPrefix,
+            name: apiKey.name,
+            createdAt: apiKey.createdAt,
+            lastUsedAt: apiKey.lastUsedAt,
+        })
+        .from(apiKey)
+        .where(and(eq(apiKey.userId, user.id), eq(apiKey.isRevoked, false)))
+        .orderBy(desc(apiKey.createdAt))
+        .all();
+
     return (
         <div className="space-y-6">
             <div>
@@ -35,6 +51,7 @@ export default async function SettingsPage() {
                 onCooldown={onCooldown}
                 cooldownUntil={cooldownUntil}
             />
+            <SimApiKeyPanel initialKeys={cliKeys} />
         </div>
     );
 }
