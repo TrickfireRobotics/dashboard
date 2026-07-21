@@ -11,5 +11,4 @@ CREATE TABLE `sim_export_cache` (
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `sim_export_cache_key` ON `sim_export_cache` (`document_id`,`workspace_id`,`element_id`);--> statement-breakpoint
-CREATE INDEX `sim_export_cache_accessed` ON `sim_export_cache` (`last_accessed_at`);--> statement-breakpoint
-ALTER TABLE `user` ADD `name_changed_at` integer;
+CREATE INDEX `sim_export_cache_accessed` ON `sim_export_cache` (`last_accessed_at`);
