@@ -66,6 +66,19 @@ Log in with the club Tailscale account. The device will appear in the Tailscale 
 
 ---
 
+# OnShape API requests proxy
+
+There is a proxy for doing requests to onshape for every user. They authenticate using a generated token from their profile in the dashboard. One of the projects using this is our [simulation software](https://github.com/TrickFireRobotics/gazebo-simulations) for generating simulation assets from OnShape models. There needs to be a permission fixed for a directory serving as a cache for pulled assets. The Next.js server runs as the `trickfire` user but `/var/cache/` is root-owned, so the process can't create subdirectories itself. Create the directory and hand ownership to `trickfire` before starting the server:
+
+```bash
+sudo mkdir -p /var/cache/trickfire-sim
+sudo chown trickfire: /var/cache/trickfire-sim
+```
+
+Without this, API requests will get a 500 `EACCES: permission denied, mkdir '/var/cache/trickfire-sim'` from the export endpoint.
+
+---
+
 ## Minecraft Server
 
 The Minecraft server runs as an independent systemd service managed by [Azalea](https://github.com/matejstastny/azalea). The dashboard can start and stop it, stream its logs, and send console commands via RCON - without the server depending on the dashboard process.
