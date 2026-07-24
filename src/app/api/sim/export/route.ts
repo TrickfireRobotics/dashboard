@@ -1,7 +1,4 @@
-import { createReadStream } from "fs";
-import { stat } from "fs/promises";
 import { and, eq } from "drizzle-orm";
-import { Readable } from "stream";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
@@ -10,6 +7,8 @@ import { hashApiKey } from "@/lib/security/api-key";
 import { getCacheEntry, touchCacheEntry, upsertCacheEntry, evictIfNeeded } from "@/lib/sim/cache";
 import { runOnshapeExport } from "@/lib/sim/export";
 import { isOnshapeConfigured } from "@/lib/integrations/onshape";
+import { createJob, startJob } from "@/lib/sim/jobs";
+import { streamArchive } from "@/lib/sim/stream";
 
 const ONSHAPE_URL_RE = /documents\/([0-9a-f]+)\/[wv]\/([0-9a-f]+)\/e\/([0-9a-f]+)/i;
 
@@ -58,26 +57,13 @@ export async function POST(req: NextRequest) {
         }
     }
 
-    try {
-        const { archivePath, sizeBytes } = await runOnshapeExport(docId, wsId, elId, apiUrl);
-        upsertCacheEntry(docId, wsId, elId, archivePath, sizeBytes);
+    const jobId = createJob();
+    startJob(jobId, async () => {
+        const result = await runOnshapeExport(docId, wsId, elId, apiUrl);
+        upsertCacheEntry(docId, wsId, elId, result.archivePath, result.sizeBytes);
         void evictIfNeeded();
-        return streamArchive(archivePath);
-    } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        return NextResponse.json({ error: `Export failed: ${message}` }, { status: 500 });
-    }
-}
-
-async function streamArchive(archivePath: string): Promise<Response> {
-    const { size } = await stat(archivePath);
-    const nodeStream = createReadStream(archivePath);
-    const webStream = Readable.toWeb(nodeStream) as ReadableStream<Uint8Array>;
-    return new Response(webStream, {
-        headers: {
-            "Content-Type": "application/gzip",
-            "Content-Length": String(size),
-            "Content-Disposition": 'attachment; filename="sim-export.tar.gz"',
-        },
+        return result;
     });
+
+    return NextResponse.json({ jobId }, { status: 202 });
 }
