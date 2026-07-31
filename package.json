@@ -33,7 +33,7 @@
             "eslint --fix",
             "prettier --write"
         ],
-        "*.{json,md,yml,yaml,css}": "prettier --write"
+        "*.{json,md,yml,yaml,css,md,mdx}": "prettier --write"
     },
     "dependencies": {
         "@base-ui/react": "^1.5.0",
