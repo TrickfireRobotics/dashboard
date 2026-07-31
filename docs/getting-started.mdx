@@ -42,9 +42,9 @@ pnpm dev
 
 Open `http://localhost:3000` and log in with whatever you set as `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` in `.env.local`.
 
-:::tip
-Almost every environment variable is optional for local dev - the app is written to degrade gracefully when an integration isn't configured (Minecraft status just shows "offline", the Network tab shows empty, etc.). `BETTER_AUTH_SECRET` is the only one you must set yourself; generate it with `openssl rand -hex 32`.
-:::
+<Callout type="idea" title="Tip">
+    Almost every environment variable is optional for local dev - the app is written to degrade gracefully when an integration isn't configured (Minecraft status just shows "offline", the Network tab shows empty, etc.). `BETTER_AUTH_SECRET` is the only one you must set yourself; generate it with `openssl rand -hex 32`.
+</Callout>
 
 ### What "seeding" gives you
 

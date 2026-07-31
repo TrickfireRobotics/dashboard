@@ -46,9 +46,9 @@ Each encrypted value is stored as one string - `iv.tag.ciphertext`, all hex - so
 2. If unset **and** `NODE_ENV === "production"` - throws immediately. Production is never allowed to silently fall back to a generated key.
 3. Otherwise (local dev) - generates a random key on first use and **persists it** to `db/vault.key` (next to the SQLite file, gitignored), so secrets stay decryptable across dev-server restarts. A console warning is printed the first time this happens.
 
-:::caution
-Losing `VAULT_ENCRYPTION_KEY` (or `db/vault.key` in dev) makes every existing vault entry permanently unrecoverable - there's no way to decrypt without it. Back it up separately from the database, and rotate it only if you're prepared to re-enter every stored secret.
-:::
+<Callout type="warning" title="Caution">
+    Losing `VAULT_ENCRYPTION_KEY` (or `db/vault.key` in dev) makes every existing vault entry permanently unrecoverable - there's no way to decrypt without it. Back it up separately from the database, and rotate it only if you're prepared to re-enter every stored secret.
+</Callout>
 
 ### Fetching a secret - the API endpoints
 

@@ -2,6 +2,7 @@
     "$schema": "https://docs.trickfirerobotics.com/docs.config.schema.json",
     "name": "Dashboard",
     "description": "Internal portal for club managment like managing access to tools or ordering parts",
+    "icon": "LayoutDashboard",
     "sidebar": [
         { "label": "Getting Started", "slug": "getting-started" },
         { "label": "Architecture Overview", "slug": "architecture" },

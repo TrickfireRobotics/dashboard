@@ -23,5 +23,6 @@
         "next-env.d.ts": true,
         ".husky/_*": true,
         ".pnpm-store/": true
-    }
+    },
+    "js/ts.experimental.useTsgo": false
 }

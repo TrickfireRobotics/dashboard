@@ -47,4 +47,4 @@ next-env.d.ts
 .env.sentry-build-plugin
 
 # trickfire-docs
-.trickfire-docs/
+dist/
