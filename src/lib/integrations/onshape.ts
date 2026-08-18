@@ -232,6 +232,7 @@ export async function addOnshapeMember(
         method: "POST",
         body: JSON.stringify({
             email,
+            companyId: cid,
             admin: opts.admin ?? false,
             guest: opts.guest ?? false,
             light: opts.light ?? false,
