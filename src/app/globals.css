@@ -56,23 +56,23 @@
  */
 :root {
     color-scheme: dark;
-    --background: #222222;
+    --background: #131313;
     --foreground: #cccccc;
-    --card: #2a2a2a;
+    --card: #1a1a1a;
     --card-foreground: #cccccc;
-    --popover: #2a2a2a;
+    --popover: #1a1a1a;
     --popover-foreground: #cccccc;
     --primary: #00fe00;
     --primary-foreground: #0a0a0a;
     --secondary: #e93cac;
     --secondary-foreground: #ffffff;
-    --muted: #2e2e2e;
+    --muted: #1e1e1e;
     --muted-foreground: #9a9a9a;
     --accent: #313131;
     --accent-foreground: #ffffff;
     --destructive: #ff5c5c;
-    --border: #3a3a3a;
-    --input: #3a3a3a;
+    --border: #2c2c2c;
+    --input: #2c2c2c;
     --ring: #00fe00;
     --chart-1: #00fe00;
     --chart-2: #e93cac;
@@ -80,20 +80,20 @@
     --chart-4: #f178c4;
     --chart-5: #999999;
     --radius: 0.5rem;
-    --sidebar: #1c1c1c;
+    --sidebar: #0f0f0f;
     --sidebar-foreground: #cccccc;
     --sidebar-primary: #00fe00;
     --sidebar-primary-foreground: #0a0a0a;
-    --sidebar-accent: #2e2e2e;
+    --sidebar-accent: #202020;
     --sidebar-accent-foreground: #ffffff;
-    --sidebar-border: #3a3a3a;
+    --sidebar-border: #2c2c2c;
     --sidebar-ring: #00fe00;
 }
 
 @layer base {
     * {
         @apply border-border outline-ring/50;
-        scrollbar-color: #3a3a3a #2a2a2a;
+        scrollbar-color: #2c2c2c #1a1a1a;
         scrollbar-width: thin;
     }
     ::-webkit-scrollbar {
@@ -101,14 +101,14 @@
         height: 8px;
     }
     ::-webkit-scrollbar-track {
-        background: #2a2a2a;
+        background: #1a1a1a;
     }
     ::-webkit-scrollbar-thumb {
-        background: #3a3a3a;
+        background: #2c2c2c;
         border-radius: 4px;
     }
     ::-webkit-scrollbar-thumb:hover {
-        background: #4a4a4a;
+        background: #3a3a3a;
     }
     html,
     body {
@@ -130,5 +130,44 @@
         text-transform: uppercase;
         letter-spacing: 0.01em;
         color: #ffffff;
+    }
+}
+
+/*
+ * Layered CSS-only background for the sign-in page: two soft radial color
+ * blobs (::before) plus a slowly drifting dot grid (::after). Both sit
+ * behind the content via negative z-index rather than a wrapper element.
+ */
+.auth-background {
+    position: relative;
+    isolation: isolate;
+}
+
+.auth-background::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background:
+        radial-gradient(ellipse 60% 50% at 15% 20%, rgb(0 254 0 / 12%), transparent 60%),
+        radial-gradient(ellipse 60% 50% at 85% 80%, rgb(233 60 172 / 12%), transparent 60%);
+}
+
+.auth-background::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: radial-gradient(circle, rgb(255 255 255 / 6%) 1px, transparent 1px);
+    background-size: 28px 28px;
+    animation: auth-grid-drift 40s linear infinite;
+}
+
+@keyframes auth-grid-drift {
+    from {
+        background-position: 0 0;
+    }
+    to {
+        background-position: 56px 56px;
     }
 }

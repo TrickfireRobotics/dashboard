@@ -19,7 +19,7 @@ export default async function LoginPage({
     const notice = deactivated ? "Your account has been deactivated. Contact an admin." : undefined;
 
     return (
-        <div className="bg-background flex min-h-screen items-center justify-center p-4">
+        <div className="auth-background bg-background flex min-h-screen items-center justify-center p-4">
             <div className="w-full max-w-sm">
                 <div className="mb-8 flex flex-col items-center gap-2">
                     <Image
