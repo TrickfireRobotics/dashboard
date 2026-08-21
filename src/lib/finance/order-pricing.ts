@@ -47,8 +47,10 @@ export function stfOrderTotalCents(
     return preTaxTotal + tax + shipping;
 }
 
+// An untriaged order has no fund type yet. It is costed without the STF price
+// flux, so the figure shown before assignment is an estimate, not a charge.
 export function orderChargeCents(
-    fundType: "STF" | "Gift",
+    fundType: "STF" | "Gift" | null,
     quantity: number,
     unitCostCents: number,
     settings: OrderPricingSettings = DEFAULT_ORDER_PRICING

@@ -9,7 +9,7 @@ export { STF_PRICE_FLUX };
 
 export type OrderExportRow = {
     itemName: string;
-    fundType: FundType;
+    fundType: FundType | null;
     stfBucketName: string | null;
     quantity: number;
     unitCostCents: number;

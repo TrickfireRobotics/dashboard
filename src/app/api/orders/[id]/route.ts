@@ -5,10 +5,8 @@ import { db } from "@/lib/db";
 import { order, orderHistory } from "@/lib/db/schema";
 import {
     ensureFinanceSettingsRow,
-    getActiveQuarter,
     orderTotalCents,
     restoreGiftFundForDeletion,
-    validateOrderBalance,
 } from "@/lib/finance/finance";
 import { getSessionUser } from "@/lib/auth/session";
 import { orderInputSchema } from "@/lib/validation";
@@ -58,27 +56,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const d = parsed.data;
     ensureFinanceSettingsRow();
     const unitCostCents = Math.round(d.unitCost * 100);
-    const totalCostCents = orderTotalCents(d.quantity, unitCostCents, d.fundType);
 
-    const balanceCheck = validateOrderBalance(d.fundType, d.stfBucketId, totalCostCents);
-    if (!balanceCheck.ok) {
-        return NextResponse.json({ error: balanceCheck.message }, { status: 400 });
-    }
-
-    const activeQuarter = d.fundType === "STF" ? getActiveQuarter() : null;
-    if (d.fundType === "STF" && !activeQuarter) {
-        return NextResponse.json(
-            { error: "No active STF school year is configured. Contact an officer." },
-            { status: 400 }
-        );
-    }
-
+    // Editing sends the order back for triage: an officer re-checks the fund
+    // assignment against the changed cost when they review it again.
     const updated = db
         .update(order)
         .set({
-            fundType: d.fundType,
-            stfBucketId: d.fundType === "STF" ? d.stfBucketId! : null,
-            quarterId: activeQuarter?.id ?? null,
             vendor: d.vendor,
             link: d.link,
             itemName: d.itemName,

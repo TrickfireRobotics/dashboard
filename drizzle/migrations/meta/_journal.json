@@ -85,6 +85,13 @@
       "when": 1784613473079,
       "tag": "0011_common_pepper_potts",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1787267817158,
+      "tag": "0012_smiling_loa",
+      "breakpoints": true
     }
   ]
 }

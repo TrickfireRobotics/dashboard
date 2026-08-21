@@ -3,7 +3,11 @@ import { asc, desc, eq, sql } from "drizzle-orm";
 import { AdminOrderQueue, type AdminOrderRow } from "@/components/orders/AdminOrderQueue";
 import { db } from "@/lib/db";
 import { order, stfBucket, user } from "@/lib/db/schema";
-import { ensureFinanceSettingsRow, getOrderPricingSettings } from "@/lib/finance/finance";
+import {
+    ensureFinanceSettingsRow,
+    getOrderPricingSettings,
+    getStfBucketsWithBalances,
+} from "@/lib/finance/finance";
 import { percentBpsToDisplay } from "@/lib/finance/order-pricing";
 
 export default async function AdminOrdersPage() {
@@ -14,7 +18,9 @@ export default async function AdminOrdersPage() {
             id: order.id,
             itemName: order.itemName,
             fundType: order.fundType,
+            stfBucketId: order.stfBucketId,
             stfBucketName: stfBucket.name,
+            batchId: order.batchId,
             requesterName: user.name,
             requesterEmail: user.email,
             quantity: order.quantity,
@@ -48,6 +54,7 @@ export default async function AdminOrdersPage() {
 
             <AdminOrderQueue
                 orders={rows}
+                stfBuckets={getStfBucketsWithBalances()}
                 orderPricing={{
                     taxPercent: percentBpsToDisplay(pricing.taxPercentBps),
                     shippingPercent: percentBpsToDisplay(pricing.shippingPercentBps),

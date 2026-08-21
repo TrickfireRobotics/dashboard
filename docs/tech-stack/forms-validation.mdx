@@ -15,36 +15,36 @@ None of these are Next.js-specific - this is a general pattern for any React app
 
 Every form-heavy component (`OrderForm`, `LoginForm`, `SettingsForm`, `JoinRequestForm`, `WhitelistRequestForm`, `VaultEntryDialog`) follows the same shape. Using `src/components/orders/OrderForm.tsx` as the concrete example:
 
-**1. Define a Zod schema at the top of the file**, including cross-field rules via `.superRefine()`:
+**1. Define a Zod schema at the top of the file.** `OrderForm` submits a list of
+items, so its schema wraps a per-item schema in an array:
 
 ```ts
-const formSchema = z
-    .object({
-        fundType: z.enum(["STF", "Gift"], { message: "Select a fund type" }),
-        stfBucketId: z.string().optional(),
-        vendor: z.string().min(1, "Vendor is required").max(200),
-        link: z.string().url("Enter a valid URL").max(500),
-        quantity: z
-            .string()
-            .min(1, "Required")
-            .regex(/^\d+$/, "Whole number")
-            .refine((v) => Number(v) >= 1 && Number(v) <= 9999, "Between 1 and 9999"),
-        // ...
-    })
-    .superRefine((data, ctx) => {
-        if (data.fundType === "STF" && !data.stfBucketId) {
-            ctx.addIssue({
-                code: "custom",
-                message: "Select an STF bucket",
-                path: ["stfBucketId"],
-            });
-        }
-    });
+const itemSchema = z.object({
+    vendor: z.string().min(1, "Vendor is required").max(200),
+    link: z.string().url("Enter a valid URL").max(500),
+    quantity: z
+        .string()
+        .min(1, "Required")
+        .regex(/^\d+$/, "Whole number")
+        .refine((v) => Number(v) >= 1 && Number(v) <= 9999, "Between 1 and 9999"),
+    // ...
+});
+
+const formSchema = z.object({
+    items: z.array(itemSchema).min(1).max(MAX_ORDER_BATCH_ITEMS),
+});
 
 type FormValues = z.infer<typeof formSchema>;
 ```
 
-`.superRefine()` is what handles validation that depends on _more than one field at once_ - here, "an STF bucket is required, but only if fundType is STF." A field-level `z.string().min(1)` can't express that; `superRefine` can add an issue to any field's `path` based on the whole object.
+Errors are reported per row, at paths like `items.2.link`, so one bad row in a
+batch highlights that row rather than failing the whole form opaquely.
+
+When validation depends on _more than one field at once_, use `.superRefine()`,
+which can attach an issue to any field's `path` based on the whole object. A
+field-level `z.string().min(1)` can't express that. `orderAssignSchema` in
+`src/lib/validation.ts` is the current example: an STF assignment requires a
+bucket, a Gift assignment does not.
 
 **2. Wire the schema into `useForm`:**
 
@@ -79,7 +79,10 @@ const form = useForm<FormValues>({
 async function onSubmit(values: FormValues) {
     setSubmitting(true);
     try {
-        const res = await fetch("/api/orders", { method: "POST", body: JSON.stringify(values) });
+        const res = await fetch("/api/orders", {
+            method: "POST",
+            body: JSON.stringify({ items: values.items }),
+        });
         if (!res.ok) throw new Error(await res.text());
         toast.success("Order submitted");
         router.push("/orders");
@@ -97,4 +100,25 @@ Notice `quantity` and `unitCost` are `z.string()` with a `.regex()`/`.refine()` 
 
 ## Where else this pattern shows up
 
-If you're adding a new form, don't design a new pattern - copy the shape from the closest existing example: `src/components/auth/LoginForm.tsx` (simple, no cross-field validation), or `src/components/orders/OrderForm.tsx` (cross-field validation via `superRefine`, edit-vs-create mode via an optional `initialOrder` prop).
+If you're adding a new form, don't design a new pattern - copy the shape from the closest existing example: `src/components/auth/LoginForm.tsx` (simple, single-object form), or `src/components/orders/OrderForm.tsx` (repeatable rows via `useFieldArray`, edit-vs-create mode via an optional `initialOrder` prop).
+
+## Repeatable rows
+
+`OrderForm` lets a member submit many items at once. It uses react-hook-form's
+`useFieldArray` over the `items` array, rendering one set of fields per row:
+
+```ts
+const { fields, append, remove } = useFieldArray({ control: form.control, name: "items" });
+```
+
+Two rules keep this from feeling heavier than a single-item form:
+
+- A lone row renders as a plain form, with no card chrome, index heading or
+  remove button. The batch affordances only appear once there is more than one
+  row, so the common case is unchanged.
+- Field names are template paths (`` `items.${index}.vendor` ``), which is what
+  lets Zod's per-row issue paths line up with the right input.
+
+`PasteItemsPanel` is the bulk entry path: it parses tab- or comma-separated rows
+pasted from a spreadsheet into item objects and appends them all at once. Its
+parser is pure and unit-tested in `src/components/orders/paste-items.test.ts`.

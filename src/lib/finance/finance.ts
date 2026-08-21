@@ -25,7 +25,7 @@ export const FINANCE_SETTINGS_ID = 1;
 export function orderTotalCents(
     quantity: number,
     unitCostCents: number,
-    fundType: FundType
+    fundType: FundType | null
 ): number {
     return orderChargeCents(fundType, quantity, unitCostCents, getOrderPricingSettings());
 }
@@ -147,10 +147,14 @@ export function getStfBucketsWithBalances(): StfBucketBalance[] {
 }
 
 export function validateOrderBalance(
-    fundType: FundType,
+    fundType: FundType | null,
     stfBucketId: number | null | undefined,
     totalCostCents: number
 ): { ok: true } | { ok: false; message: string } {
+    if (!fundType) {
+        return { ok: false, message: "Assign this order to a fund before approving it." };
+    }
+
     if (fundType === "Gift") {
         const available = getGiftFundValueCents();
         if (totalCostCents > available) {
@@ -190,6 +194,115 @@ function formatCents(cents: number): string {
     return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
         cents / 100
     );
+}
+
+// Pending orders already assigned to a bucket have not spent it yet, but they
+// are claims against it. Counting them keeps assignment from quietly building a
+// queue that cannot all be approved.
+export function getBucketPendingSpendCents(
+    bucketId: number,
+    quarterId: number,
+    excludeOrderIds: number[] = []
+): number {
+    const settings = getOrderPricingSettings();
+    const rows = db
+        .select({ id: order.id, quantity: order.quantity, unitCostCents: order.unitCostCents })
+        .from(order)
+        .where(
+            and(
+                eq(order.stfBucketId, bucketId),
+                eq(order.quarterId, quarterId),
+                eq(order.status, "pending")
+            )
+        )
+        .all();
+
+    const excluded = new Set(excludeOrderIds);
+    return rows
+        .filter((row) => !excluded.has(row.id))
+        .reduce(
+            (sum, row) => sum + stfOrderTotalCents(row.quantity, row.unitCostCents, settings),
+            0
+        );
+}
+
+export type BatchCostItem = { quantity: number; unitCostCents: number };
+
+export function batchTotalCents(fundType: FundType | null, items: BatchCostItem[]): number {
+    const settings = getOrderPricingSettings();
+    return items.reduce(
+        (sum, item) =>
+            sum + orderChargeCents(fundType, item.quantity, item.unitCostCents, settings),
+        0
+    );
+}
+
+// Approving several orders at once must charge them against the fund together;
+// checking each one individually would let a batch overdraw the balance.
+export function validateBatchBalance(
+    fundType: FundType | null,
+    stfBucketId: number | null | undefined,
+    items: BatchCostItem[]
+): { ok: true } | { ok: false; message: string } {
+    if (items.length === 0) return { ok: true };
+    return validateOrderBalance(fundType, stfBucketId, batchTotalCents(fundType, items));
+}
+
+// Assignment check: the batch, plus everything already queued against the
+// bucket, must fit inside what is left.
+export function validateAssignmentBalance(
+    fundType: FundType,
+    stfBucketId: number | null,
+    orderIds: number[],
+    items: BatchCostItem[]
+): { ok: true } | { ok: false; message: string } {
+    if (fundType === "Gift" || !stfBucketId) {
+        return validateBatchBalance(fundType, stfBucketId, items);
+    }
+
+    const bucket = db.select().from(stfBucket).where(eq(stfBucket.id, stfBucketId)).get();
+    const remaining = getBucketRemainingCents(stfBucketId);
+    if (!bucket || remaining == null) {
+        return { ok: false, message: "Selected STF bucket is not available." };
+    }
+
+    const quarter = getActiveQuarter();
+    const alreadyQueued = quarter
+        ? getBucketPendingSpendCents(stfBucketId, quarter.id, orderIds)
+        : 0;
+    const batchTotal = batchTotalCents(fundType, items);
+    const available = remaining - alreadyQueued;
+
+    if (batchTotal > available) {
+        return {
+            ok: false,
+            message: `${bucket.name} cannot cover these orders. Unclaimed: ${formatCents(available)} (${formatCents(remaining)} left, ${formatCents(alreadyQueued)} already awaiting approval), selection: ${formatCents(batchTotal)}.`,
+        };
+    }
+
+    return { ok: true };
+}
+
+export function assignOrdersToFund(
+    orderIds: number[],
+    fundType: FundType,
+    stfBucketId: number | null,
+    changedBy: string
+): number {
+    const quarter = fundType === "STF" ? getActiveQuarter() : null;
+
+    db.update(order)
+        .set({
+            fundType,
+            stfBucketId: fundType === "STF" ? stfBucketId : null,
+            quarterId: quarter?.id ?? null,
+            assignedBy: changedBy,
+            assignedAt: new Date(),
+        })
+        .where(inArray(order.id, orderIds))
+        .run();
+
+    return orderIds.length;
 }
 
 export function deductGiftFundForApproval(

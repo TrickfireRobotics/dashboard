@@ -6,43 +6,51 @@ const emptyToUndefined = (v: unknown) => (v === "" || v === null ? undefined : v
 
 const fundTypeSchema = z.enum(["STF", "Gift"]);
 
-export const orderInputSchema = z
+// A single requested item. Fund type and STF bucket are deliberately absent:
+// officers assign those during triage, so members never pick a bucket.
+export const orderItemSchema = z.object({
+    vendor: z.string().trim().min(1, "Vendor is required").max(200),
+    link: z.string().trim().url("Enter a valid URL").max(500),
+    itemName: z.string().trim().min(1, "Item name is required").max(200),
+    partNumber: z.string().trim().max(100).optional(),
+    quantity: z.coerce.number().int().min(1, "At least 1").max(9999),
+    unitCost: z.coerce.number().min(0.01, "Unit cost is required").max(1_000_000),
+    notes: z.string().trim().max(2000).optional(),
+});
+
+export const MAX_ORDER_BATCH_ITEMS = 50;
+
+export const orderBatchInputSchema = z.object({
+    items: z
+        .array(orderItemSchema)
+        .min(1, "Add at least one item")
+        .max(MAX_ORDER_BATCH_ITEMS, `At most ${MAX_ORDER_BATCH_ITEMS} items per submission`),
+});
+
+// Member edit of one of their own pending/denied orders.
+export const orderInputSchema = orderItemSchema;
+
+export const orderAssignSchema = z
     .object({
+        orderIds: z.array(z.coerce.number().int().positive()).min(1, "Select at least one order"),
         fundType: fundTypeSchema,
         stfBucketId: z.coerce.number().int().positive().optional(),
-        vendor: z.string().trim().min(1, "Vendor is required").max(200),
-        link: z.string().trim().url("Enter a valid URL").max(500),
-        itemName: z.string().trim().min(1, "Item name is required").max(200),
-        partNumber: z.string().trim().max(100).optional(),
-        quantity: z.coerce.number().int().min(1, "At least 1").max(9999),
-        unitCost: z.coerce.number().min(0.01, "Unit cost is required").max(1_000_000),
-        notes: z.string().trim().max(2000).optional(),
     })
     .superRefine((data, ctx) => {
-        if (data.fundType === "STF") {
-            if (!data.stfBucketId) {
-                ctx.addIssue({
-                    code: "custom",
-                    message: "Select an STF bucket",
-                    path: ["stfBucketId"],
-                });
-            }
-            if (!data.partNumber?.trim()) {
-                ctx.addIssue({
-                    code: "custom",
-                    message: "Part number is required for STF orders",
-                    path: ["partNumber"],
-                });
-            }
-        }
-        if (data.fundType === "Gift" && !data.notes?.trim()) {
+        if (data.fundType === "STF" && !data.stfBucketId) {
             ctx.addIssue({
                 code: "custom",
-                message: "Notes are required for Gift orders",
-                path: ["notes"],
+                message: "Select an STF bucket",
+                path: ["stfBucketId"],
             });
         }
     });
+
+export const orderBulkActionSchema = z.object({
+    orderIds: z.array(z.coerce.number().int().positive()).min(1, "Select at least one order"),
+    action: z.enum(["approve", "deny"]),
+    denialComment: z.string().trim().max(2000).optional(),
+});
 
 export const orderActionSchema = z.object({
     action: z.enum(["approve", "deny"]),

@@ -1,13 +1,20 @@
 "use client";
 
 import { Copy, PackageCheck, Trash2 } from "lucide-react";
-import { Fragment, type ReactNode } from "react";
+import { Fragment, type ReactNode, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 import { toast } from "sonner";
 
+import { isOverBudget, StfBucketSelectItemContent } from "@/components/BalanceAmount";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import {
     Table,
     TableBody,
@@ -28,15 +35,17 @@ import {
     displayPercentToBps,
     type OrderPricingSettings,
 } from "@/lib/finance/order-pricing";
-import { formatDate, formatPriceCents } from "@/lib/utils";
+import { cn, formatDate, formatPriceCents } from "@/lib/utils";
 
 import { OrderStatusBadge } from "./OrderStatusBadge";
 
 export type AdminOrderRow = {
     id: number;
     itemName: string;
-    fundType: FundType;
+    fundType: FundType | null;
+    stfBucketId: number | null;
     stfBucketName: string | null;
+    batchId: string | null;
     requesterName: string | null;
     requesterEmail: string | null;
     quantity: number;
@@ -50,7 +59,18 @@ export type AdminOrderRow = {
     createdAt: Date;
 };
 
+export type StfBucketOption = {
+    id: number;
+    name: string;
+    remainingBalanceCents: number;
+};
+
 type Action = "approve" | "deny";
+
+export type OrderPricing = {
+    taxPercent: number;
+    shippingPercent: number;
+};
 
 function toPricingSettings(orderPricing: OrderPricing): OrderPricingSettings {
     return {
@@ -72,16 +92,17 @@ async function copyText(text: string, label: string) {
     }
 }
 
-export type OrderPricing = {
-    taxPercent: number;
-    shippingPercent: number;
-};
+function plural(count: number, noun: string) {
+    return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
 
 export function AdminOrderQueue({
     orders,
+    stfBuckets,
     orderPricing,
 }: {
     orders: AdminOrderRow[];
+    stfBuckets: StfBucketOption[];
     orderPricing: OrderPricing;
 }) {
     const router = useRouter();
@@ -90,31 +111,84 @@ export function AdminOrderQueue({
     const [pending, setPending] = useState<Action | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [markingOrdered, setMarkingOrdered] = useState(false);
-    const [selectedApprovedIds, setSelectedApprovedIds] = useState<Set<number>>(new Set());
+    const [busy, setBusy] = useState(false);
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
     const pricingSettings = toPricingSettings(orderPricing);
 
-    const pendingOrders = orders.filter((o) => o.status === "pending");
-    const approvedOrders = orders.filter((o) => o.status === "approved");
-    const orderedOrders = orders.filter((o) => o.status === "ordered");
-    const deniedOrders = orders.filter((o) => o.status === "denied");
+    const { untriagedOrders, reviewOrders, approvedOrders, orderedOrders, deniedOrders } = useMemo(
+        () => ({
+            untriagedOrders: orders.filter((o) => o.status === "pending" && !o.fundType),
+            reviewOrders: orders.filter((o) => o.status === "pending" && o.fundType),
+            approvedOrders: orders.filter((o) => o.status === "approved"),
+            orderedOrders: orders.filter((o) => o.status === "ordered"),
+            deniedOrders: orders.filter((o) => o.status === "denied"),
+        }),
+        [orders]
+    );
+
     const approvedStfCount = approvedOrders.filter((o) => o.fundType === "STF").length;
     const approvedGiftCount = approvedOrders.filter((o) => o.fundType === "Gift").length;
+
+    function selectedIn(rows: AdminOrderRow[]): number[] {
+        return rows.filter((o) => selectedIds.has(o.id)).map((o) => o.id);
+    }
+
+    function toggleSelection(orderId: number) {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(orderId)) next.delete(orderId);
+            else next.add(orderId);
+            return next;
+        });
+    }
+
+    function toggleAllIn(rows: AdminOrderRow[]) {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            const allSelected = rows.every((o) => next.has(o.id));
+            for (const row of rows) {
+                if (allSelected) next.delete(row.id);
+                else next.add(row.id);
+            }
+            return next;
+        });
+    }
+
+    function makeSelection(rows: AdminOrderRow[]) {
+        const selectedCount = rows.filter((o) => selectedIds.has(o.id)).length;
+        return {
+            selectedIds,
+            onToggle: toggleSelection,
+            onToggleAll: () => toggleAllIn(rows),
+            allSelected: selectedCount === rows.length && rows.length > 0,
+            someSelected: selectedCount > 0 && selectedCount < rows.length,
+        };
+    }
+
+    async function post(url: string, body: unknown, failureMessage: string) {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+            const data = await res.json().catch(() => null);
+            throw new Error(data?.error ?? failureMessage);
+        }
+        return res.json().catch(() => null);
+    }
 
     async function runAction(order: AdminOrderRow, action: Action) {
         setPending(action);
         try {
-            const res = await fetch(`/api/orders/${order.id}/action`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
+            await post(
+                `/api/orders/${order.id}/action`,
+                {
                     action,
                     denialComment: action === "deny" ? denialComment || undefined : undefined,
-                }),
-            });
-            if (!res.ok) {
-                const data = await res.json().catch(() => null);
-                throw new Error(data?.error ?? "Action failed");
-            }
+                },
+                "Action failed"
+            );
             toast.success(action === "approve" ? "Order approved" : "Order denied");
             setExpandedId(null);
             setDenialComment("");
@@ -126,57 +200,72 @@ export function AdminOrderQueue({
         }
     }
 
+    async function runBulkAction(orderIds: number[], action: Action, comment?: string) {
+        if (orderIds.length === 0) return;
+        if (action === "deny" && !confirm(`Deny ${plural(orderIds.length, "order")}?`)) return;
+
+        setBusy(true);
+        try {
+            const data = await post(
+                "/api/orders/bulk-action",
+                { orderIds, action, denialComment: comment || undefined },
+                "Bulk action failed"
+            );
+            toast.success(
+                `${plural(data?.count ?? orderIds.length, "order")} ${action === "approve" ? "approved" : "denied"}`
+            );
+            setSelectedIds(new Set());
+            setExpandedId(null);
+            router.refresh();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Something went wrong");
+        } finally {
+            setBusy(false);
+        }
+    }
+
+    async function assignOrders(orderIds: number[], fundType: FundType, bucketId: number | null) {
+        if (orderIds.length === 0) return;
+        setBusy(true);
+        try {
+            await post(
+                "/api/orders/assign",
+                { orderIds, fundType, stfBucketId: bucketId ?? undefined },
+                "Failed to assign orders"
+            );
+            toast.success(`${plural(orderIds.length, "order")} assigned`);
+            setSelectedIds(new Set());
+            router.refresh();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Something went wrong");
+        } finally {
+            setBusy(false);
+        }
+    }
+
     async function markApprovedAsOrdered(orderIds?: number[]) {
         const count = orderIds?.length ?? approvedOrders.length;
         if (count === 0) return;
 
-        const message =
-            count === 1
-                ? "Move 1 approved order to the ordered archive? It will no longer appear in Excel exports."
-                : `Move ${count} approved order${count === 1 ? "" : "s"} to the ordered archive? They will no longer appear in Excel exports.`;
+        const message = `Move ${plural(count, "approved order")} to the ordered archive? ${count === 1 ? "It" : "They"} will no longer appear in Excel exports.`;
         if (!confirm(message)) return;
 
         setMarkingOrdered(true);
         try {
-            const res = await fetch("/api/orders/mark-ordered", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(orderIds ? { orderIds } : {}),
-            });
-            if (!res.ok) {
-                const data = await res.json().catch(() => null);
-                throw new Error(data?.error ?? "Failed to mark orders as ordered");
-            }
-            const data = await res.json();
-            toast.success(
-                data.movedCount === 1
-                    ? "1 order moved to ordered"
-                    : `${data.movedCount} orders moved to ordered`
+            const data = await post(
+                "/api/orders/mark-ordered",
+                orderIds ? { orderIds } : {},
+                "Failed to mark orders as ordered"
             );
+            toast.success(`${plural(data?.movedCount ?? count, "order")} moved to ordered`);
             setExpandedId(null);
-            setSelectedApprovedIds(new Set());
+            setSelectedIds(new Set());
             router.refresh();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Something went wrong");
         } finally {
             setMarkingOrdered(false);
         }
-    }
-
-    function toggleApprovedSelection(orderId: number) {
-        setSelectedApprovedIds((prev) => {
-            const next = new Set(prev);
-            if (next.has(orderId)) next.delete(orderId);
-            else next.add(orderId);
-            return next;
-        });
-    }
-
-    function toggleAllApprovedSelection() {
-        setSelectedApprovedIds((prev) => {
-            if (prev.size === approvedOrders.length) return new Set();
-            return new Set(approvedOrders.map((o) => o.id));
-        });
     }
 
     async function deleteOrder(order: AdminOrderRow) {
@@ -211,9 +300,22 @@ export function AdminOrderQueue({
         );
     }
 
+    const sharedSectionProps = {
+        expandedId,
+        onToggle: (id: number) => {
+            setExpandedId((prev) => (prev === id ? null : id));
+            setDenialComment("");
+        },
+        denialComment,
+        onDenialCommentChange: setDenialComment,
+        pending,
+        onAction: runAction,
+        orderPricing,
+    };
+
     return (
         <div className="space-y-8">
-            {(approvedStfCount > 0 || approvedGiftCount > 0 || approvedOrders.length > 0) && (
+            {approvedOrders.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                     <Button
                         variant="outline"
@@ -222,7 +324,7 @@ export function AdminOrderQueue({
                         onClick={() =>
                             copyText(
                                 formatApprovedStfOrders(orders, pricingSettings),
-                                `${approvedStfCount} approved STF order${approvedStfCount === 1 ? "" : "s"}`
+                                plural(approvedStfCount, "approved STF order")
                             )
                         }
                     >
@@ -236,7 +338,7 @@ export function AdminOrderQueue({
                         onClick={() =>
                             copyText(
                                 formatApprovedGiftOrders(orders),
-                                `${approvedGiftCount} approved Gift order${approvedGiftCount === 1 ? "" : "s"}`
+                                plural(approvedGiftCount, "approved Gift order")
                             )
                         }
                     >
@@ -245,7 +347,7 @@ export function AdminOrderQueue({
                     </Button>
                     <Button
                         size="sm"
-                        disabled={approvedOrders.length === 0 || markingOrdered}
+                        disabled={markingOrdered}
                         onClick={() => markApprovedAsOrdered()}
                     >
                         <PackageCheck className="size-4" />
@@ -253,92 +355,290 @@ export function AdminOrderQueue({
                     </Button>
                 </div>
             )}
+
+            {untriagedOrders.length > 0 ? (
+                <OrderSection
+                    {...sharedSectionProps}
+                    title="Needs triage"
+                    description="New requests with no fund assigned. Select several and assign them in one go."
+                    orders={untriagedOrders}
+                    showActions={false}
+                    selection={makeSelection(untriagedOrders)}
+                    toolbar={
+                        <TriageToolbar
+                            stfBuckets={stfBuckets}
+                            selectedCount={selectedIn(untriagedOrders).length}
+                            busy={busy}
+                            onAssign={(fundType, bucketId) =>
+                                assignOrders(selectedIn(untriagedOrders), fundType, bucketId)
+                            }
+                            onDeny={(comment) =>
+                                runBulkAction(selectedIn(untriagedOrders), "deny", comment)
+                            }
+                        />
+                    }
+                />
+            ) : null}
+
             <OrderSection
-                title="Pending orders"
-                orders={pendingOrders}
-                expandedId={expandedId}
-                onToggle={(id) => {
-                    setExpandedId((prev) => (prev === id ? null : id));
-                    setDenialComment("");
-                }}
-                denialComment={denialComment}
-                onDenialCommentChange={setDenialComment}
-                pending={pending}
-                onAction={runAction}
+                {...sharedSectionProps}
+                title="Ready to review"
+                description={
+                    reviewOrders.length > 0
+                        ? "Assigned to a fund and waiting on an approval decision."
+                        : undefined
+                }
+                orders={reviewOrders}
                 showActions
-                orderPricing={orderPricing}
+                selection={makeSelection(reviewOrders)}
+                toolbar={
+                    <ReviewToolbar
+                        stfBuckets={stfBuckets}
+                        selectedCount={selectedIn(reviewOrders).length}
+                        busy={busy}
+                        onApprove={() => runBulkAction(selectedIn(reviewOrders), "approve")}
+                        onDeny={(comment) =>
+                            runBulkAction(selectedIn(reviewOrders), "deny", comment)
+                        }
+                        onReassign={(fundType, bucketId) =>
+                            assignOrders(selectedIn(reviewOrders), fundType, bucketId)
+                        }
+                    />
+                }
             />
+
             {approvedOrders.length > 0 ? (
                 <OrderSection
+                    {...sharedSectionProps}
                     title="Approved"
                     description="Ready to copy for vendor ordering. Select parts and move to ordered once placed."
                     orders={approvedOrders}
-                    expandedId={expandedId}
-                    onToggle={(id) => setExpandedId((prev) => (prev === id ? null : id))}
-                    denialComment={denialComment}
-                    onDenialCommentChange={setDenialComment}
-                    pending={pending}
-                    onAction={runAction}
                     showActions={false}
-                    orderPricing={orderPricing}
                     onDelete={deleteOrder}
                     deletingId={deletingId}
-                    selection={{
-                        selectedIds: selectedApprovedIds,
-                        onToggle: toggleApprovedSelection,
-                        onToggleAll: toggleAllApprovedSelection,
-                        allSelected:
-                            selectedApprovedIds.size === approvedOrders.length &&
-                            approvedOrders.length > 0,
-                        someSelected:
-                            selectedApprovedIds.size > 0 &&
-                            selectedApprovedIds.size < approvedOrders.length,
-                    }}
+                    selection={makeSelection(approvedOrders)}
                     headerAction={
                         <Button
                             size="sm"
-                            disabled={selectedApprovedIds.size === 0 || markingOrdered}
-                            onClick={() => markApprovedAsOrdered(Array.from(selectedApprovedIds))}
+                            disabled={selectedIn(approvedOrders).length === 0 || markingOrdered}
+                            onClick={() => markApprovedAsOrdered(selectedIn(approvedOrders))}
                         >
                             <PackageCheck className="size-4" />
-                            Move selected to ordered ({selectedApprovedIds.size})
+                            Move selected to ordered ({selectedIn(approvedOrders).length})
                         </Button>
                     }
                 />
             ) : null}
+
             {deniedOrders.length > 0 ? (
                 <OrderSection
+                    {...sharedSectionProps}
                     title="Denied"
                     orders={deniedOrders}
-                    expandedId={expandedId}
-                    onToggle={(id) => setExpandedId((prev) => (prev === id ? null : id))}
-                    denialComment={denialComment}
-                    onDenialCommentChange={setDenialComment}
-                    pending={pending}
-                    onAction={runAction}
                     showActions={false}
-                    orderPricing={orderPricing}
                     onDelete={deleteOrder}
                     deletingId={deletingId}
                 />
             ) : null}
+
             {orderedOrders.length > 0 ? (
                 <OrderSection
+                    {...sharedSectionProps}
                     title="Ordered"
                     description="Parts that have already been placed with vendors."
                     orders={orderedOrders}
-                    expandedId={expandedId}
-                    onToggle={(id) => setExpandedId((prev) => (prev === id ? null : id))}
-                    denialComment={denialComment}
-                    onDenialCommentChange={setDenialComment}
-                    pending={pending}
-                    onAction={runAction}
                     showActions={false}
-                    orderPricing={orderPricing}
                     onDelete={deleteOrder}
                     deletingId={deletingId}
                 />
             ) : null}
+        </div>
+    );
+}
+
+function BucketSelect({
+    stfBuckets,
+    value,
+    onChange,
+}: {
+    stfBuckets: StfBucketOption[];
+    value: string;
+    onChange: (value: string) => void;
+}) {
+    return (
+        <Select
+            items={Object.fromEntries(stfBuckets.map((b) => [String(b.id), b.name]))}
+            value={value}
+            onValueChange={(v) => onChange(v ?? "")}
+        >
+            <SelectTrigger className="w-56">
+                <SelectValue placeholder="Select bucket" />
+            </SelectTrigger>
+            <SelectContent>
+                {stfBuckets.map((bucket) => (
+                    <SelectItem
+                        key={bucket.id}
+                        value={String(bucket.id)}
+                        className={cn(
+                            isOverBudget(bucket.remainingBalanceCents) && "text-destructive"
+                        )}
+                    >
+                        <StfBucketSelectItemContent
+                            name={bucket.name}
+                            cents={bucket.remainingBalanceCents}
+                        />
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
+    );
+}
+
+function FundAssignControls({
+    stfBuckets,
+    selectedCount,
+    busy,
+    onAssign,
+    label,
+}: {
+    stfBuckets: StfBucketOption[];
+    selectedCount: number;
+    busy: boolean;
+    onAssign: (fundType: FundType, bucketId: number | null) => void;
+    label: string;
+}) {
+    const [fundType, setFundType] = useState<FundType | "">("");
+    const [bucketId, setBucketId] = useState("");
+
+    const ready = selectedCount > 0 && fundType !== "" && (fundType === "Gift" || bucketId !== "");
+
+    return (
+        <div className="flex flex-wrap items-center gap-2">
+            <Select
+                items={{ STF: "STF", Gift: "Gift" }}
+                value={fundType}
+                onValueChange={(v) => {
+                    setFundType((v as FundType | null) ?? "");
+                    setBucketId("");
+                }}
+            >
+                <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Fund" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="STF">STF</SelectItem>
+                    <SelectItem value="Gift">Gift</SelectItem>
+                </SelectContent>
+            </Select>
+
+            {fundType === "STF" ? (
+                <BucketSelect stfBuckets={stfBuckets} value={bucketId} onChange={setBucketId} />
+            ) : null}
+
+            <Button
+                size="sm"
+                disabled={!ready || busy}
+                onClick={() => onAssign(fundType as FundType, bucketId ? Number(bucketId) : null)}
+            >
+                {label} ({selectedCount})
+            </Button>
+        </div>
+    );
+}
+
+function BulkDenyControl({
+    selectedCount,
+    busy,
+    onDeny,
+}: {
+    selectedCount: number;
+    busy: boolean;
+    onDeny: (comment: string) => void;
+}) {
+    const [comment, setComment] = useState("");
+    return (
+        <div className="flex flex-wrap items-center gap-2">
+            <input
+                type="text"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Denial reason (optional)"
+                aria-label="Denial reason for selected orders"
+                className="border-input bg-background h-9 w-56 rounded-md border px-3 text-sm"
+            />
+            <Button
+                variant="destructive"
+                size="sm"
+                disabled={selectedCount === 0 || busy}
+                onClick={() => onDeny(comment)}
+            >
+                Deny selected ({selectedCount})
+            </Button>
+        </div>
+    );
+}
+
+function TriageToolbar({
+    stfBuckets,
+    selectedCount,
+    busy,
+    onAssign,
+    onDeny,
+}: {
+    stfBuckets: StfBucketOption[];
+    selectedCount: number;
+    busy: boolean;
+    onAssign: (fundType: FundType, bucketId: number | null) => void;
+    onDeny: (comment: string) => void;
+}) {
+    return (
+        <div className="bg-muted/40 border-border flex flex-wrap items-center gap-4 rounded-lg border px-4 py-3">
+            <span className="text-sm font-medium">
+                {selectedCount > 0 ? `${selectedCount} selected` : "Select orders to assign"}
+            </span>
+            <FundAssignControls
+                stfBuckets={stfBuckets}
+                selectedCount={selectedCount}
+                busy={busy}
+                onAssign={onAssign}
+                label="Assign"
+            />
+            <BulkDenyControl selectedCount={selectedCount} busy={busy} onDeny={onDeny} />
+        </div>
+    );
+}
+
+function ReviewToolbar({
+    stfBuckets,
+    selectedCount,
+    busy,
+    onApprove,
+    onDeny,
+    onReassign,
+}: {
+    stfBuckets: StfBucketOption[];
+    selectedCount: number;
+    busy: boolean;
+    onApprove: () => void;
+    onDeny: (comment: string) => void;
+    onReassign: (fundType: FundType, bucketId: number | null) => void;
+}) {
+    return (
+        <div className="bg-muted/40 border-border flex flex-wrap items-center gap-4 rounded-lg border px-4 py-3">
+            <span className="text-sm font-medium">
+                {selectedCount > 0 ? `${selectedCount} selected` : "Select orders to review"}
+            </span>
+            <Button size="sm" disabled={selectedCount === 0 || busy} onClick={onApprove}>
+                Approve selected ({selectedCount})
+            </Button>
+            <BulkDenyControl selectedCount={selectedCount} busy={busy} onDeny={onDeny} />
+            <FundAssignControls
+                stfBuckets={stfBuckets}
+                selectedCount={selectedCount}
+                busy={busy}
+                onAssign={onReassign}
+                label="Reassign"
+            />
         </div>
     );
 }
@@ -359,6 +659,7 @@ function OrderSection({
     deletingId,
     selection,
     headerAction,
+    toolbar,
 }: {
     title: string;
     description?: string;
@@ -381,6 +682,7 @@ function OrderSection({
         someSelected: boolean;
     };
     headerAction?: ReactNode;
+    toolbar?: ReactNode;
 }) {
     if (orders.length === 0) return null;
 
@@ -391,13 +693,17 @@ function OrderSection({
         <div className="space-y-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                    <h2 className="text-lg font-semibold">{title}</h2>
+                    <h2 className="text-lg font-semibold">
+                        {title}{" "}
+                        <span className="text-muted-foreground font-normal">({orders.length})</span>
+                    </h2>
                     {description ? (
                         <p className="text-muted-foreground text-sm">{description}</p>
                     ) : null}
                 </div>
                 {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
             </div>
+            {toolbar}
             <div className="border-border rounded-lg border">
                 <Table>
                     <TableHeader>
@@ -406,7 +712,7 @@ function OrderSection({
                                 <TableHead className="w-10">
                                     <input
                                         type="checkbox"
-                                        aria-label="Select all approved orders"
+                                        aria-label={`Select all ${title.toLowerCase()} orders`}
                                         checked={selection.allSelected}
                                         ref={(el) => {
                                             if (el) el.indeterminate = selection.someSelected;
@@ -432,7 +738,6 @@ function OrderSection({
                             return (
                                 <Fragment key={o.id}>
                                     <TableRow
-                                        key={o.id}
                                         className="cursor-pointer"
                                         onClick={() => onToggle(o.id)}
                                     >
@@ -454,10 +759,21 @@ function OrderSection({
                                             {o.itemName}
                                         </TableCell>
                                         <TableCell className="hidden md:table-cell">
-                                            {o.fundType}
-                                            {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
+                                            {o.fundType ? (
+                                                <>
+                                                    {o.fundType}
+                                                    {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
+                                                </>
+                                            ) : (
+                                                <span className="text-muted-foreground italic">
+                                                    Unassigned
+                                                </span>
+                                            )}
                                         </TableCell>
                                         <TableCell className="hidden text-right md:table-cell">
+                                            {o.fundType ? null : (
+                                                <span className="text-muted-foreground">est. </span>
+                                            )}
                                             {formatPriceCents(
                                                 orderChargeCents(
                                                     o.fundType,
@@ -475,7 +791,7 @@ function OrderSection({
                                         </TableCell>
                                     </TableRow>
                                     {expanded ? (
-                                        <TableRow key={`${o.id}-detail`}>
+                                        <TableRow>
                                             <TableCell
                                                 colSpan={columnCount}
                                                 className="bg-muted/30"
@@ -540,7 +856,10 @@ function OrderDetail({
                 <Detail label="Vendor" value={order.vendor} />
                 <Detail label="Quantity" value={String(order.quantity)} />
                 <Detail label="Unit cost" value={formatPriceCents(order.unitCostCents)} />
-                <Detail label="Total cost" value={formatPriceCents(total)} />
+                <Detail
+                    label={order.fundType ? "Total cost" : "Estimated total"}
+                    value={formatPriceCents(total)}
+                />
                 <Detail label="Part number" value={order.partNumber ?? "-"} />
                 <div className="col-span-2">
                     <dt className="text-muted-foreground">Link</dt>

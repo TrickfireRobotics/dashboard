@@ -35,7 +35,7 @@ import { OrderStatusBadge } from "./OrderStatusBadge";
 export type MemberOrderRow = {
     id: number;
     itemName: string;
-    fundType: FundType;
+    fundType: FundType | null;
     stfBucketName: string | null;
     quantity: number;
     unitCostCents: number;
@@ -45,11 +45,11 @@ export type MemberOrderRow = {
 };
 
 type StatusFilter = "all" | OrderStatus;
-type FundFilter = "all" | FundType;
+type FundFilter = "all" | "unassigned" | FundType;
 type SortKey = "newest" | "oldest" | "item-asc" | "item-desc" | "total-desc" | "total-asc";
 
 function totalCostCents(
-    row: { fundType: FundType; quantity: number; unitCostCents: number },
+    row: { fundType: FundType | null; quantity: number; unitCostCents: number },
     pricing: OrderPricingSettings
 ) {
     return orderChargeCents(row.fundType, row.quantity, row.unitCostCents, pricing);
@@ -82,7 +82,13 @@ export function OrderTable({
     const filteredOrders = useMemo(() => {
         let rows = orders.filter((order) => {
             if (statusFilter !== "all" && order.status !== statusFilter) return false;
-            if (fundFilter !== "all" && order.fundType !== fundFilter) return false;
+            if (fundFilter === "unassigned" && order.fundType != null) return false;
+            if (
+                fundFilter !== "all" &&
+                fundFilter !== "unassigned" &&
+                order.fundType !== fundFilter
+            )
+                return false;
             return true;
         });
 
@@ -144,6 +150,7 @@ export function OrderTable({
 
     const fundFilterItems = {
         all: "All funds",
+        unassigned: "Unassigned",
         STF: "STF",
         Gift: "Gift",
     };
@@ -187,6 +194,7 @@ export function OrderTable({
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All funds</SelectItem>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
                         <SelectItem value="STF">STF</SelectItem>
                         <SelectItem value="Gift">Gift</SelectItem>
                     </SelectContent>
@@ -240,8 +248,16 @@ export function OrderTable({
                                         {o.itemName}
                                     </TableCell>
                                     <TableCell className="hidden md:table-cell">
-                                        {o.fundType}
-                                        {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
+                                        {o.fundType ? (
+                                            <>
+                                                {o.fundType}
+                                                {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
+                                            </>
+                                        ) : (
+                                            <span className="text-muted-foreground italic">
+                                                Not yet assigned
+                                            </span>
+                                        )}
                                     </TableCell>
                                     <TableCell className="hidden text-right md:table-cell">
                                         {formatPriceCents(totalCostCents(o, pricingSettings))}

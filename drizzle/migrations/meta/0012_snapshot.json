@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "e1fe9584-4c06-4391-9802-c7b4bd100d23",
-  "prevId": "a2f3d812-5c71-4b88-a063-9f1e2d3c4b5a",
+  "id": "f785fb2f-0f17-4547-abc6-058c1af76eff",
+  "prevId": "e1fe9584-4c06-4391-9802-c7b4bd100d23",
   "tables": {
     "api_key": {
       "name": "api_key",
@@ -502,11 +502,32 @@
           "name": "fund_type",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "stf_bucket_id": {
           "name": "stf_bucket_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "batch_id": {
+          "name": "batch_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "assigned_by": {
+          "name": "assigned_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "assigned_at": {
+          "name": "assigned_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -607,7 +628,15 @@
           "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "orders_batch_id_idx": {
+          "name": "orders_batch_id_idx",
+          "columns": [
+            "batch_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "orders_user_id_user_id_fk": {
           "name": "orders_user_id_user_id_fk",
@@ -628,6 +657,19 @@
           "tableTo": "stf_bucket",
           "columnsFrom": [
             "stf_bucket_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "orders_assigned_by_user_id_fk": {
+          "name": "orders_assigned_by_user_id_fk",
+          "tableFrom": "orders",
+          "tableTo": "user",
+          "columnsFrom": [
+            "assigned_by"
           ],
           "columnsTo": [
             "id"
