@@ -8,7 +8,7 @@ import {
     financeSettingsUpdateSchema,
     markOrderedSchema,
     vaultEntrySchema,
-    whitelistRequestSchema,
+    whitelistDirectAddSchema,
     stfBucketInputSchema,
     updateUserSchema,
 } from "./validation";
@@ -250,29 +250,29 @@ describe("vaultEntrySchema (discriminated union)", () => {
     });
 });
 
-describe("whitelistRequestSchema", () => {
+describe("whitelistDirectAddSchema", () => {
     it("accepts a valid Minecraft username", () => {
-        expect(() => whitelistRequestSchema.parse({ username: "Steve_123" })).not.toThrow();
+        expect(() => whitelistDirectAddSchema.parse({ username: "Steve_123" })).not.toThrow();
     });
 
     it("rejects usernames shorter than 3 characters", () => {
-        const result = whitelistRequestSchema.safeParse({ username: "ab" });
+        const result = whitelistDirectAddSchema.safeParse({ username: "ab" });
         expect(result.success).toBe(false);
     });
 
     it("rejects usernames longer than 16 characters", () => {
-        const result = whitelistRequestSchema.safeParse({ username: "a".repeat(17) });
+        const result = whitelistDirectAddSchema.safeParse({ username: "a".repeat(17) });
         expect(result.success).toBe(false);
     });
 
     it("rejects usernames with spaces or special characters", () => {
-        expect(whitelistRequestSchema.safeParse({ username: "has space" }).success).toBe(false);
-        expect(whitelistRequestSchema.safeParse({ username: "has-dash" }).success).toBe(false);
-        expect(whitelistRequestSchema.safeParse({ username: "has.dot" }).success).toBe(false);
+        expect(whitelistDirectAddSchema.safeParse({ username: "has space" }).success).toBe(false);
+        expect(whitelistDirectAddSchema.safeParse({ username: "has-dash" }).success).toBe(false);
+        expect(whitelistDirectAddSchema.safeParse({ username: "has.dot" }).success).toBe(false);
     });
 
     it("accepts underscores and mixed case", () => {
-        expect(() => whitelistRequestSchema.parse({ username: "Cool_Player" })).not.toThrow();
+        expect(() => whitelistDirectAddSchema.parse({ username: "Cool_Player" })).not.toThrow();
     });
 });
 

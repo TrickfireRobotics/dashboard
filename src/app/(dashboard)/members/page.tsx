@@ -1,4 +1,4 @@
-import { Boxes, GitBranch } from "lucide-react";
+import { Boxes, GitBranch, Users } from "lucide-react";
 import { asc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
@@ -13,6 +13,9 @@ import { user } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
 import { getOrg, isGithubConfigured } from "@/lib/integrations/github";
 import { getOnshapeCompany, isOnshapeConfigured } from "@/lib/integrations/onshape";
+
+const tabTriggerClass =
+    "gap-2 rounded-lg px-5 py-2.5 text-sm font-medium data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-primary dark:data-active:text-primary-foreground";
 
 export default async function MembersPage() {
     const current = await getSessionUser();
@@ -61,30 +64,35 @@ export default async function MembersPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl">Members</h1>
-                <p className="text-muted-foreground">
-                    Manage member approvals, account status, and org access.
-                </p>
-            </div>
-
             <Tabs defaultValue="users">
-                <TabsList>
-                    <TabsTrigger value="users">Users</TabsTrigger>
-                    <TabsTrigger value="onshape">Onshape</TabsTrigger>
-                    <TabsTrigger value="github">GitHub</TabsTrigger>
+                <TabsList className="bg-muted/40 h-auto w-full justify-start gap-1 rounded-xl p-1.5 sm:w-fit">
+                    <TabsTrigger value="users" className={tabTriggerClass}>
+                        <Users className="size-4" />
+                        Users
+                    </TabsTrigger>
+                    <TabsTrigger value="onshape" className={tabTriggerClass}>
+                        <Boxes className="size-4" />
+                        Onshape
+                    </TabsTrigger>
+                    <TabsTrigger value="github" className={tabTriggerClass}>
+                        <GitBranch className="size-4" />
+                        GitHub
+                    </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="users" className="space-y-8 pt-4">
+                <TabsContent value="users" className="space-y-8 pt-6">
                     <PendingApprovals users={pendingUsers} />
 
                     <div className="space-y-3">
-                        <h2 className="text-lg font-semibold">Members</h2>
+                        <div className="flex items-center gap-2">
+                            <h2>Members</h2>
+                            <span className="text-muted-foreground text-sm">{members.length}</span>
+                        </div>
                         <UserTable users={members} currentUserId={current.id} />
                     </div>
                 </TabsContent>
 
-                <TabsContent value="onshape" className="pt-4">
+                <TabsContent value="onshape" className="pt-6">
                     {!onshapeConfigured ? (
                         <EmptyState
                             icon={Boxes}
@@ -115,7 +123,7 @@ export default async function MembersPage() {
                     )}
                 </TabsContent>
 
-                <TabsContent value="github" className="pt-4">
+                <TabsContent value="github" className="pt-6">
                     {!githubConfigured ? (
                         <EmptyState
                             icon={GitBranch}

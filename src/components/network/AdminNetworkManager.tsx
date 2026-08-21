@@ -1,9 +1,11 @@
 "use client";
 
+import { Apple, CircleHelp, Monitor, Smartphone, Terminal } from "lucide-react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
     Table,
@@ -22,6 +24,17 @@ function OnlineDot({ online }: { online: boolean }) {
             className={`inline-block size-2 rounded-full ${online ? "bg-primary" : "bg-muted-foreground/40"}`}
         />
     );
+}
+
+function OsIcon({ os }: { os: string }) {
+    const lower = os.toLowerCase();
+    const className = "text-foreground size-4 shrink-0";
+    if (lower.includes("mac") || lower.includes("darwin")) return <Apple className={className} />;
+    if (lower.includes("ios") || lower.includes("android"))
+        return <Smartphone className={className} />;
+    if (lower.includes("windows")) return <Monitor className={className} />;
+    if (lower.includes("linux")) return <Terminal className={className} />;
+    return <CircleHelp className="text-muted-foreground size-4 shrink-0" />;
 }
 
 function relativeTime(iso: string): string {
@@ -75,37 +88,46 @@ export function AdminNetworkManager() {
         );
 
     if (!nodes || nodes.length === 0)
-        return <p className="text-muted-foreground text-sm">No devices registered.</p>;
+        return (
+            <EmptyState
+                icon={CircleHelp}
+                title="No devices registered"
+                description="Devices show up here once they join the Tailscale network."
+            />
+        );
 
     return (
         <div className="border-border rounded-lg border">
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead></TableHead>
+                        <TableHead className="pl-4"></TableHead>
                         <TableHead>Name</TableHead>
                         <TableHead>User</TableHead>
                         <TableHead className="hidden md:table-cell">IP Addresses</TableHead>
-                        <TableHead className="hidden md:table-cell">OS</TableHead>
-                        <TableHead className="hidden md:table-cell">Last seen</TableHead>
+                        <TableHead className="hidden whitespace-nowrap md:table-cell">
+                            Last seen
+                        </TableHead>
                         <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {nodes.map((node) => (
                         <TableRow key={node.id}>
-                            <TableCell>
+                            <TableCell className="pl-4">
                                 <OnlineDot online={node.online} />
                             </TableCell>
-                            <TableCell className="font-medium">{node.name}</TableCell>
+                            <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                    <OsIcon os={node.os} />
+                                    {node.name}
+                                </div>
+                            </TableCell>
                             <TableCell className="text-muted-foreground">
                                 {node.user?.name ?? "-"}
                             </TableCell>
                             <TableCell className="hidden font-mono text-xs md:table-cell">
                                 {node.ipAddresses?.join(", ") ?? "-"}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground hidden md:table-cell">
-                                {node.os || "-"}
                             </TableCell>
                             <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
                                 {relativeTime(node.lastSeen)}

@@ -1,11 +1,14 @@
 "use client";
 
+import { Gamepad2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { WhitelistStatusBadge } from "@/components/minecraft/WhitelistStatusBadge";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Input } from "@/components/ui/input";
 import {
     Table,
     TableBody,
@@ -32,6 +35,32 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
     const router = useRouter();
     const [busy, setBusy] = useState<number | null>(null);
     const [removing, setRemoving] = useState<number | null>(null);
+    const [username, setUsername] = useState("");
+    const [adding, setAdding] = useState(false);
+
+    async function addDirect() {
+        const trimmed = username.trim();
+        if (!trimmed) return;
+        setAdding(true);
+        try {
+            const res = await fetch("/api/admin/whitelist", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username: trimmed }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                throw new Error(data?.error ?? "Failed to add");
+            }
+            toast.success(`${trimmed} whitelisted`);
+            setUsername("");
+            router.refresh();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Something went wrong");
+        } finally {
+            setAdding(false);
+        }
+    }
 
     async function act(id: number, action: "approve" | "reject") {
         setBusy(id);
@@ -72,11 +101,29 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4">
+            <div className="border-border bg-card flex flex-wrap items-center gap-2 rounded-lg border p-4">
+                <Input
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") addDirect();
+                    }}
+                    placeholder="Minecraft username"
+                    className="max-w-64 flex-1"
+                />
+                <Button size="sm" disabled={adding || !username.trim()} onClick={addDirect}>
+                    <Plus className="size-4" />
+                    {adding ? "Adding..." : "Add to whitelist"}
+                </Button>
+            </div>
+
             {requests.length === 0 ? (
-                <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
-                    No whitelist requests yet.
-                </div>
+                <EmptyState
+                    icon={Gamepad2}
+                    title="No one is whitelisted yet"
+                    description="Add a Minecraft username above to get started."
+                />
             ) : (
                 <div className="border-border rounded-lg border">
                     <Table>

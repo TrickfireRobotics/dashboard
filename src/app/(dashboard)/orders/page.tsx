@@ -101,13 +101,7 @@ export default async function OrdersPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl">My Orders</h1>
-                    <p className="text-muted-foreground">
-                        Track your orders and see everything the team has submitted.
-                    </p>
-                </div>
+            <div className="flex justify-end">
                 <Button nativeButton={false} render={<Link href="/orders/new" />}>
                     Submit order
                 </Button>

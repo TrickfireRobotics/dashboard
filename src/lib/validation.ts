@@ -153,11 +153,6 @@ const minecraftUsername = z
     .max(16, "Username is too long")
     .regex(/^[A-Za-z0-9_]+$/, "Letters, numbers and underscore only");
 
-export const whitelistRequestSchema = z.object({
-    username: minecraftUsername,
-    requestNote: z.string().trim().max(500).optional(),
-});
-
 export const whitelistActionSchema = z.object({
     action: z.enum(["approve", "reject"]),
     adminNote: z.string().trim().max(500).optional(),

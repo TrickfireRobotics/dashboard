@@ -1,11 +1,23 @@
-import { DollarSign, Gamepad2, KeyRound, Network, Package, Users } from "lucide-react";
+import { count, eq } from "drizzle-orm";
+import {
+    CheckCircle2,
+    ChevronRight,
+    DollarSign,
+    Gamepad2,
+    KeyRound,
+    Network,
+    Package,
+    ShoppingCart,
+    UserCheck,
+} from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { LiveClock } from "@/components/dashboard/LiveClock";
-import { MinecraftStatusTile } from "@/components/dashboard/MinecraftStatusTile";
-import { NetworkStatusTile } from "@/components/dashboard/NetworkStatusTile";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { db } from "@/lib/db";
+import { minecraftWhitelist, order, user } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
 
 const quickLinks = [
@@ -31,7 +43,7 @@ const quickLinks = [
         href: "/members",
         label: "Members",
         description: "Approvals and org access.",
-        icon: Users,
+        icon: UserCheck,
     },
     {
         href: "/finance",
@@ -53,44 +65,86 @@ export default async function DashboardHome() {
 
     const firstName = sessionUser.name?.split(" ")[0] ?? "there";
 
+    const pendingOrders =
+        db.select({ value: count() }).from(order).where(eq(order.status, "pending")).get()?.value ??
+        0;
+    const approvedOrders =
+        db.select({ value: count() }).from(order).where(eq(order.status, "approved")).get()
+            ?.value ?? 0;
+    const pendingApprovals =
+        db.select({ value: count() }).from(user).where(eq(user.approved, false)).get()?.value ?? 0;
+    const openWhitelist =
+        db
+            .select({ value: count() })
+            .from(minecraftWhitelist)
+            .where(eq(minecraftWhitelist.status, "pending"))
+            .get()?.value ?? 0;
+
+    const actionItems = [
+        {
+            count: pendingOrders,
+            label: "orders need triage or approval",
+            href: "/orders",
+            icon: Package,
+        },
+        {
+            count: approvedOrders,
+            label: "approved orders are awaiting purchase",
+            href: "/orders",
+            icon: ShoppingCart,
+        },
+        {
+            count: pendingApprovals,
+            label: "members are waiting for approval",
+            href: "/members",
+            icon: UserCheck,
+        },
+        {
+            count: openWhitelist,
+            label: "whitelist requests need review",
+            href: "/minecraft",
+            icon: Gamepad2,
+        },
+    ].filter((item) => item.count > 0);
+
     return (
         <div className="space-y-10">
             <div className="flex items-start justify-between gap-4">
-                <div>
-                    <h1>Welcome back, {firstName}</h1>
-                    <p className="text-muted-foreground">Your TrickFire club dashboard.</p>
-                </div>
+                <h1>Welcome back, {firstName}</h1>
                 <LiveClock />
             </div>
 
             <section className="space-y-4">
                 <div>
-                    <h2>Live Status</h2>
+                    <h2>Action Items</h2>
                     <p className="text-muted-foreground text-sm">
-                        What&apos;s up right now on the club&apos;s shared infrastructure.
+                        Things that need your attention.
                     </p>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                    <Link href="/minecraft">
-                        <Card className="hover:border-primary/40 h-full transition-all">
-                            <div className="text-muted-foreground flex items-center gap-2 px-4 pt-4 text-xs font-medium tracking-wider uppercase">
-                                <Gamepad2 className="size-3.5" />
-                                Minecraft
-                            </div>
-                            <MinecraftStatusTile />
-                        </Card>
-                    </Link>
-
-                    <Link href="/network">
-                        <Card className="hover:border-primary/40 h-full transition-all">
-                            <div className="text-muted-foreground flex items-center gap-2 px-4 pt-4 text-xs font-medium tracking-wider uppercase">
-                                <Network className="size-3.5" />
-                                Network
-                            </div>
-                            <NetworkStatusTile />
-                        </Card>
-                    </Link>
-                </div>
+                {actionItems.length === 0 ? (
+                    <EmptyState icon={CheckCircle2} title="All caught up — nothing needs action." />
+                ) : (
+                    <div className="divide-border border-border divide-y rounded-lg border">
+                        {actionItems.map((item) => (
+                            <Link
+                                key={item.label}
+                                href={item.href}
+                                className="hover:bg-muted/40 flex items-center gap-4 px-4 py-3 transition-colors first:rounded-t-lg last:rounded-b-lg"
+                            >
+                                <div className="bg-secondary/10 flex size-9 shrink-0 items-center justify-center rounded-full">
+                                    <item.icon className="text-secondary size-4.5" />
+                                </div>
+                                <p className="text-foreground min-w-0 flex-1 text-sm">
+                                    <span className="font-heading font-semibold tabular-nums">
+                                        {item.count}
+                                    </span>{" "}
+                                    {item.label}
+                                </p>
+                                <ChevronRight className="text-muted-foreground size-4 shrink-0" />
+                            </Link>
+                        ))}
+                    </div>
+                )}
             </section>
 
             <section className="space-y-4">
