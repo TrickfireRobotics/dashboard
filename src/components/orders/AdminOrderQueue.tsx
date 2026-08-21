@@ -770,7 +770,7 @@ function OrderSection({
                                                 </span>
                                             )}
                                         </TableCell>
-                                        <TableCell className="hidden text-right md:table-cell">
+                                        <TableCell className="hidden text-right whitespace-nowrap md:table-cell">
                                             {o.fundType ? null : (
                                                 <span className="text-muted-foreground">est. </span>
                                             )}
@@ -783,7 +783,7 @@ function OrderSection({
                                                 )
                                             )}
                                         </TableCell>
-                                        <TableCell className="text-muted-foreground hidden md:table-cell">
+                                        <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
                                             {formatDate(o.createdAt)}
                                         </TableCell>
                                         <TableCell>

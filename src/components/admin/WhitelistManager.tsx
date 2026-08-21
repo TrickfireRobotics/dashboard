@@ -109,7 +109,7 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
                                     <TableCell>
                                         <WhitelistStatusBadge status={r.status} />
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground hidden md:table-cell">
+                                    <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
                                         {formatDate(r.createdAt)}
                                     </TableCell>
                                     <TableCell className="text-right">

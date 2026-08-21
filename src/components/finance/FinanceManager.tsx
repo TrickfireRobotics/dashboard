@@ -297,13 +297,13 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                             {data.stfBuckets.map((b) => (
                                 <TableRow key={b.id}>
                                     <TableCell>{b.name}</TableCell>
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right whitespace-nowrap">
                                         {formatPriceCents(b.startingBalanceCents)}
                                     </TableCell>
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right whitespace-nowrap">
                                         {formatPriceCents(b.approvedSpendCents)}
                                     </TableCell>
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right whitespace-nowrap">
                                         {formatPriceCents(b.remainingBalanceCents)}
                                     </TableCell>
                                     <TableCell className="text-right">
@@ -443,12 +443,14 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                         <TableBody>
                             {data.giftLog.map((entry) => (
                                 <TableRow key={entry.id}>
-                                    <TableCell>{formatDate(entry.timestamp)}</TableCell>
+                                    <TableCell className="whitespace-nowrap">
+                                        {formatDate(entry.timestamp)}
+                                    </TableCell>
                                     <TableCell>{entry.changeType}</TableCell>
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right whitespace-nowrap">
                                         {formatPriceCents(entry.previousValueCents)}
                                     </TableCell>
-                                    <TableCell className="text-right">
+                                    <TableCell className="text-right whitespace-nowrap">
                                         {formatPriceCents(entry.newValueCents)}
                                     </TableCell>
                                     <TableCell>{entry.note ?? "-"}</TableCell>

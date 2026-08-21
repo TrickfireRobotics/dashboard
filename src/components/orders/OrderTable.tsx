@@ -259,13 +259,13 @@ export function OrderTable({
                                             </span>
                                         )}
                                     </TableCell>
-                                    <TableCell className="hidden text-right md:table-cell">
+                                    <TableCell className="hidden text-right whitespace-nowrap md:table-cell">
                                         {formatPriceCents(totalCostCents(o, pricingSettings))}
                                     </TableCell>
                                     <TableCell>
                                         <OrderStatusBadge status={o.status} />
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground">
+                                    <TableCell className="text-muted-foreground whitespace-nowrap">
                                         {formatDate(o.createdAt)}
                                     </TableCell>
                                     <TableCell className="text-muted-foreground hidden max-w-50 whitespace-normal md:table-cell">

@@ -207,10 +207,10 @@ function MembersTab() {
                                             light={m.light}
                                         />
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground hidden md:table-cell">
+                                    <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
                                         {m.dateAdded ? formatDate(new Date(m.dateAdded)) : "-"}
                                     </TableCell>
-                                    <TableCell className="text-muted-foreground hidden md:table-cell">
+                                    <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
                                         {m.lastLoginTime
                                             ? formatDate(new Date(m.lastLoginTime))
                                             : "Never"}

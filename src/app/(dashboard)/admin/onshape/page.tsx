@@ -1,4 +1,7 @@
+import { Boxes } from "lucide-react";
+
 import { AdminOnshapeManager } from "@/components/onshape/AdminOnshapeManager";
+import { EmptyState } from "@/components/ui/empty-state";
 import { getOnshapeCompany, isOnshapeConfigured } from "@/lib/integrations/onshape";
 
 export default async function AdminOnshapePage() {
@@ -15,17 +18,29 @@ export default async function AdminOnshapePage() {
             </div>
 
             {!configured ? (
-                <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
-                    Onshape is not configured. Set{" "}
-                    <span className="font-mono">ONSHAPE_ACCESS_KEY</span> and{" "}
-                    <span className="font-mono">ONSHAPE_SECRET_KEY</span> to enable management.
-                </div>
+                <EmptyState
+                    icon={Boxes}
+                    title="Onshape is not configured"
+                    description={
+                        <>
+                            Set <span className="font-mono">ONSHAPE_ACCESS_KEY</span> and{" "}
+                            <span className="font-mono">ONSHAPE_SECRET_KEY</span> to enable
+                            management.
+                        </>
+                    }
+                />
             ) : !company ? (
-                <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
-                    Couldn&apos;t reach the Onshape company. Verify the API key has access to a
-                    Professional/Enterprise company and that{" "}
-                    <span className="font-mono">ONSHAPE_COMPANY_ID</span> (if set) is correct.
-                </div>
+                <EmptyState
+                    icon={Boxes}
+                    title="Couldn't reach the Onshape company"
+                    description={
+                        <>
+                            Verify the API key has access to a Professional/Enterprise company and
+                            that <span className="font-mono">ONSHAPE_COMPANY_ID</span> (if set) is
+                            correct.
+                        </>
+                    }
+                />
             ) : (
                 <AdminOnshapeManager company={company} />
             )}
