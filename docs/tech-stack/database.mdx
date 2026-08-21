@@ -21,18 +21,18 @@ description: How the schema, migrations, seeding, and query patterns work.
 
 Tables are defined with Drizzle's `sqliteTable()`. This file re-exports the auth tables from `src/lib/db/auth-schema.ts` (see below) and defines the app-specific ones:
 
-| Table                             | Represents                                                                                                                               |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `team`                            | The club's FRC subteams (Arm, Autonomous, Chassis, etc.)                                                                                 |
-| `stfQuarter` / `stfBucket`        | School-year funding periods and their budget buckets ("STF" = Student Tech Fund), each with a starting balance in cents                  |
-| `giftFund` / `financeSettings`    | Singleton rows (fixed `id`) tracking the gift-fund balance and tax/shipping percentages                                                  |
-| `orders`                          | Part purchase requests - vendor, link, item, cost, `status` (pending/approved/denied/ordered), fund type (STF/Gift)                      |
-| `giftFundLog`, `orderHistory`     | Audit trails for balance changes and order status transitions                                                                            |
-| `apiKey`                          | One-way hashed service API keys for the external simulation-script API (distinct from the vault - see [Security](/tech-stack/security/)) |
-| `vaultEntry` / `vaultEntryAccess` | The shared credential vault and its per-user read grants                                                                                 |
-| `minecraftWhitelist`              | Minecraft whitelist requests (username, status, admin review)                                                                            |
-| `networkJoinRequest`              | Tailscale/network device join requests                                                                                                   |
-| `userFeature`                     | Per-user feature-flag grant requests (pending/granted/rejected) - what `middleware.ts` checks for non-admin routes                       |
+| Table                             | Represents                                                                                                                                                                          |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `team`                            | The club's FRC subteams (Arm, Autonomous, Chassis, etc.)                                                                                                                            |
+| `stfQuarter` / `stfBucket`        | School-year funding periods and their budget buckets ("STF" = Student Tech Fund), each with a starting balance in cents                                                             |
+| `giftFund` / `financeSettings`    | Singleton rows (fixed `id`) tracking the gift-fund balance and tax/shipping percentages                                                                                             |
+| `orders`                          | Part purchase requests - vendor, link, item, cost, `status` (pending/approved/denied/ordered), fund type (STF/Gift, null until triaged), `batchId` grouping a multi-item submission |
+| `giftFundLog`, `orderHistory`     | Audit trails for balance changes and order status transitions                                                                                                                       |
+| `apiKey`                          | One-way hashed service API keys for the external simulation-script API (distinct from the vault - see [Security](/tech-stack/security/))                                            |
+| `vaultEntry` / `vaultEntryAccess` | The shared credential vault and its per-user read grants                                                                                                                            |
+| `minecraftWhitelist`              | Minecraft whitelist requests (username, status, admin review)                                                                                                                       |
+| `networkJoinRequest`              | Tailscale/network device join requests                                                                                                                                              |
+| `userFeature`                     | Per-user feature-flag grant requests (pending/granted/rejected) - what `middleware.ts` checks for non-admin routes                                                                  |
 
 Money is always stored as integer cents (`unitCostCents`, `startingBalanceCents`, etc.), never floats - this avoids floating-point rounding errors in financial arithmetic. Timestamps are stored as millisecond integers via a shared SQL fragment:
 

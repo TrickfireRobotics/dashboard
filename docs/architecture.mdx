@@ -56,6 +56,40 @@ Access control isn't handled in one place - it's layered, and each layer exists 
 
 Only three files in the entire `src/app` tree are `"use client"` at the page/layout level (`global-error.tsx`, the dashboard `error.tsx`, and the Sentry example page) - all three are boundaries Next.js or Sentry require to be client components. Everything else that needs interactivity is a small client component imported _into_ a server page, not the page itself.
 
+## The ordering workflow
+
+Parts ordering is the largest feature, and it splits deliberately between what a
+member does and what an officer does.
+
+**Members submit items only.** The submission form asks for vendor, link, item
+name, part number, quantity, cost and notes - no fund type and no STF bucket.
+One form can carry many items (see the repeatable-rows section in
+[Forms & Validation](/tech-stack/forms-validation/)), and `POST /api/orders`
+writes them all in one request, stamping a shared `batchId` when there is more
+than one. Orders therefore land with `fundType`, `stfBucketId` and `quarterId`
+all null.
+
+**Officers triage in batches.** `/admin/orders` groups pending orders into
+"Needs triage" (no fund yet) and "Ready to review" (assigned). Officers
+multi-select rows and act on the whole selection:
+
+| Endpoint                       | What it does                                                     |
+| ------------------------------ | ---------------------------------------------------------------- |
+| `POST /api/orders/assign`      | Sets fund type, bucket and active quarter on the selected orders |
+| `POST /api/orders/bulk-action` | Approves or denies the selected orders                           |
+
+**Balance checks run at assignment and approval, never at submission.** A member
+has no bucket to check against, and a balance checked at submit time is stale by
+the time an officer reviews it. Two consequences worth knowing:
+
+- Approving a selection checks each fund/bucket group's total _at once_
+  (`validateBatchBalance`). Checking orders one at a time would let a batch
+  overdraw a bucket that each individual order fits inside.
+- Assigning checks the selection _plus everything already queued against that
+  bucket_ (`validateAssignmentBalance`). Pending orders don't reduce a bucket's
+  remaining balance - only approved and ordered ones do - so without this an
+  officer could quietly park more in a bucket than could ever be approved.
+
 ## Where each concern is documented
 
 | Concern                                                          | Page                                                        |
