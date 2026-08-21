@@ -56,7 +56,7 @@ There is **no** `pre-push` hook - the test suite is not run locally on push. Tes
 ```json
 "lint-staged": {
     "*.{ts,tsx,js,jsx,mjs,cjs}": ["eslint --fix", "prettier --write"],
-    "*.{json,md,yml,yaml,css}": "prettier --write"
+    "*.{json,md,yml,yaml,css,mdx}": "prettier --write"
 }
 ```
 
@@ -74,10 +74,12 @@ Valid types: `feat`, `fix`, `chore`, `docs`, `style`, `refactor`, `test`, `ci`. 
 
 ## What CI enforces (`.github/workflows/`)
 
-| Workflow         | Trigger          | What it does                                                                                                      |
-| ---------------- | ---------------- | ----------------------------------------------------------------------------------------------------------------- |
-| **Code Quality** | Push/PR → `main` | `pnpm lint`, `pnpm format:check`, `pnpm tsc --noEmit`                                                             |
-| **Tests**        | Push/PR → `main` | `pnpm test`                                                                                                       |
-| **Deploy**       | Push → `main`    | Pulls latest and runs `scripts/deploy.sh` on the self-hosted runner - see the [Deployment guide](/guides/deploy/) |
+| Workflow           | Trigger                            | What it does                                                                                                                              |
+| ------------------ | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Code Quality**   | Push/PR → `main`                   | `pnpm lint`, `pnpm format:check`, `pnpm tsc --noEmit`                                                                                     |
+| **Tests**          | Push/PR → `main`                   | `pnpm test`                                                                                                                               |
+| **Deploy**         | Push → `main`                      | Pulls latest and runs `scripts/deploy.sh` on the self-hosted runner - see the [Deployment guide](/guides/deploy/)                         |
+| **Deploy Monitor** | Push → `main` touching `health/**` | Deploys the uptime-check Cloudflare Worker - see [Observability](/tech-stack/observability/#uptime-monitoring---cloudflare-worker-health) |
+| **Sync Docs**      | Push → `main` touching `docs/**`   | Syncs this repo's `docs/` folder to the central docs site                                                                                 |
 
 Both **Code Quality** and **Tests** must pass before a PR can merge (branch protection on `main`). Run `pnpm check` locally (lint + format check + typecheck) before pushing to catch what CI would catch, without waiting on CI.

@@ -3,30 +3,9 @@ title: Deployment
 description: Production setup on the server, updating an existing deployment, backups, and troubleshooting.
 ---
 
-# Deploying TrickFire Dashboard
-
 Production runs on a Debian AMD64 server behind a Cloudflare Tunnel. The app is built with `output: "standalone"` and uses a local SQLite database.
 
 All steps are run **on the server** unless noted otherwise.
-
-## Table of Contents
-
-1. [Initial Setup](#1-initial-setup)
-2. [Get the Code](#2-get-the-code)
-3. [Configure Environment](#3-configure-environment)
-4. [Database](#4-database)
-5. [Build](#5-build)
-6. [Systemd Service](#6-systemd-service)
-7. [GitHub Actions Runner](#7-github-actions-runner)
-8. [Cloudflare Tunnel](#8-cloudflare-tunnel)
-9. [Uptime Monitoring](#9-uptime-monitoring)
-
-- [Updating an Existing Deployment](#updating-an-existing-deployment)
-- [Backups](#backups)
-- [Database Safety](#database-safety)
-- [Troubleshooting](#troubleshooting)
-
----
 
 ## 1. Initial Setup
 
@@ -65,13 +44,20 @@ RESEND_API_KEY=re_...
 EMAIL_FROM=TrickFire Robotics <noreply@trickfirerobotics.com>
 ```
 
-For Tailscale, Minecraft, and Pl3xMap env vars see [integrations.md](integrations.mdx).
+For Tailscale, Minecraft, and Pl3xMap env vars see the [Server Integrations Setup guide](/guides/integrations/).
 
-> [!NOTE]
-> `NODE_ENV=production` is set in the systemd service file - do not add it to `.env.production`. Next.js uses it to decide which env files to load; putting it in the file it is trying to load creates a circular dependency.
+<Callout type="info" title="Note">
+    `NODE_ENV=production` is set in the systemd service file - do not add it to `.env.production`.
+    Next.js uses it to decide which env files to load; putting it in the file it is trying to load
+    creates a circular dependency.
+</Callout>
 
-> [!CAUTION]
-> Keep `.env.production` off git. `BETTER_AUTH_SECRET` lets anyone forge session tokens - rotate it immediately if it leaks (changing the value invalidates all sessions). Losing `VAULT_ENCRYPTION_KEY` makes every vault entry permanently unrecoverable - back it up separately.
+<Callout type="error" title="Danger">
+    Keep `.env.production` off git. `BETTER_AUTH_SECRET` lets anyone forge session tokens - rotate
+    it immediately if it leaks (changing the value invalidates all sessions). Losing
+    `VAULT_ENCRYPTION_KEY` makes every vault entry permanently unrecoverable - back it up
+    separately.
+</Callout>
 
 ## 4. Database
 
@@ -93,8 +79,10 @@ cp -r .next/static  .next/standalone/.next/static
 cp -r public        .next/standalone/public
 ```
 
-> [!WARNING]
-> If you skip the `cp` steps the app starts but all static assets (JS, CSS, images) return 404. This is the most common cause of "login works but the page looks broken."
+<Callout type="warning" title="Warning">
+    If you skip the `cp` steps the app starts but all static assets (JS, CSS, images) return 404.
+    This is the most common cause of "login works but the page looks broken."
+</Callout>
 
 The entrypoint is `.next/standalone/server.js`. `better-sqlite3` is declared as a `serverExternalPackages` module, so it loads from `node_modules` at runtime rather than being bundled - keep `node_modules` present alongside the standalone output.
 
@@ -124,8 +112,10 @@ RestartSec=5
 WantedBy=multi-user.target
 ```
 
-> [!IMPORTANT]
-> Bind to `127.0.0.1`, not `0.0.0.0`. The Cloudflare Tunnel is the only entry point - binding to all interfaces would expose the app on the local network without TLS.
+<Callout type="warning" title="Important">
+    Bind to `127.0.0.1`, not `0.0.0.0`. The Cloudflare Tunnel is the only entry point - binding to
+    all interfaces would expose the app on the local network without TLS.
+</Callout>
 
 ```bash
 sudo systemctl daemon-reload
@@ -176,8 +166,10 @@ trickfire ALL=(ALL) NOPASSWD: /usr/bin/systemctl stop minecraft
 
 Push a commit to `main` and watch the **Deploy** workflow in the GitHub Actions tab to verify.
 
-> [!NOTE]
-> Deploys are serialised - if two merges land in quick succession, the second waits for the first to finish.
+<Callout type="info" title="Note">
+    Deploys are serialised - if two merges land in quick succession, the second waits for the first
+    to finish.
+</Callout>
 
 ## 8. Cloudflare Tunnel
 
@@ -226,12 +218,19 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now cloudflared-trickfire-dashboard
 ```
 
-> [!NOTE]
-> The service API endpoint (`POST /api/service/verify`, used by simulation scripts) is reachable through the same tunnel and is IP-rate-limited via `x-forwarded-for` / `cf-connecting-ip` headers injected by Cloudflare.
+<Callout type="info" title="Note">
+    The service API endpoint (`POST /api/service/verify`, used by simulation scripts to check an API
+    key) is reachable through the same tunnel and is IP-rate-limited via `x-forwarded-for` /
+    `cf-connecting-ip` headers injected by Cloudflare. The `/api/sim/*` export endpoints reuse the
+    same API-key scheme - see [External
+    Integrations](/tech-stack/external-integrations/#onshape-simulation-export-proxy).
+</Callout>
 
 ## 9. Uptime Monitoring
 
 A Cloudflare Worker (`health/`) pings `/api/health` every 5 minutes and posts a Discord alert if the dashboard is unreachable. It runs on Cloudflare's edge and is unaffected by server outages.
+
+It deploys automatically via the **Deploy Monitor** GitHub Actions workflow whenever `health/**` changes on `main`. To deploy manually instead:
 
 ```bash
 cd health
@@ -243,12 +242,28 @@ The HTTP handler also responds to a direct request to the Worker URL, useful for
 
 To update the Discord user IDs that get pinged on failure, edit `PING_IDS` in `health/src/index.js` and redeploy.
 
----
+## Staging
+
+`pnpm staging` rsyncs your local working tree (including uncommitted changes) to `/home/trickfire/dashboard-staging` on the server, builds it there, and serves it over HTTPS via [Tailscale Serve](https://tailscale.com/kb/1242/tailscale-serve) on port 3001 - useful for trying out changes against the real production `.env.production` and a separate `db/staging.db` before merging to `main`.
+
+```bash title="Terminal (local machine)"
+pnpm staging
+```
+
+Browse to the URL printed in the terminal (your machine's Tailscale HTTPS hostname) once the build finishes. Press <kbd>Ctrl+C</kbd> to stop - this also tears down the Tailscale Serve config.
+
+<Callout type="info" title="Note">
+    The staging database is seeded on first run only, with `admin@admin.local` / `trickfire` as the
+    login. It's a separate SQLite file from both the dev and production databases, so nothing you do
+    in staging touches real data.
+</Callout>
 
 ## Updating an Existing Deployment
 
-> [!TIP]
-> In practice, merging to `main` triggers the GitHub Actions runner to do all of this automatically. These manual steps are a fallback for when the runner is unavailable.
+<Callout type="idea" title="Tip">
+    In practice, merging to `main` triggers the GitHub Actions runner to do all of this
+    automatically. These manual steps are a fallback for when the runner is unavailable.
+</Callout>
 
 ```bash
 cd /home/trickfire/dashboard
@@ -297,66 +312,55 @@ sudo systemctl start trickfire-dashboard
 
 ## Troubleshooting
 
-<details>
-<summary><strong>Could not locate the bindings file / invalid ELF header</strong></summary>
+<Accordions>
+    <Accordion title="Could not locate the bindings file / invalid ELF header">
+        `better-sqlite3` was compiled on a different machine or architecture. Recompile on the
+        server:
 
-`better-sqlite3` was compiled on a different machine or architecture. Recompile on the server:
+        ```bash
+        cd /home/trickfire/dashboard
+        pnpm rebuild better-sqlite3
+        ```
 
-```bash
-cd /home/trickfire/dashboard
-pnpm rebuild better-sqlite3
-```
+        If that fails, do a clean reinstall:
 
-If that fails, do a clean reinstall:
+        ```bash
+        rm -rf node_modules && pnpm install --frozen-lockfile
+        ```
+    </Accordion>
+    <Accordion title="Login works but assets (JS/CSS/images) return 404">
+        The post-build copy step was skipped:
 
-```bash
-rm -rf node_modules && pnpm install --frozen-lockfile
-```
+        ```bash
+        cp -r .next/static  .next/standalone/.next/static
+        cp -r public        .next/standalone/public
+        sudo systemctl restart trickfire-dashboard
+        ```
+    </Accordion>
+    <Accordion title='Login freezes or returns 403 "Invalid origin"'>
+        In production this shouldn't happen - all traffic goes through the Cloudflare Tunnel. If
+        you're testing the production build from a second machine on the LAN, add its address to
+        `BETTER_AUTH_TRUSTED_ORIGINS`:
 
-</details>
+        ```env
+        BETTER_AUTH_TRUSTED_ORIGINS=http://192.168.1.50:3000
+        ```
 
-<details>
-<summary><strong>Login works but assets (JS/CSS/images) return 404</strong></summary>
+        Restart to pick up the change. Multiple origins can be comma-separated.
+    </Accordion>
+    <Accordion title="Network tab shows an error">
+        1. Confirm `TAILSCALE_API_KEY` is set in `.env.production` and hasn't expired.
+        2. Rotate if needed: Tailscale admin console → **Settings → Keys → Generate access
+           token**.
+        3. Restart after updating: `sudo systemctl restart trickfire-dashboard`
+    </Accordion>
+    <Accordion title="Service fails to start">
+        ```bash
+        journalctl -u trickfire-dashboard -n 100 --no-pager
+        ```
 
-The post-build copy step was skipped:
+        Common causes: missing `.env.production`, `DATABASE_PATH` pointing to a directory that
+        doesn't exist, or a failed migration.
+    </Accordion>
 
-```bash
-cp -r .next/static  .next/standalone/.next/static
-cp -r public        .next/standalone/public
-sudo systemctl restart trickfire-dashboard
-```
-
-</details>
-
-<details>
-<summary><strong>Login freezes or returns 403 "Invalid origin"</strong></summary>
-
-In production this shouldn't happen - all traffic goes through the Cloudflare Tunnel. If you're testing the production build from a second machine on the LAN, add its address to `BETTER_AUTH_TRUSTED_ORIGINS`:
-
-```env
-BETTER_AUTH_TRUSTED_ORIGINS=http://192.168.1.50:3000
-```
-
-Restart to pick up the change. Multiple origins can be comma-separated.
-
-</details>
-
-<details>
-<summary><strong>Network tab shows an error</strong></summary>
-
-1. Confirm `TAILSCALE_API_KEY` is set in `.env.production` and hasn't expired.
-2. Rotate if needed: Tailscale admin console → **Settings → Keys → Generate access token**.
-3. Restart after updating: `sudo systemctl restart trickfire-dashboard`
-
-</details>
-
-<details>
-<summary><strong>Service fails to start</strong></summary>
-
-```bash
-journalctl -u trickfire-dashboard -n 100 --no-pager
-```
-
-Common causes: missing `.env.production`, `DATABASE_PATH` pointing to a directory that doesn't exist, or a failed migration.
-
-</details>
+</Accordions>
