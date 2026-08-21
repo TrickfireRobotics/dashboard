@@ -13,7 +13,7 @@ export default function NewOrderPage() {
                         Submit a purchase request for officer approval.
                     </p>
                 </div>
-                <Button variant="outline" render={<Link href="/orders" />}>
+                <Button variant="outline" nativeButton={false} render={<Link href="/orders" />}>
                     Back
                 </Button>
             </div>

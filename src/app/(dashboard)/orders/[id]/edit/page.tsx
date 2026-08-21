@@ -41,7 +41,7 @@ export default async function EditOrderPage({ params }: PageProps) {
                             : "Update your pending order before it is reviewed."}
                     </p>
                 </div>
-                <Button variant="outline" render={<Link href="/orders" />}>
+                <Button variant="outline" nativeButton={false} render={<Link href="/orders" />}>
                     Back
                 </Button>
             </div>
