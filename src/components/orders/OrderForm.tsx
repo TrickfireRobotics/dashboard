@@ -1,9 +1,10 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Copy, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { type ControllerRenderProps, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -18,91 +19,59 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-    BalanceAmount,
-    isOverBudget,
-    stfBucketSelectLabel,
-    StfBucketSelectItemContent,
-} from "@/components/BalanceAmount";
-import type { FundType, OrderStatus } from "@/lib/db/schema";
-import { orderChargeCents, displayPercentToBps } from "@/lib/finance/order-pricing";
+import type { OrderStatus } from "@/lib/db/schema";
+import { computeOrderTotalCents, displayPercentToBps } from "@/lib/finance/order-pricing";
+import { MAX_ORDER_BATCH_ITEMS } from "@/lib/validation";
 import { cn, formatPriceCents } from "@/lib/utils";
 
-type StfBucketBalance = {
-    id: number;
-    name: string;
-    remainingBalanceCents: number;
-};
+import { PasteItemsPanel, type ParsedItem } from "./PasteItemsPanel";
 
-type Balances = {
-    giftBalanceCents: number;
-    stfBuckets: StfBucketBalance[];
-    orderPricing: {
-        taxPercent: number;
-        shippingPercent: number;
-    };
-};
+type OrderPricing = { taxPercent: number; shippingPercent: number };
 
-const formSchema = z
-    .object({
-        fundType: z.enum(["STF", "Gift"], { message: "Select a fund type" }),
-        stfBucketId: z.string().optional(),
-        vendor: z.string().min(1, "Vendor is required").max(200),
-        link: z.string().url("Enter a valid URL").max(500),
-        itemName: z.string().min(1, "Item name is required").max(200),
-        partNumber: z.string().max(100).optional(),
-        quantity: z
-            .string()
-            .min(1, "Required")
-            .regex(/^\d+$/, "Whole number")
-            .refine((v) => Number(v) >= 1 && Number(v) <= 9999, "Between 1 and 9999"),
-        unitCost: z
-            .string()
-            .min(1, "Unit cost is required")
-            .refine((v) => !Number.isNaN(Number(v)) && Number(v) > 0, "Enter a valid amount"),
-        notes: z.string().max(2000).optional(),
-    })
-    .superRefine((data, ctx) => {
-        if (data.fundType === "STF") {
-            if (!data.stfBucketId) {
-                ctx.addIssue({
-                    code: "custom",
-                    message: "Select an STF bucket",
-                    path: ["stfBucketId"],
-                });
-            }
-            if (!data.partNumber?.trim()) {
-                ctx.addIssue({
-                    code: "custom",
-                    message: "Part number is required for STF orders",
-                    path: ["partNumber"],
-                });
-            }
-        }
-        if (data.fundType === "Gift" && !data.notes?.trim()) {
-            ctx.addIssue({
-                code: "custom",
-                message: "Notes are required for Gift orders",
-                path: ["notes"],
-            });
-        }
-    });
+const itemSchema = z.object({
+    vendor: z.string().min(1, "Vendor is required").max(200),
+    link: z.string().url("Enter a valid URL").max(500),
+    itemName: z.string().min(1, "Item name is required").max(200),
+    partNumber: z.string().max(100).optional(),
+    quantity: z
+        .string()
+        .min(1, "Required")
+        .regex(/^\d+$/, "Whole number")
+        .refine((v) => Number(v) >= 1 && Number(v) <= 9999, "Between 1 and 9999"),
+    unitCost: z
+        .string()
+        .min(1, "Unit cost is required")
+        .refine((v) => !Number.isNaN(Number(v)) && Number(v) > 0, "Enter a valid amount"),
+    notes: z.string().max(2000).optional(),
+});
+
+const formSchema = z.object({
+    items: z.array(itemSchema).min(1).max(MAX_ORDER_BATCH_ITEMS),
+});
 
 type FormValues = z.infer<typeof formSchema>;
+type ItemValues = z.infer<typeof itemSchema>;
+
+const emptyItem: ItemValues = {
+    vendor: "",
+    link: "",
+    itemName: "",
+    partNumber: "",
+    quantity: "1",
+    unitCost: "",
+    notes: "",
+};
+
+// One shared track definition keeps the header labels aligned with every row.
+// Every flexible track uses a 0 minimum so the row always fits the viewport
+// instead of forcing a horizontal scrollbar; only the fixed tracks hold width.
+const GRID_COLUMNS =
+    "lg:grid-cols-[26px_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,0.9fr)_56px_84px_minmax(0,1.2fr)_64px]";
 
 export type OrderFormInitial = {
     id: number;
     status: OrderStatus;
-    fundType: FundType;
-    stfBucketId: number | null;
     vendor: string;
     link: string;
     itemName: string;
@@ -112,10 +81,8 @@ export type OrderFormInitial = {
     notes: string | null;
 };
 
-function toFormValues(order: OrderFormInitial): FormValues {
+function toItemValues(order: OrderFormInitial): ItemValues {
     return {
-        fundType: order.fundType,
-        stfBucketId: order.stfBucketId != null ? String(order.stfBucketId) : "",
         vendor: order.vendor,
         link: order.link,
         itemName: order.itemName,
@@ -126,119 +93,131 @@ function toFormValues(order: OrderFormInitial): FormValues {
     };
 }
 
+// "https://www.mcmaster.com/91251A542/" -> "Mcmaster"
+function vendorFromLink(link: string): string | null {
+    try {
+        const host = new URL(link).hostname.replace(/^www\./, "");
+        const name = host.split(".")[0];
+        if (!name || name.length < 2) return null;
+        return name.charAt(0).toUpperCase() + name.slice(1);
+    } catch {
+        return null;
+    }
+}
+
+// Only fills a vendor the user has not typed themselves.
+function fillVendorFromLink(
+    form: ReturnType<typeof useForm<FormValues>>,
+    index: number,
+    link: string
+) {
+    const guess = vendorFromLink(link);
+    if (guess && !form.getValues(`items.${index}.vendor`)) {
+        form.setValue(`items.${index}.vendor`, guess, { shouldValidate: true });
+    }
+}
+
 export function OrderForm({ initialOrder }: { initialOrder?: OrderFormInitial }) {
     const router = useRouter();
     const [submitting, setSubmitting] = useState(false);
-    const [balances, setBalances] = useState<Balances | null>(null);
-    const [loadingBalances, setLoadingBalances] = useState(true);
+    const [pricing, setPricing] = useState<OrderPricing | null>(null);
+
+    const isEditing = initialOrder != null;
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
-        defaultValues: initialOrder
-            ? toFormValues(initialOrder)
-            : {
-                  fundType: undefined,
-                  stfBucketId: "",
-                  vendor: "",
-                  link: "",
-                  itemName: "",
-                  partNumber: "",
-                  quantity: "1",
-                  unitCost: "",
-                  notes: "",
-              },
+        defaultValues: {
+            items: [initialOrder ? toItemValues(initialOrder) : { ...emptyItem }],
+        },
     });
 
-    const [fundType, stfBucketId, quantity, unitCost] = useWatch({
-        control: form.control,
-        name: ["fundType", "stfBucketId", "quantity", "unitCost"],
-    });
+    const { fields, append, remove } = useFieldArray({ control: form.control, name: "items" });
+    const items = useWatch({ control: form.control, name: "items" });
 
     useEffect(() => {
         fetch("/api/orders/balances")
             .then((res) => (res.ok ? res.json() : null))
-            .then((data: Balances | null) => setBalances(data))
-            .finally(() => setLoadingBalances(false));
+            .then((data: { orderPricing?: OrderPricing } | null) =>
+                setPricing(data?.orderPricing ?? null)
+            )
+            .catch(() => setPricing(null));
     }, []);
 
-    const totalCostCents = useMemo(() => {
-        const qty = Number(quantity);
-        const cost = Number(unitCost);
-        const pricing = balances?.orderPricing;
-        if (!Number.isFinite(qty) || !Number.isFinite(cost) || qty < 1 || cost <= 0) return null;
-        if (!pricing || !fundType) return null;
-        const unitCostCents = Math.round(cost * 100);
+    const estimatedTotalCents = useMemo(() => {
+        if (!pricing || !items) return null;
         const settings = {
             taxPercentBps: displayPercentToBps(pricing.taxPercent),
             shippingPercentBps: displayPercentToBps(pricing.shippingPercent),
         };
-        return orderChargeCents(fundType, qty, unitCostCents, settings);
-    }, [quantity, unitCost, balances?.orderPricing, fundType]);
-
-    const balanceError = useMemo(() => {
-        if (!fundType || totalCostCents == null || !balances) return null;
-
-        if (fundType === "Gift") {
-            if (totalCostCents > balances.giftBalanceCents) {
-                return `This order exceeds the remaining balance in Gift Fund. Available: ${formatPriceCents(balances.giftBalanceCents)}, Order total: ${formatPriceCents(totalCostCents)}.`;
-            }
-            return null;
+        let total = 0;
+        for (const item of items) {
+            const qty = Number(item?.quantity);
+            const cost = Number(item?.unitCost);
+            if (!Number.isFinite(qty) || !Number.isFinite(cost) || qty < 1 || cost <= 0) continue;
+            total += computeOrderTotalCents(qty, Math.round(cost * 100), settings);
         }
+        return total > 0 ? total : null;
+    }, [items, pricing]);
 
-        const bucket = balances.stfBuckets.find((b) => String(b.id) === stfBucketId);
-        if (!bucket) return null;
-        if (totalCostCents > bucket.remainingBalanceCents) {
-            const availableLabel = isOverBudget(bucket.remainingBalanceCents)
-                ? `Over by ${formatPriceCents(Math.abs(bucket.remainingBalanceCents))}`
-                : formatPriceCents(bucket.remainingBalanceCents);
-            return `This order exceeds the remaining balance in ${bucket.name}. Available: ${availableLabel}, Order total: ${formatPriceCents(totalCostCents)}.`;
+    function addItems(parsed: ParsedItem[]) {
+        const room = MAX_ORDER_BATCH_ITEMS - fields.length;
+        const accepted = parsed.slice(0, Math.max(0, room));
+        if (accepted.length === 0) {
+            toast.error(`Limit is ${MAX_ORDER_BATCH_ITEMS} items per submission`);
+            return;
         }
-        return null;
-    }, [balances, fundType, stfBucketId, totalCostCents]);
+        append(accepted.map((item) => ({ ...emptyItem, ...item })));
+        toast.success(`Added ${accepted.length} item${accepted.length === 1 ? "" : "s"}`);
+        if (accepted.length < parsed.length) {
+            toast.warning(`${parsed.length - accepted.length} skipped — batch limit reached`);
+        }
+    }
 
-    const canSubmit =
-        !!fundType &&
-        !balanceError &&
-        !submitting &&
-        !loadingBalances &&
-        balances !== null &&
-        (fundType !== "STF" || balances.stfBuckets.length > 0);
+    function duplicateItem(index: number) {
+        if (fields.length >= MAX_ORDER_BATCH_ITEMS) {
+            toast.error(`Limit is ${MAX_ORDER_BATCH_ITEMS} items per submission`);
+            return;
+        }
+        append({ ...form.getValues(`items.${index}`) });
+    }
 
     async function onSubmit(values: FormValues) {
-        if (balanceError) return;
         setSubmitting(true);
         try {
-            const payload = {
-                fundType: values.fundType,
-                stfBucketId: values.fundType === "STF" ? Number(values.stfBucketId) : undefined,
-                vendor: values.vendor,
-                link: values.link,
-                itemName: values.itemName,
-                partNumber: values.partNumber || undefined,
-                quantity: Number(values.quantity),
-                unitCost: Number(values.unitCost),
-                notes: values.notes || undefined,
-            };
+            const payloadItems = values.items.map((item) => ({
+                vendor: item.vendor,
+                link: item.link,
+                itemName: item.itemName,
+                partNumber: item.partNumber || undefined,
+                quantity: Number(item.quantity),
+                unitCost: Number(item.unitCost),
+                notes: item.notes || undefined,
+            }));
 
-            const res = await fetch(
-                initialOrder ? `/api/orders/${initialOrder.id}` : "/api/orders",
-                {
-                    method: initialOrder ? "PATCH" : "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
-                }
-            );
+            const res = await fetch(isEditing ? `/api/orders/${initialOrder.id}` : "/api/orders", {
+                method: isEditing ? "PATCH" : "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(isEditing ? payloadItems[0] : { items: payloadItems }),
+            });
             if (!res.ok) {
                 const data = await res.json().catch(() => null);
                 throw new Error(data?.error ?? "Failed to submit order");
             }
-            toast.success(
-                initialOrder
-                    ? initialOrder.status === "denied"
+
+            if (isEditing) {
+                toast.success(
+                    initialOrder.status === "denied"
                         ? "Order resubmitted for review"
                         : "Order updated"
-                    : "Order submitted for review"
-            );
+                );
+            } else {
+                const count = payloadItems.length;
+                toast.success(
+                    count === 1
+                        ? "Order submitted for review"
+                        : `${count} orders submitted for review`
+                );
+            }
             router.push("/orders");
             router.refresh();
         } catch (err) {
@@ -247,244 +226,95 @@ export function OrderForm({ initialOrder }: { initialOrder?: OrderFormInitial })
         }
     }
 
-    const fundTypeItems = { STF: "STF", Gift: "Gift" };
+    const multiple = fields.length > 1;
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                <FormField
-                    control={form.control}
-                    name="fundType"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Fund type</FormLabel>
-                            <Select
-                                items={fundTypeItems}
-                                value={field.value ?? ""}
-                                onValueChange={(v) => {
-                                    field.onChange(v);
-                                    form.setValue("stfBucketId", "");
-                                }}
-                            >
-                                <FormControl>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="Select fund type" />
-                                    </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    <SelectItem value="STF">STF</SelectItem>
-                                    <SelectItem value="Gift">Gift</SelectItem>
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+            <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className={cn("space-y-5", multiple ? "w-full" : "max-w-2xl")}
+            >
+                {multiple ? (
+                    <div className="border-border rounded-lg border">
+                        {/* Column headers stand in for per-field labels, so they
+                            only exist where the row layout is side by side. */}
+                        <div
+                            className={cn(
+                                GRID_COLUMNS,
+                                "bg-muted/50 border-border text-muted-foreground hidden items-center gap-2 border-b px-3 py-2 text-xs font-medium lg:grid"
+                            )}
+                        >
+                            <span>#</span>
+                            <span>Item name</span>
+                            <span>Vendor</span>
+                            <span>Link</span>
+                            <span>Part number</span>
+                            <span>Qty</span>
+                            <span>Unit cost</span>
+                            <span>Notes</span>
+                            <span className="sr-only">Actions</span>
+                        </div>
+                        {fields.map((field, index) => (
+                            <ItemRow
+                                key={field.id}
+                                form={form}
+                                index={index}
+                                onRemove={() => remove(index)}
+                                onDuplicate={() => duplicateItem(index)}
+                            />
+                        ))}
+                    </div>
+                ) : (
+                    fields.map((field, index) => (
+                        <ItemFields key={field.id} form={form} index={index} />
+                    ))
+                )}
 
-                {fundType === "Gift" && balances ? (
-                    <div className="bg-muted/50 rounded-lg border px-4 py-3 text-sm">
-                        <span className="text-muted-foreground">Gift fund balance: </span>
-                        <BalanceAmount cents={balances.giftBalanceCents} size="sm" mode="signed" />
+                {!isEditing ? (
+                    <div className="flex flex-wrap items-center gap-3">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => append({ ...emptyItem })}
+                            disabled={fields.length >= MAX_ORDER_BATCH_ITEMS}
+                        >
+                            <Plus className="size-4" />
+                            Add another item
+                        </Button>
+                        <PasteItemsPanel onAdd={addItems} />
+                        {multiple ? (
+                            <span className="text-muted-foreground text-sm">
+                                {fields.length} items
+                                {estimatedTotalCents != null
+                                    ? ` · est. ${formatPriceCents(estimatedTotalCents)}`
+                                    : ""}
+                            </span>
+                        ) : null}
                     </div>
                 ) : null}
 
-                {fundType === "STF" ? (
-                    <FormField
-                        control={form.control}
-                        name="stfBucketId"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>STF bucket</FormLabel>
-                                <Select
-                                    items={Object.fromEntries(
-                                        (balances?.stfBuckets ?? []).map((b) => [
-                                            String(b.id),
-                                            stfBucketSelectLabel(b.name, b.remainingBalanceCents),
-                                        ])
-                                    )}
-                                    value={field.value ?? ""}
-                                    onValueChange={field.onChange}
-                                >
-                                    <FormControl>
-                                        <SelectTrigger className="w-full">
-                                            <SelectValue placeholder="Select STF bucket" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        {(balances?.stfBuckets ?? []).map((bucket) => {
-                                            const disabled = bucket.remainingBalanceCents <= 0;
-                                            const over = isOverBudget(bucket.remainingBalanceCents);
-                                            return (
-                                                <SelectItem
-                                                    key={bucket.id}
-                                                    value={String(bucket.id)}
-                                                    disabled={disabled}
-                                                    className={cn(
-                                                        over &&
-                                                            "data-disabled:text-destructive data-disabled:opacity-100"
-                                                    )}
-                                                >
-                                                    <StfBucketSelectItemContent
-                                                        name={bucket.name}
-                                                        cents={bucket.remainingBalanceCents}
-                                                        unavailable={disabled}
-                                                    />
-                                                </SelectItem>
-                                            );
-                                        })}
-                                    </SelectContent>
-                                </Select>
-                                {balances?.stfBuckets.length === 0 ? (
-                                    <FormDescription>
-                                        No STF buckets are configured. Contact an officer.
-                                    </FormDescription>
-                                ) : null}
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                ) : null}
-
-                <FormField
-                    control={form.control}
-                    name="vendor"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Vendor</FormLabel>
-                            <FormControl>
-                                <Input placeholder="e.g. McMaster-Carr" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <FormField
-                    control={form.control}
-                    name="link"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Link</FormLabel>
-                            <FormControl>
-                                <Input type="url" placeholder="https://..." {...field} />
-                            </FormControl>
-                            <FormDescription>Direct link to the product page.</FormDescription>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <FormField
-                    control={form.control}
-                    name="itemName"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Item name</FormLabel>
-                            <FormControl>
-                                <Input placeholder="e.g. 1/4-20 hex bolt" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <div className="grid gap-5 sm:grid-cols-2">
-                    <FormField
-                        control={form.control}
-                        name="partNumber"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>
-                                    Part number{fundType === "Gift" ? " (optional)" : ""}
-                                </FormLabel>
-                                <FormControl>
-                                    <Input placeholder="Optional for Gift" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="quantity"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Quantity</FormLabel>
-                                <FormControl>
-                                    <Input type="number" min={1} {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
-                <FormField
-                    control={form.control}
-                    name="unitCost"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Cost (unit)</FormLabel>
-                            <FormControl>
-                                <Input
-                                    type="number"
-                                    min={0.01}
-                                    step="0.01"
-                                    placeholder="0.00"
-                                    {...field}
-                                />
-                            </FormControl>
-                            {totalCostCents != null ? (
-                                <FormDescription>
-                                    Total cost (incl. tax &amp; shipping):{" "}
-                                    <span className="text-foreground font-medium">
-                                        {formatPriceCents(totalCostCents)}
-                                    </span>
-                                </FormDescription>
-                            ) : null}
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                {balanceError ? (
-                    <p className="text-destructive text-sm" role="alert">
-                        {balanceError}
+                {!isEditing && estimatedTotalCents != null ? (
+                    <p className="text-muted-foreground text-sm">
+                        Estimated total (incl. tax &amp; shipping):{" "}
+                        <span className="text-foreground font-medium">
+                            {formatPriceCents(estimatedTotalCents)}
+                        </span>
+                        . An officer assigns each item to a fund when they review it, which sets the
+                        final cost.
                     </p>
                 ) : null}
 
-                <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Notes{fundType === "STF" ? " (optional)" : ""}</FormLabel>
-                            <FormControl>
-                                <Textarea
-                                    rows={4}
-                                    placeholder={
-                                        fundType === "Gift"
-                                            ? "Explain what the item is for or where it will be used."
-                                            : "Any extra details for reviewers."
-                                    }
-                                    {...field}
-                                />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
                 <div className="flex gap-3">
-                    <Button type="submit" disabled={!canSubmit}>
+                    <Button type="submit" disabled={submitting}>
                         {submitting
                             ? "Saving..."
-                            : initialOrder
+                            : isEditing
                               ? initialOrder.status === "denied"
                                   ? "Resubmit for review"
                                   : "Save changes"
-                              : "Submit order"}
+                              : multiple
+                                ? `Submit ${fields.length} items`
+                                : "Submit order"}
                     </Button>
                     <Button
                         type="button"
@@ -497,5 +327,242 @@ export function OrderForm({ initialOrder }: { initialOrder?: OrderFormInitial })
                 </div>
             </form>
         </Form>
+    );
+}
+
+function ItemFields({
+    form,
+    index,
+}: {
+    form: ReturnType<typeof useForm<FormValues>>;
+    index: number;
+}) {
+    return (
+        <div className="space-y-5">
+            <FormField
+                control={form.control}
+                name={`items.${index}.vendor`}
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Vendor</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g. McMaster-Carr" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            <FormField
+                control={form.control}
+                name={`items.${index}.link`}
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Link</FormLabel>
+                        <FormControl>
+                            <Input
+                                type="url"
+                                placeholder="https://..."
+                                {...field}
+                                onBlur={(e) => {
+                                    field.onBlur();
+                                    fillVendorFromLink(form, index, e.target.value);
+                                }}
+                            />
+                        </FormControl>
+                        <FormDescription>Direct link to the product page.</FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            <FormField
+                control={form.control}
+                name={`items.${index}.itemName`}
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Item name</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g. 1/4-20 hex bolt" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            <div className="grid gap-5 sm:grid-cols-3">
+                <FormField
+                    control={form.control}
+                    name={`items.${index}.partNumber`}
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Part number (optional)</FormLabel>
+                            <FormControl>
+                                <Input placeholder="e.g. 91251A542" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name={`items.${index}.quantity`}
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Quantity</FormLabel>
+                            <FormControl>
+                                <Input type="number" min={1} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <FormField
+                    control={form.control}
+                    name={`items.${index}.unitCost`}
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Cost (unit)</FormLabel>
+                            <FormControl>
+                                <Input
+                                    type="number"
+                                    min={0.01}
+                                    step="0.01"
+                                    placeholder="0.00"
+                                    {...field}
+                                />
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+            </div>
+
+            <FormField
+                control={form.control}
+                name={`items.${index}.notes`}
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Notes (optional)</FormLabel>
+                        <FormControl>
+                            <Textarea
+                                rows={4}
+                                placeholder="What is this for, or anything reviewers should know."
+                                {...field}
+                            />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+        </div>
+    );
+}
+
+// Batch mode: one item per row, labelled once by the grid header above.
+function ItemRow({
+    form,
+    index,
+    onRemove,
+    onDuplicate,
+}: {
+    form: ReturnType<typeof useForm<FormValues>>;
+    index: number;
+    onRemove: () => void;
+    onDuplicate: () => void;
+}) {
+    function cell(
+        name: "itemName" | "vendor" | "link" | "partNumber" | "quantity" | "unitCost" | "notes",
+        label: string,
+        input: (
+            field: ControllerRenderProps<FormValues, `items.${number}.${typeof name}`>
+        ) => ReactNode
+    ) {
+        return (
+            <FormField
+                control={form.control}
+                name={`items.${index}.${name}` as const}
+                render={({ field }) => (
+                    <FormItem className="min-w-0 space-y-1">
+                        {/* Visible while rows are stacked; the grid header
+                            replaces it once the columns line up. */}
+                        <FormLabel className="text-xs lg:sr-only">{label}</FormLabel>
+                        <FormControl>{input(field)}</FormControl>
+                        <FormMessage className="text-xs" />
+                    </FormItem>
+                )}
+            />
+        );
+    }
+
+    return (
+        <div
+            className={cn(
+                GRID_COLUMNS,
+                "border-border grid grid-cols-1 items-start gap-2 border-b px-3 py-3 last:border-b-0 lg:py-2"
+            )}
+        >
+            <span className="text-muted-foreground text-xs font-medium tabular-nums lg:pt-2">
+                <span className="lg:hidden">Item {index + 1}</span>
+                <span className="hidden lg:inline">{index + 1}</span>
+            </span>
+
+            {cell("itemName", "Item name", (field) => (
+                <Input className="h-9" placeholder="1/4-20 hex bolt" {...field} />
+            ))}
+
+            {cell("vendor", "Vendor", (field) => (
+                <Input className="h-9" placeholder="McMaster-Carr" {...field} />
+            ))}
+
+            {cell("link", "Link", (field) => (
+                <Input
+                    className="h-9"
+                    type="url"
+                    placeholder="https://..."
+                    {...field}
+                    onBlur={(e) => {
+                        field.onBlur();
+                        fillVendorFromLink(form, index, e.target.value);
+                    }}
+                />
+            ))}
+
+            {cell("partNumber", "Part number", (field) => (
+                <Input className="h-9" placeholder="Optional" {...field} />
+            ))}
+
+            {cell("quantity", "Quantity", (field) => (
+                <Input className="h-9 px-2" type="number" min={1} {...field} />
+            ))}
+
+            {cell("unitCost", "Unit cost", (field) => (
+                <Input
+                    className="h-9 px-2"
+                    type="number"
+                    min={0.01}
+                    step="0.01"
+                    placeholder="0.00"
+                    {...field}
+                />
+            ))}
+
+            {cell("notes", "Notes", (field) => (
+                <Input className="h-9" placeholder="Optional" {...field} />
+            ))}
+
+            <div className="flex gap-0.5 pt-0.5">
+                <Button type="button" variant="ghost" size="sm" onClick={onDuplicate}>
+                    <Copy className="size-4" />
+                    <span className="sr-only">Duplicate item {index + 1}</span>
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
+                    <Trash2 className="size-4" />
+                    <span className="sr-only">Remove item {index + 1}</span>
+                </Button>
+            </div>
+        </div>
     );
 }

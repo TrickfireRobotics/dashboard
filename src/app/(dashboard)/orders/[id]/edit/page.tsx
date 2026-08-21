@@ -50,8 +50,6 @@ export default async function EditOrderPage({ params }: PageProps) {
                 initialOrder={{
                     id: existing.id,
                     status: existing.status,
-                    fundType: existing.fundType,
-                    stfBucketId: existing.stfBucketId,
                     vendor: existing.vendor,
                     link: existing.link,
                     itemName: existing.itemName,

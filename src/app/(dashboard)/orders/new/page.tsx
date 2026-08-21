@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 
 export default function NewOrderPage() {
     return (
-        <div className="max-w-2xl space-y-6">
+        <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl">New Order</h1>

@@ -4,7 +4,14 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/lib/db";
 import { giftFund, giftFundLog, order, orderHistory, stfBucket, user } from "@/lib/db/schema";
 import {
+    assignOrdersToFund,
+    batchTotalCents,
     deductGiftFundForApproval,
+    getBucketPendingSpendCents,
+    getBucketRemainingCents,
+    validateAssignmentBalance,
+    validateBatchBalance,
+    validateOrderBalance,
     ensureFinanceSettingsRow,
     ensureGiftFundRow,
     getActiveQuarter,
@@ -313,3 +320,223 @@ function computeExpectedTotal(
     const shipping = Math.round((subtotal * shippingPercentBps) / 10_000);
     return subtotal + tax + shipping;
 }
+
+describe("batchTotalCents", () => {
+    it("sums each item at its fund's rate", () => {
+        const items = [
+            { quantity: 2, unitCostCents: 5000 },
+            { quantity: 1, unitCostCents: 1000 },
+        ];
+        expect(batchTotalCents("Gift", items)).toBe(
+            orderTotalCents(2, 5000, "Gift") + orderTotalCents(1, 1000, "Gift")
+        );
+        expect(batchTotalCents("STF", items)).toBe(
+            orderTotalCents(2, 5000, "STF") + orderTotalCents(1, 1000, "STF")
+        );
+    });
+
+    it("is 0 for an empty batch", () => {
+        expect(batchTotalCents("STF", [])).toBe(0);
+    });
+});
+
+describe("validateOrderBalance", () => {
+    it("refuses an order with no fund assigned", () => {
+        const result = validateOrderBalance(null, null, 1000);
+        expect(result.ok).toBe(false);
+        if (!result.ok) expect(result.message).toMatch(/assign/i);
+    });
+});
+
+describe("validateBatchBalance", () => {
+    it("passes an empty batch", () => {
+        expect(validateBatchBalance("Gift", null, []).ok).toBe(true);
+    });
+
+    it("rejects a batch that individually fits but together overdraws", () => {
+        const giftBefore = db.select().from(giftFund).where(eq(giftFund.id, GIFT_FUND_ID)).get();
+        db.update(giftFund)
+            .set({ currentValueCents: orderTotalCents(1, 10_000, "Gift") })
+            .where(eq(giftFund.id, GIFT_FUND_ID))
+            .run();
+
+        const one = [{ quantity: 1, unitCostCents: 10_000 }];
+        expect(validateBatchBalance("Gift", null, one).ok).toBe(true);
+
+        const two = [
+            { quantity: 1, unitCostCents: 10_000 },
+            { quantity: 1, unitCostCents: 10_000 },
+        ];
+        expect(validateBatchBalance("Gift", null, two).ok).toBe(false);
+
+        db.update(giftFund)
+            .set({ currentValueCents: giftBefore?.currentValueCents ?? 0 })
+            .where(eq(giftFund.id, GIFT_FUND_ID))
+            .run();
+    });
+});
+
+describe("assignOrdersToFund", () => {
+    it("stamps fund, bucket and quarter onto untriaged orders", () => {
+        const quarter = getActiveQuarter();
+        const requester = db.select().from(user).limit(1).get();
+        const bucketRecord = db
+            .select()
+            .from(stfBucket)
+            .where(eq(stfBucket.isActive, true))
+            .limit(1)
+            .get();
+        if (!quarter || !requester || !bucketRecord) return;
+
+        const created = db
+            .insert(order)
+            .values({
+                userId: requester.id,
+                vendor: "Test Vendor",
+                link: "https://example.com/part",
+                itemName: `${TEST_ITEM_PREFIX}untriaged`,
+                quantity: 1,
+                unitCostCents: 1000,
+                status: "pending",
+            })
+            .returning()
+            .get();
+
+        expect(created.fundType).toBeNull();
+        expect(created.quarterId).toBeNull();
+
+        assignOrdersToFund([created.id], "STF", bucketRecord.id, requester.id);
+
+        const after = db.select().from(order).where(eq(order.id, created.id)).get()!;
+        expect(after.fundType).toBe("STF");
+        expect(after.stfBucketId).toBe(bucketRecord.id);
+        expect(after.quarterId).toBe(quarter.id);
+        expect(after.assignedBy).toBe(requester.id);
+        expect(after.assignedAt).toBeInstanceOf(Date);
+    });
+
+    it("clears the bucket when assigning to Gift", () => {
+        const requester = db.select().from(user).limit(1).get();
+        const bucketRecord = db
+            .select()
+            .from(stfBucket)
+            .where(eq(stfBucket.isActive, true))
+            .limit(1)
+            .get();
+        if (!requester || !bucketRecord) return;
+
+        const created = db
+            .insert(order)
+            .values({
+                userId: requester.id,
+                fundType: "STF",
+                stfBucketId: bucketRecord.id,
+                vendor: "Test Vendor",
+                link: "https://example.com/part",
+                itemName: `${TEST_ITEM_PREFIX}reassign`,
+                quantity: 1,
+                unitCostCents: 1000,
+                status: "pending",
+            })
+            .returning()
+            .get();
+
+        assignOrdersToFund([created.id], "Gift", null, requester.id);
+
+        const after = db.select().from(order).where(eq(order.id, created.id)).get()!;
+        expect(after.fundType).toBe("Gift");
+        expect(after.stfBucketId).toBeNull();
+        expect(after.quarterId).toBeNull();
+    });
+});
+
+describe("getBucketPendingSpendCents", () => {
+    it("counts pending assigned orders without touching the remaining balance", () => {
+        const quarter = getActiveQuarter();
+        const requester = db.select().from(user).limit(1).get();
+        const bucketRecord = db
+            .select()
+            .from(stfBucket)
+            .where(eq(stfBucket.isActive, true))
+            .limit(1)
+            .get();
+        if (!quarter || !requester || !bucketRecord) return;
+
+        const remainingBefore = getBucketRemainingCents(bucketRecord.id);
+        const pendingBefore = getBucketPendingSpendCents(bucketRecord.id, quarter.id);
+
+        const created = db
+            .insert(order)
+            .values({
+                userId: requester.id,
+                fundType: "STF",
+                stfBucketId: bucketRecord.id,
+                quarterId: quarter.id,
+                vendor: "Test Vendor",
+                link: "https://example.com/part",
+                itemName: `${TEST_ITEM_PREFIX}queued`,
+                quantity: 1,
+                unitCostCents: 1000,
+                status: "pending",
+            })
+            .returning()
+            .get();
+
+        expect(getBucketPendingSpendCents(bucketRecord.id, quarter.id)).toBe(
+            pendingBefore + orderTotalCents(1, 1000, "STF")
+        );
+        // Pending orders are claims, not spend.
+        expect(getBucketRemainingCents(bucketRecord.id)).toBe(remainingBefore);
+
+        // Excluding the order under assignment avoids double-counting it.
+        expect(getBucketPendingSpendCents(bucketRecord.id, quarter.id, [created.id])).toBe(
+            pendingBefore
+        );
+    });
+});
+
+describe("validateAssignmentBalance", () => {
+    it("counts orders already queued against the bucket", () => {
+        const quarter = getActiveQuarter();
+        const requester = db.select().from(user).limit(1).get();
+        const bucketRecord = db
+            .select()
+            .from(stfBucket)
+            .where(eq(stfBucket.isActive, true))
+            .limit(1)
+            .get();
+        if (!quarter || !requester || !bucketRecord) return;
+
+        const remaining = getBucketRemainingCents(bucketRecord.id);
+        if (remaining == null || remaining <= 0) return;
+
+        // A batch that exactly fills the bucket is allowed.
+        const fillingUnitCents = Math.floor(remaining / 2);
+        const filling = [{ quantity: 1, unitCostCents: fillingUnitCents }];
+        expect(validateAssignmentBalance("STF", bucketRecord.id, [], filling).ok).toBe(true);
+
+        // Park an order in the bucket, then the same batch no longer fits.
+        db.insert(order)
+            .values({
+                userId: requester.id,
+                fundType: "STF",
+                stfBucketId: bucketRecord.id,
+                quarterId: quarter.id,
+                vendor: "Test Vendor",
+                link: "https://example.com/part",
+                itemName: `${TEST_ITEM_PREFIX}claim`,
+                quantity: 1,
+                unitCostCents: remaining,
+                status: "pending",
+            })
+            .run();
+
+        const result = validateAssignmentBalance("STF", bucketRecord.id, [], filling);
+        expect(result.ok).toBe(false);
+        if (!result.ok) expect(result.message).toMatch(/awaiting approval/);
+    });
+
+    it("falls back to a plain balance check for Gift", () => {
+        expect(validateAssignmentBalance("Gift", null, [], []).ok).toBe(true);
+    });
+});

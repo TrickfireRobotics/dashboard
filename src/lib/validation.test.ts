@@ -1,6 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
     orderInputSchema,
+    orderBatchInputSchema,
+    orderAssignSchema,
+    MAX_ORDER_BATCH_ITEMS,
     giftFundAdjustSchema,
     financeSettingsUpdateSchema,
     markOrderedSchema,
@@ -10,76 +13,107 @@ import {
     updateUserSchema,
 } from "./validation";
 
+const validItem = {
+    vendor: "Amazon",
+    link: "https://example.com/item",
+    itemName: "Motor",
+    partNumber: "MT-001",
+    quantity: 2,
+    unitCost: 50,
+};
+
 describe("orderInputSchema", () => {
-    const validStf = {
-        fundType: "STF",
-        stfBucketId: 1,
-        vendor: "Amazon",
-        link: "https://example.com/item",
-        itemName: "Motor",
-        partNumber: "MT-001",
-        quantity: 2,
-        unitCost: 50,
-    };
-
-    const validGift = {
-        fundType: "Gift",
-        vendor: "Home Depot",
-        link: "https://example.com/bolt",
-        itemName: "Bolts",
-        quantity: 10,
-        unitCost: 2.99,
-        notes: "M4 x 20mm",
-    };
-
-    it("accepts a valid STF order", () => {
-        expect(() => orderInputSchema.parse(validStf)).not.toThrow();
+    it("accepts a valid item", () => {
+        expect(() => orderInputSchema.parse(validItem)).not.toThrow();
     });
 
-    it("accepts a valid Gift order", () => {
-        expect(() => orderInputSchema.parse(validGift)).not.toThrow();
+    it("accepts an item without a part number or notes", () => {
+        const rest = { ...validItem, partNumber: undefined };
+        expect(orderInputSchema.safeParse(rest).success).toBe(true);
     });
 
-    it("rejects STF order missing stfBucketId", () => {
-        const result = orderInputSchema.safeParse({ ...validStf, stfBucketId: undefined });
-        expect(result.success).toBe(false);
-        if (!result.success) {
-            const paths = result.error.issues.map((i) => i.path.join("."));
-            expect(paths).toContain("stfBucketId");
-        }
-    });
-
-    it("rejects STF order missing partNumber", () => {
-        const result = orderInputSchema.safeParse({ ...validStf, partNumber: undefined });
-        expect(result.success).toBe(false);
-        if (!result.success) {
-            const paths = result.error.issues.map((i) => i.path.join("."));
-            expect(paths).toContain("partNumber");
-        }
-    });
-
-    it("rejects Gift order missing notes", () => {
-        const result = orderInputSchema.safeParse({ ...validGift, notes: undefined });
-        expect(result.success).toBe(false);
-        if (!result.success) {
-            const paths = result.error.issues.map((i) => i.path.join("."));
-            expect(paths).toContain("notes");
-        }
+    it("ignores a fund type if one is sent", () => {
+        const result = orderInputSchema.safeParse({ ...validItem, fundType: "STF" });
+        expect(result.success).toBe(true);
+        expect(result.data).not.toHaveProperty("fundType");
     });
 
     it("rejects quantity less than 1", () => {
-        const result = orderInputSchema.safeParse({ ...validStf, quantity: 0 });
-        expect(result.success).toBe(false);
+        expect(orderInputSchema.safeParse({ ...validItem, quantity: 0 }).success).toBe(false);
     });
 
-    it("rejects unitCost of 0", () => {
-        const result = orderInputSchema.safeParse({ ...validStf, unitCost: 0 });
-        expect(result.success).toBe(false);
+    it("rejects a missing vendor", () => {
+        expect(orderInputSchema.safeParse({ ...validItem, vendor: "" }).success).toBe(false);
     });
 
-    it("rejects an invalid URL for link", () => {
-        const result = orderInputSchema.safeParse({ ...validStf, link: "not-a-url" });
+    it("rejects a non-URL link", () => {
+        expect(orderInputSchema.safeParse({ ...validItem, link: "not-a-url" }).success).toBe(false);
+    });
+
+    it("rejects a zero unit cost", () => {
+        expect(orderInputSchema.safeParse({ ...validItem, unitCost: 0 }).success).toBe(false);
+    });
+});
+
+describe("orderBatchInputSchema", () => {
+    it("accepts a single item", () => {
+        expect(orderBatchInputSchema.safeParse({ items: [validItem] }).success).toBe(true);
+    });
+
+    it("accepts many items", () => {
+        const items = Array.from({ length: 12 }, (_, i) => ({
+            ...validItem,
+            itemName: `Motor ${i}`,
+        }));
+        const result = orderBatchInputSchema.safeParse({ items });
+        expect(result.success).toBe(true);
+        expect(result.data?.items).toHaveLength(12);
+    });
+
+    it("rejects an empty batch", () => {
+        expect(orderBatchInputSchema.safeParse({ items: [] }).success).toBe(false);
+    });
+
+    it("rejects more than the batch limit", () => {
+        const items = Array.from({ length: MAX_ORDER_BATCH_ITEMS + 1 }, () => validItem);
+        expect(orderBatchInputSchema.safeParse({ items }).success).toBe(false);
+    });
+
+    it("rejects the whole batch when one item is invalid", () => {
+        const result = orderBatchInputSchema.safeParse({
+            items: [validItem, { ...validItem, link: "nope" }],
+        });
         expect(result.success).toBe(false);
+        if (!result.success) {
+            expect(result.error.issues.map((i) => i.path.join("."))).toContain("items.1.link");
+        }
+    });
+});
+
+describe("orderAssignSchema", () => {
+    it("accepts an STF assignment with a bucket", () => {
+        const result = orderAssignSchema.safeParse({
+            orderIds: [1, 2],
+            fundType: "STF",
+            stfBucketId: 3,
+        });
+        expect(result.success).toBe(true);
+    });
+
+    it("rejects an STF assignment without a bucket", () => {
+        const result = orderAssignSchema.safeParse({ orderIds: [1], fundType: "STF" });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+            expect(result.error.issues.map((i) => i.path.join("."))).toContain("stfBucketId");
+        }
+    });
+
+    it("accepts a Gift assignment without a bucket", () => {
+        expect(orderAssignSchema.safeParse({ orderIds: [1], fundType: "Gift" }).success).toBe(true);
+    });
+
+    it("rejects an empty selection", () => {
+        expect(orderAssignSchema.safeParse({ orderIds: [], fundType: "Gift" }).success).toBe(false);
     });
 });
 

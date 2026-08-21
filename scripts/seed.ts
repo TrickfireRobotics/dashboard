@@ -118,6 +118,7 @@ async function main() {
     const electronics = db.select().from(stfBucket).where(eq(stfBucket.name, "Electronics")).get();
 
     const SEED_ITEM_PREFIX = "[seed] ";
+    const UNTRIAGED_BATCH_ID = "seed-untriaged-batch";
     const seedOrders = [
         {
             itemName: `${SEED_ITEM_PREFIX}1/4-20 hex bolt assortment`,
@@ -276,6 +277,43 @@ async function main() {
             status: "denied" as const,
             denialComment: "Too expensive for this application. Resubmit with steel hardware.",
         },
+        // Untriaged: submitted together as one batch, awaiting officer triage.
+        {
+            itemName: `${SEED_ITEM_PREFIX}M3 x 10mm standoff (100pk)`,
+            fundType: null,
+            stfBucketName: null,
+            vendor: "McMaster-Carr",
+            link: "https://example.com/m3-standoff",
+            partNumber: "93657A101",
+            quantity: 1,
+            unitCostCents: 1899,
+            notes: "Electronics board mounting",
+            status: "pending" as const,
+        },
+        {
+            itemName: `${SEED_ITEM_PREFIX}Heat shrink tubing kit`,
+            fundType: null,
+            stfBucketName: null,
+            vendor: "Amazon",
+            link: "https://example.com/heat-shrink",
+            partNumber: null,
+            quantity: 2,
+            unitCostCents: 1299,
+            notes: null,
+            status: "pending" as const,
+        },
+        {
+            itemName: `${SEED_ITEM_PREFIX}Loctite 242 threadlocker`,
+            fundType: null,
+            stfBucketName: null,
+            vendor: "Grainger",
+            link: "https://example.com/loctite-242",
+            partNumber: "24221",
+            quantity: 3,
+            unitCostCents: 1150,
+            notes: "Drivetrain fastener retention",
+            status: "pending" as const,
+        },
     ];
 
     if (adminUser && quarter && mechanical && electronics) {
@@ -296,6 +334,7 @@ async function main() {
             const values = {
                 userId: adminUser.id,
                 fundType: seed.fundType,
+                batchId: seed.fundType === null ? UNTRIAGED_BATCH_ID : null,
                 stfBucketId,
                 quarterId: seed.fundType === "STF" ? quarter.id : null,
                 vendor: seed.vendor,
@@ -326,10 +365,11 @@ async function main() {
         const approved = seedOrders.filter((o) => o.status === "approved").length;
         const pending = seedOrders.filter((o) => o.status === "pending").length;
         const denied = seedOrders.filter((o) => o.status === "denied").length;
+        const untriaged = seedOrders.filter((o) => o.fundType === null).length;
 
         if (inserted > 0 || reset > 0) {
             console.log(
-                `Sample orders: ${inserted} inserted, ${reset} reset (${ordered} ordered, ${approved} approved, ${pending} pending, ${denied} denied).`
+                `Sample orders: ${inserted} inserted, ${reset} reset (${ordered} ordered, ${approved} approved, ${pending} pending incl. ${untriaged} untriaged, ${denied} denied).`
             );
         }
     }

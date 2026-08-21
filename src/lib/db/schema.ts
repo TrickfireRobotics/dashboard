@@ -57,33 +57,42 @@ export const financeSettings = sqliteTable("finance_settings", {
         .notNull(),
 });
 
-export const order = sqliteTable("orders", {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    userId: text("user_id")
-        .notNull()
-        .references(() => user.id, { onDelete: "cascade" }),
-    fundType: text("fund_type").$type<FundType>().notNull(),
-    stfBucketId: integer("stf_bucket_id").references(() => stfBucket.id, {
-        onDelete: "set null",
-    }),
-    quarterId: integer("quarter_id").references(() => stfQuarter.id, {
-        onDelete: "set null",
-    }),
-    vendor: text("vendor").notNull(),
-    link: text("link").notNull(),
-    itemName: text("item_name").notNull(),
-    partNumber: text("part_number"),
-    quantity: integer("quantity").notNull().default(1),
-    unitCostCents: integer("unit_cost_cents").notNull(),
-    notes: text("notes"),
-    status: text("status").$type<OrderStatus>().notNull().default("pending"),
-    denialComment: text("denial_comment"),
-    reviewedBy: text("reviewed_by").references(() => user.id, {
-        onDelete: "set null",
-    }),
-    reviewedAt: integer("reviewed_at", { mode: "timestamp_ms" }),
-    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
-});
+export const order = sqliteTable(
+    "orders",
+    {
+        id: integer("id").primaryKey({ autoIncrement: true }),
+        userId: text("user_id")
+            .notNull()
+            .references(() => user.id, { onDelete: "cascade" }),
+        // Null until an officer triages the order and assigns it to a fund.
+        fundType: text("fund_type").$type<FundType>(),
+        stfBucketId: integer("stf_bucket_id").references(() => stfBucket.id, {
+            onDelete: "set null",
+        }),
+        // Groups orders submitted together in one multi-item submission.
+        batchId: text("batch_id"),
+        assignedBy: text("assigned_by").references(() => user.id, { onDelete: "set null" }),
+        assignedAt: integer("assigned_at", { mode: "timestamp_ms" }),
+        quarterId: integer("quarter_id").references(() => stfQuarter.id, {
+            onDelete: "set null",
+        }),
+        vendor: text("vendor").notNull(),
+        link: text("link").notNull(),
+        itemName: text("item_name").notNull(),
+        partNumber: text("part_number"),
+        quantity: integer("quantity").notNull().default(1),
+        unitCostCents: integer("unit_cost_cents").notNull(),
+        notes: text("notes"),
+        status: text("status").$type<OrderStatus>().notNull().default("pending"),
+        denialComment: text("denial_comment"),
+        reviewedBy: text("reviewed_by").references(() => user.id, {
+            onDelete: "set null",
+        }),
+        reviewedAt: integer("reviewed_at", { mode: "timestamp_ms" }),
+        createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    },
+    (table) => [index("orders_batch_id_idx").on(table.batchId)]
+);
 
 export const giftFundLog = sqliteTable("gift_fund_log", {
     id: integer("id").primaryKey({ autoIncrement: true }),

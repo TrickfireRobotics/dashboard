@@ -18,10 +18,12 @@ import {
     getBucketRemainingCents,
     getGiftFundValueCents,
     getStfBucketsWithBalances,
+    assignOrdersToFund,
     orderTotalCents,
+    validateAssignmentBalance,
     validateOrderBalance,
 } from "../src/lib/finance/finance";
-import { orderInputSchema } from "../src/lib/validation";
+import { orderAssignSchema, orderBatchInputSchema } from "../src/lib/validation";
 import {
     formatApprovedGiftOrders,
     formatApprovedStfOrders,
@@ -82,40 +84,47 @@ const mechanical = buckets.find((b) => b.name === "Mechanical")!;
 assert(mechanical.remainingBalanceCents > 0, "Mechanical bucket should have remaining balance");
 const mechanicalRemainingBefore = mechanical.remainingBalanceCents;
 
-// --- Validation schema ---
-const stfParsed = orderInputSchema.safeParse({
+// --- Validation schema (members submit items with no fund assigned) ---
+const batchParsed = orderBatchInputSchema.safeParse({
+    items: [
+        {
+            vendor: "McMaster-Carr",
+            link: "https://example.com/part",
+            itemName: "Test bolt",
+            partNumber: "91290A115",
+            quantity: 2,
+            unitCost: 4.5,
+        },
+        {
+            vendor: "Amazon",
+            link: "https://example.com/gift-item",
+            itemName: "Tape",
+            quantity: 1,
+            unitCost: 12,
+            notes: "For pit organization",
+        },
+    ],
+});
+assert(batchParsed.success, "Multi-item submission should validate");
+assert(batchParsed.data!.items.length === 2, "Both items should parse");
+const stfData = batchParsed.data!.items[0];
+const giftData = batchParsed.data!.items[1];
+
+const emptyBatch = orderBatchInputSchema.safeParse({ items: [] });
+assert(!emptyBatch.success, "Empty submission should fail");
+
+const assignParsed = orderAssignSchema.safeParse({
+    orderIds: [1],
     fundType: "STF",
     stfBucketId: mechanical.id,
-    vendor: "McMaster-Carr",
-    link: "https://example.com/part",
-    itemName: "Test bolt",
-    partNumber: "91290A115",
-    quantity: 2,
-    unitCost: 4.5,
 });
-assert(stfParsed.success, "STF order input should validate");
-const stfData = stfParsed.data!;
+assert(assignParsed.success, "STF assignment should validate");
 
-const giftParsed = orderInputSchema.safeParse({
-    fundType: "Gift",
-    vendor: "Amazon",
-    link: "https://example.com/gift-item",
-    itemName: "Tape",
-    quantity: 1,
-    unitCost: 12,
-    notes: "For pit organization",
-});
-assert(giftParsed.success, "Gift order input should validate");
+const assignMissingBucket = orderAssignSchema.safeParse({ orderIds: [1], fundType: "STF" });
+assert(!assignMissingBucket.success, "STF assignment without a bucket should fail");
 
-const giftMissingNotes = orderInputSchema.safeParse({
-    fundType: "Gift",
-    vendor: "Amazon",
-    link: "https://example.com/gift-item",
-    itemName: "Tape",
-    quantity: 1,
-    unitCost: 12,
-});
-assert(!giftMissingNotes.success, "Gift order without notes should fail");
+const assignGift = orderAssignSchema.safeParse({ orderIds: [1], fundType: "Gift" });
+assert(assignGift.success, "Gift assignment needs no bucket");
 
 // --- Create STF order (mirrors POST /api/orders) ---
 const admin = db.select().from(user).limit(1).get();
@@ -123,19 +132,15 @@ assert(admin != null, "Need a user in the database");
 
 const stfUnitCents = Math.round(stfData.unitCost * 100);
 const stfTotal = orderTotalCents(stfData.quantity, stfUnitCents, "STF");
-const stfBalance = validateOrderBalance("STF", stfData.stfBucketId, stfTotal);
-assert(stfBalance.ok, "STF balance check should pass before insert");
 
 const quarter = getActiveQuarter();
 assert(quarter != null, "Active school year required");
 
+// Submitted untriaged: no fund type, bucket or quarter yet.
 const stfOrder = db
     .insert(order)
     .values({
         userId: admin!.id,
-        fundType: "STF",
-        stfBucketId: stfData.stfBucketId!,
-        quarterId: quarter!.id,
         vendor: stfData.vendor,
         link: stfData.link,
         itemName: stfData.itemName,
@@ -147,6 +152,26 @@ const stfOrder = db
     })
     .returning()
     .get();
+
+assert(stfOrder.fundType == null, "New orders start with no fund type");
+assert(
+    !validateOrderBalance(null, null, stfTotal).ok,
+    "An untriaged order must not pass the balance check"
+);
+
+const assignCheck = validateAssignmentBalance(
+    "STF",
+    mechanical.id,
+    [stfOrder.id],
+    [{ quantity: stfData.quantity, unitCostCents: stfUnitCents }]
+);
+assert(assignCheck.ok, "Assignment should fit inside the bucket");
+
+assignOrdersToFund([stfOrder.id], "STF", mechanical.id, admin!.id);
+const assigned = db.select().from(order).where(eq(order.id, stfOrder.id)).get()!;
+assert(assigned.fundType === "STF", "Assignment should set the fund type");
+assert(assigned.stfBucketId === mechanical.id, "Assignment should set the bucket");
+assert(assigned.quarterId === quarter!.id, "Assignment should stamp the active quarter");
 
 const remainingAfterPending = getBucketRemainingCents(mechanical.id);
 assert(
@@ -169,7 +194,6 @@ assert(
 adjustGiftFund(50_000, admin!.id, "Test deposit");
 assert(getGiftFundValueCents() === 50_000, "Gift fund adjustment failed");
 
-const giftData = giftParsed.data!;
 const giftUnitCents = Math.round(giftData.unitCost * 100);
 const giftTotal = orderTotalCents(giftData.quantity, giftUnitCents, "Gift");
 

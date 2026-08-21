@@ -1,15 +1,12 @@
+import { randomUUID } from "node:crypto";
+
 import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { order } from "@/lib/db/schema";
-import {
-    getActiveQuarter,
-    ensureFinanceSettingsRow,
-    orderTotalCents,
-    validateOrderBalance,
-} from "@/lib/finance/finance";
+import { ensureFinanceSettingsRow } from "@/lib/finance/finance";
 import { getSessionUser } from "@/lib/auth/session";
-import { orderInputSchema } from "@/lib/validation";
+import { orderBatchInputSchema } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {
     const user = await getSessionUser();
@@ -18,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => null);
-    const parsed = orderInputSchema.safeParse(body);
+    const parsed = orderBatchInputSchema.safeParse(body);
     if (!parsed.success) {
         return NextResponse.json(
             { error: "Invalid input", issues: parsed.error.flatten() },
@@ -26,41 +23,24 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    const d = parsed.data;
     ensureFinanceSettingsRow();
-    const unitCostCents = Math.round(d.unitCost * 100);
-    const totalCostCents = orderTotalCents(d.quantity, unitCostCents, d.fundType);
 
-    const balanceCheck = validateOrderBalance(d.fundType, d.stfBucketId, totalCostCents);
-    if (!balanceCheck.ok) {
-        return NextResponse.json({ error: balanceCheck.message }, { status: 400 });
-    }
+    // Orders arrive untriaged: no fund type, bucket or quarter. An officer
+    // assigns those later, and the balance check runs at that point.
+    const batchId = parsed.data.items.length > 1 ? randomUUID() : null;
+    const rows = parsed.data.items.map((item) => ({
+        userId: user.id,
+        batchId,
+        vendor: item.vendor,
+        link: item.link,
+        itemName: item.itemName,
+        partNumber: item.partNumber?.trim() || null,
+        quantity: item.quantity,
+        unitCostCents: Math.round(item.unitCost * 100),
+        notes: item.notes?.trim() || null,
+    }));
 
-    const activeQuarter = d.fundType === "STF" ? getActiveQuarter() : null;
-    if (d.fundType === "STF" && !activeQuarter) {
-        return NextResponse.json(
-            { error: "No active STF school year is configured. Contact an officer." },
-            { status: 400 }
-        );
-    }
+    const created = db.insert(order).values(rows).returning().all();
 
-    const created = db
-        .insert(order)
-        .values({
-            userId: user.id,
-            fundType: d.fundType,
-            stfBucketId: d.fundType === "STF" ? d.stfBucketId! : null,
-            quarterId: activeQuarter?.id ?? null,
-            vendor: d.vendor,
-            link: d.link,
-            itemName: d.itemName,
-            partNumber: d.partNumber?.trim() || null,
-            quantity: d.quantity,
-            unitCostCents,
-            notes: d.notes?.trim() || null,
-        })
-        .returning()
-        .get();
-
-    return NextResponse.json({ order: created }, { status: 201 });
+    return NextResponse.json({ orders: created, count: created.length }, { status: 201 });
 }
