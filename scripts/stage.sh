@@ -20,4 +20,4 @@ rsync -az --delete \
     . "$SERVER:$REMOTE_DIR/"
 
 echo "==> Building and starting staging..."
-ssh -t "$SERVER" "cd '$REMOTE_DIR' && pnpm install --frozen-lockfile && bash scripts/stage-server.sh"
+ssh -t "$SERVER" "cd '$REMOTE_DIR' && pnpm install --frozen-lockfile && pnpm exec tsx scripts/stage-server.ts"

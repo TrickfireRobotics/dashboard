@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { DataTableCard, DataTableCardToolbar } from "@/components/ui/data-table-card";
 import {
     Select,
     SelectContent,
@@ -165,8 +166,8 @@ export function OrderTable({
     };
 
     return (
-        <div className="space-y-4">
-            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <DataTableCard>
+            <DataTableCardToolbar>
                 <Select
                     items={statusFilterItems}
                     value={statusFilter}
@@ -217,92 +218,86 @@ export function OrderTable({
                         <SelectItem value="total-asc">Lowest total</SelectItem>
                     </SelectContent>
                 </Select>
-            </div>
+            </DataTableCardToolbar>
 
             {filteredOrders.length === 0 ? (
-                <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
+                <div className="text-muted-foreground p-10 text-center">
                     No orders match the current filters.
                 </div>
             ) : (
-                <div className="border-border rounded-lg border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Item</TableHead>
-                                <TableHead className="hidden md:table-cell">
-                                    Fund / bucket
-                                </TableHead>
-                                <TableHead className="hidden text-right md:table-cell">
-                                    Total
-                                </TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Submitted</TableHead>
-                                <TableHead className="hidden md:table-cell">Officer note</TableHead>
-                                <TableHead className="w-24 text-right">Actions</TableHead>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Item</TableHead>
+                            <TableHead className="hidden md:table-cell">Fund / bucket</TableHead>
+                            <TableHead className="hidden text-right md:table-cell">Total</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Submitted</TableHead>
+                            <TableHead className="hidden md:table-cell">Officer note</TableHead>
+                            <TableHead className="w-24 text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredOrders.map((o) => (
+                            <TableRow key={o.id}>
+                                <TableCell className="text-foreground font-medium">
+                                    {o.itemName}
+                                </TableCell>
+                                <TableCell className="hidden md:table-cell">
+                                    {o.fundType ? (
+                                        <>
+                                            {o.fundType}
+                                            {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
+                                        </>
+                                    ) : (
+                                        <span className="text-muted-foreground italic">
+                                            Not yet assigned
+                                        </span>
+                                    )}
+                                </TableCell>
+                                <TableCell className="hidden text-right whitespace-nowrap md:table-cell">
+                                    {formatPriceCents(totalCostCents(o, pricingSettings))}
+                                </TableCell>
+                                <TableCell>
+                                    <OrderStatusBadge status={o.status} />
+                                </TableCell>
+                                <TableCell className="text-muted-foreground whitespace-nowrap">
+                                    {formatDate(o.createdAt)}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground hidden max-w-50 whitespace-normal md:table-cell">
+                                    {o.denialComment ?? "-"}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    {canModifyOrder(o.status) ? (
+                                        <div className="flex justify-end gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                nativeButton={false}
+                                                render={<Link href={`/orders/${o.id}/edit`} />}
+                                                aria-label={`Edit order for ${o.itemName}`}
+                                            >
+                                                <Pencil className="size-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon-sm"
+                                                onClick={() => handleDelete(o)}
+                                                disabled={deletingId === o.id}
+                                                aria-label={`Delete order for ${o.itemName}`}
+                                            >
+                                                <Trash2 className="text-destructive size-4" />
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <span className="text-muted-foreground">-</span>
+                                    )}
+                                </TableCell>
                             </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredOrders.map((o) => (
-                                <TableRow key={o.id}>
-                                    <TableCell className="text-foreground font-medium">
-                                        {o.itemName}
-                                    </TableCell>
-                                    <TableCell className="hidden md:table-cell">
-                                        {o.fundType ? (
-                                            <>
-                                                {o.fundType}
-                                                {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
-                                            </>
-                                        ) : (
-                                            <span className="text-muted-foreground italic">
-                                                Not yet assigned
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="hidden text-right whitespace-nowrap md:table-cell">
-                                        {formatPriceCents(totalCostCents(o, pricingSettings))}
-                                    </TableCell>
-                                    <TableCell>
-                                        <OrderStatusBadge status={o.status} />
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground whitespace-nowrap">
-                                        {formatDate(o.createdAt)}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground hidden max-w-50 whitespace-normal md:table-cell">
-                                        {o.denialComment ?? "-"}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        {canModifyOrder(o.status) ? (
-                                            <div className="flex justify-end gap-1">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    nativeButton={false}
-                                                    render={<Link href={`/orders/${o.id}/edit`} />}
-                                                    aria-label={`Edit order for ${o.itemName}`}
-                                                >
-                                                    <Pencil className="size-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    onClick={() => handleDelete(o)}
-                                                    disabled={deletingId === o.id}
-                                                    aria-label={`Delete order for ${o.itemName}`}
-                                                >
-                                                    <Trash2 className="text-destructive size-4" />
-                                                </Button>
-                                            </div>
-                                        ) : (
-                                            <span className="text-muted-foreground">-</span>
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                        ))}
+                    </TableBody>
+                </Table>
             )}
-        </div>
+        </DataTableCard>
     );
 }

@@ -9,16 +9,10 @@ export default async function NetworkPage() {
     if (!user) redirect("/login");
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8">
             <NetworkStatusCard />
 
-            <section className="space-y-4">
-                <div>
-                    <h2>Devices</h2>
-                    <p className="text-muted-foreground text-sm">Manage Tailscale devices.</p>
-                </div>
-                <AdminNetworkManager />
-            </section>
+            <AdminNetworkManager />
         </div>
     );
 }

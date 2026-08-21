@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 
+import { DataTableCard, DataTableCardToolbar } from "@/components/ui/data-table-card";
 import {
     Select,
     SelectContent,
@@ -144,9 +145,9 @@ export function TeamOrderTable({
     };
 
     return (
-        <div className="space-y-4">
+        <DataTableCard>
             {showFilters ? (
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <DataTableCardToolbar>
                     <Select
                         items={statusFilterItems}
                         value={statusFilter}
@@ -197,66 +198,60 @@ export function TeamOrderTable({
                             <SelectItem value="total-asc">Lowest total</SelectItem>
                         </SelectContent>
                     </Select>
-                </div>
+                </DataTableCardToolbar>
             ) : null}
 
             {filteredOrders.length === 0 ? (
-                <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
+                <div className="text-muted-foreground p-10 text-center">
                     No orders match the current filters.
                 </div>
             ) : (
-                <div className="border-border rounded-lg border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Submitted by</TableHead>
-                                <TableHead>Item</TableHead>
-                                <TableHead className="hidden md:table-cell">
-                                    Fund / bucket
-                                </TableHead>
-                                <TableHead className="hidden text-right md:table-cell">
-                                    Total
-                                </TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="hidden md:table-cell">Submitted</TableHead>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Submitted by</TableHead>
+                            <TableHead>Item</TableHead>
+                            <TableHead className="hidden md:table-cell">Fund / bucket</TableHead>
+                            <TableHead className="hidden text-right md:table-cell">Total</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead className="hidden md:table-cell">Submitted</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {filteredOrders.map((o) => (
+                            <TableRow key={o.id}>
+                                <TableCell className="text-muted-foreground">
+                                    {requesterLabel(o)}
+                                </TableCell>
+                                <TableCell className="text-foreground font-medium">
+                                    {o.itemName}
+                                </TableCell>
+                                <TableCell className="hidden md:table-cell">
+                                    {o.fundType ? (
+                                        <>
+                                            {o.fundType}
+                                            {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
+                                        </>
+                                    ) : (
+                                        <span className="text-muted-foreground italic">
+                                            Not yet assigned
+                                        </span>
+                                    )}
+                                </TableCell>
+                                <TableCell className="hidden text-right whitespace-nowrap md:table-cell">
+                                    {formatPriceCents(totalCostCents(o, pricingSettings))}
+                                </TableCell>
+                                <TableCell>
+                                    <OrderStatusBadge status={o.status} />
+                                </TableCell>
+                                <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
+                                    {formatDate(o.createdAt)}
+                                </TableCell>
                             </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredOrders.map((o) => (
-                                <TableRow key={o.id}>
-                                    <TableCell className="text-muted-foreground">
-                                        {requesterLabel(o)}
-                                    </TableCell>
-                                    <TableCell className="text-foreground font-medium">
-                                        {o.itemName}
-                                    </TableCell>
-                                    <TableCell className="hidden md:table-cell">
-                                        {o.fundType ? (
-                                            <>
-                                                {o.fundType}
-                                                {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
-                                            </>
-                                        ) : (
-                                            <span className="text-muted-foreground italic">
-                                                Not yet assigned
-                                            </span>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="hidden text-right whitespace-nowrap md:table-cell">
-                                        {formatPriceCents(totalCostCents(o, pricingSettings))}
-                                    </TableCell>
-                                    <TableCell>
-                                        <OrderStatusBadge status={o.status} />
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
-                                        {formatDate(o.createdAt)}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                        ))}
+                    </TableBody>
+                </Table>
             )}
-        </div>
+        </DataTableCard>
     );
 }

@@ -244,7 +244,7 @@ To update the Discord user IDs that get pinged on failure, edit `PING_IDS` in `h
 
 ## Staging
 
-`pnpm staging` rsyncs your local working tree (including uncommitted changes) to `/home/trickfire/dashboard-staging` on the server, builds it there, and serves it over HTTPS via [Tailscale Serve](https://tailscale.com/kb/1242/tailscale-serve) on port 3001 - useful for trying out changes against the real production `.env.production` and a separate `db/staging.db` before merging to `main`.
+`pnpm staging` rsyncs your local working tree (including uncommitted changes) to `/home/trickfire/dashboard-staging` on the server, builds it there, and serves it over HTTPS via [Tailscale Serve](https://tailscale.com/kb/1242/tailscale-serve) on port 3001 - useful for trying out changes against real production data before merging to `main`.
 
 ```bash title="Terminal (local machine)"
 pnpm staging
@@ -252,10 +252,31 @@ pnpm staging
 
 Browse to the URL printed in the terminal (your machine's Tailscale HTTPS hostname) once the build finishes. Press <kbd>Ctrl+C</kbd> to stop - this also tears down the Tailscale Serve config.
 
+Every run copies `/home/trickfire/db/dashboard.db` into a separate `db/staging.db`, migrates it, and wipes the `session` table - so staging always reflects current prod data, but no live prod session cookie works against it and nothing you do in staging writes back to prod.
+
 <Callout type="info" title="Note">
-    The staging database is seeded on first run only, with `admin@admin.local` / `trickfire` as the
-    login. It's a separate SQLite file from both the dev and production databases, so nothing you do
-    in staging touches real data.
+    Login with any real account from prod - since sessions are wiped on every run, everyone has to
+    log in fresh.
+</Callout>
+
+### `.env.staging`
+
+Staging uses its own `/home/trickfire/dashboard/.env.staging`, not `.env.production` - this keeps
+it from touching live external services. Create it once, manually, based on `.env.production`:
+
+- `BETTER_AUTH_SECRET` - generate a **new** value (`openssl rand -hex 32`), distinct from prod's
+- `VAULT_ENCRYPTION_KEY` - copy prod's value **verbatim**. The copied database includes the
+  vault table, which is encrypted with this key - a different key makes every entry fail to
+  decrypt
+- `RESEND_API_KEY`, `TAILSCALE_API_KEY`, `GITHUB_TOKEN`, `ONSHAPE_ACCESS_KEY`,
+  `ONSHAPE_SECRET_KEY`, `SENTRY_AUTH_TOKEN`, `NEXT_PUBLIC_SENTRY_DSN` - leave **blank**. Every
+  integration checks `Boolean(process.env.X)` before doing anything, so an unset key makes it
+  report "not configured" instead of erroring - and it means staging never sends real email,
+  calls the real Tailscale/GitHub/OnShape APIs, or reports errors into prod's Sentry project
+- Everything else - copy as-is
+
+<Callout type="warning" title="Important">
+    Keep `.env.staging` off git, same as `.env.production`.
 </Callout>
 
 ## Updating an Existing Deployment

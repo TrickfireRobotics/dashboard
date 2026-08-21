@@ -48,12 +48,12 @@ export function Pl3xmapEmbed() {
 
             <CardContent className={cn(available ? "p-0" : undefined)}>
                 {available === null ? (
-                    <Skeleton className="h-[520px] rounded-none rounded-b-xl" />
+                    <Skeleton className="aspect-square w-full rounded-none rounded-b-xl" />
                 ) : available ? (
                     <iframe
                         src="/pl3xmap"
                         title="Pl3xMap World Map"
-                        className="h-[520px] w-full rounded-b-xl border-0"
+                        className="aspect-square w-full rounded-b-xl border-0"
                         allowFullScreen
                     />
                 ) : (

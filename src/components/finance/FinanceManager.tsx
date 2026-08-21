@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { DataTableCard, DataTableCardHeader } from "@/components/ui/data-table-card";
 import {
     Dialog,
     DialogContent,
@@ -251,15 +252,20 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
 
     return (
         <div className="space-y-10">
-            <section className="space-y-4">
-                <div>
-                    <h2 className="text-lg font-semibold">STF school year</h2>
-                    <p className="text-muted-foreground text-sm">
-                        Active school year: {activeQuarter?.name ?? "None"}
-                    </p>
-                </div>
+            <DataTableCard>
+                <DataTableCardHeader
+                    title="STF school year"
+                    description={`Active school year: ${activeQuarter?.name ?? "None"}`}
+                    action={
+                        activeQuarter ? (
+                            <Button variant="destructive" onClick={() => setResetStep(1)}>
+                                Reset school year
+                            </Button>
+                        ) : null
+                    }
+                />
                 {!activeQuarter ? (
-                    <div className="flex flex-wrap items-end gap-3">
+                    <div className="flex flex-wrap items-end gap-3 p-4">
                         <div className="space-y-1">
                             <Label htmlFor="new-quarter">School year</Label>
                             <Input
@@ -273,16 +279,12 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                             Create school year
                         </Button>
                     </div>
-                ) : (
-                    <Button variant="destructive" onClick={() => setResetStep(1)}>
-                        Reset school year
-                    </Button>
-                )}
-            </section>
+                ) : null}
+            </DataTableCard>
 
-            <section className="space-y-4">
-                <h2 className="text-lg font-semibold">STF buckets</h2>
-                <div className="border-border rounded-lg border">
+            <section className="space-y-5">
+                <DataTableCard>
+                    <DataTableCardHeader title="STF buckets" />
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -332,28 +334,30 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                             ))}
                         </TableBody>
                     </Table>
-                </div>
+                </DataTableCard>
                 {activeQuarter ? (
-                    <div className="flex flex-wrap items-end gap-3">
-                        <div className="space-y-1">
-                            <Label htmlFor="bucket-name">New bucket</Label>
-                            <Input
-                                id="bucket-name"
-                                placeholder="Mechanical"
-                                value={newBucketName}
-                                onChange={(e) => setNewBucketName(e.target.value)}
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <Label htmlFor="bucket-balance">Starting balance (USD)</Label>
-                            <Input
-                                id="bucket-balance"
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                value={newBucketBalance}
-                                onChange={(e) => setNewBucketBalance(e.target.value)}
-                            />
+                    <div className="border-border bg-card flex flex-wrap items-end justify-between gap-3 rounded-lg border p-4">
+                        <div className="flex flex-wrap items-end gap-3">
+                            <div className="space-y-1">
+                                <Label htmlFor="bucket-name">New bucket</Label>
+                                <Input
+                                    id="bucket-name"
+                                    placeholder="Mechanical"
+                                    value={newBucketName}
+                                    onChange={(e) => setNewBucketName(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label htmlFor="bucket-balance">Starting balance (USD)</Label>
+                                <Input
+                                    id="bucket-balance"
+                                    type="number"
+                                    min={0}
+                                    step="0.01"
+                                    value={newBucketBalance}
+                                    onChange={(e) => setNewBucketBalance(e.target.value)}
+                                />
+                            </div>
                         </div>
                         <Button onClick={addBucket} disabled={busy === "bucket"}>
                             Add bucket
@@ -362,7 +366,7 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                 ) : null}
             </section>
 
-            <section className="space-y-4">
+            <section className="space-y-5">
                 <div>
                     <h2 className="text-lg font-semibold">Order pricing</h2>
                     <p className="text-muted-foreground text-sm">
@@ -370,28 +374,30 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                         spend tracking.
                     </p>
                 </div>
-                <div className="flex flex-wrap items-end gap-3">
-                    <div className="space-y-1">
-                        <Label htmlFor="tax-percent">Tax (%)</Label>
-                        <Input
-                            id="tax-percent"
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={taxPercent}
-                            onChange={(e) => setTaxPercent(e.target.value)}
-                        />
-                    </div>
-                    <div className="space-y-1">
-                        <Label htmlFor="shipping-percent">Shipping (%)</Label>
-                        <Input
-                            id="shipping-percent"
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={shippingPercent}
-                            onChange={(e) => setShippingPercent(e.target.value)}
-                        />
+                <div className="border-border bg-card flex flex-wrap items-end justify-between gap-3 rounded-lg border p-4">
+                    <div className="flex flex-wrap items-end gap-3">
+                        <div className="space-y-1">
+                            <Label htmlFor="tax-percent">Tax (%)</Label>
+                            <Input
+                                id="tax-percent"
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={taxPercent}
+                                onChange={(e) => setTaxPercent(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <Label htmlFor="shipping-percent">Shipping (%)</Label>
+                            <Input
+                                id="shipping-percent"
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={shippingPercent}
+                                onChange={(e) => setShippingPercent(e.target.value)}
+                            />
+                        </div>
                     </div>
                     <Button onClick={saveOrderPricing} disabled={busy === "pricing"}>
                         Save pricing
@@ -399,37 +405,48 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                 </div>
             </section>
 
-            <section className="space-y-4">
-                <h2 className="text-lg font-semibold">Gift fund</h2>
-                <p className="text-foreground text-2xl font-semibold">
-                    {formatPriceCents(data.giftBalanceCents)}
-                </p>
-                <div className="flex flex-wrap items-end gap-3">
-                    <div className="space-y-1">
-                        <Label htmlFor="gift-value">Set value (USD)</Label>
-                        <Input
-                            id="gift-value"
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={giftValue}
-                            onChange={(e) => setGiftValue(e.target.value)}
-                        />
+            <section className="space-y-5">
+                <DataTableCard>
+                    <DataTableCardHeader
+                        title="Gift fund"
+                        description="Current balance"
+                        action={
+                            <span className="text-foreground text-2xl font-semibold">
+                                {formatPriceCents(data.giftBalanceCents)}
+                            </span>
+                        }
+                    />
+                    <div className="flex flex-wrap items-end justify-between gap-3 p-4">
+                        <div className="flex flex-wrap items-end gap-3">
+                            <div className="space-y-1">
+                                <Label htmlFor="gift-value">Set value (USD)</Label>
+                                <Input
+                                    id="gift-value"
+                                    type="number"
+                                    min={0}
+                                    step="0.01"
+                                    value={giftValue}
+                                    onChange={(e) => setGiftValue(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <Label htmlFor="gift-note">Note (optional)</Label>
+                                <Input
+                                    id="gift-note"
+                                    placeholder="New Gift deposit"
+                                    value={giftNote}
+                                    onChange={(e) => setGiftNote(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                        <Button onClick={adjustGift} disabled={busy === "gift"}>
+                            Update gift fund
+                        </Button>
                     </div>
-                    <div className="space-y-1">
-                        <Label htmlFor="gift-note">Note (optional)</Label>
-                        <Input
-                            id="gift-note"
-                            placeholder="New Gift deposit"
-                            value={giftNote}
-                            onChange={(e) => setGiftNote(e.target.value)}
-                        />
-                    </div>
-                    <Button onClick={adjustGift} disabled={busy === "gift"}>
-                        Update gift fund
-                    </Button>
-                </div>
-                <div className="border-border rounded-lg border">
+                </DataTableCard>
+
+                <DataTableCard>
+                    <DataTableCardHeader title="Gift fund history" />
                     <Table>
                         <TableHeader>
                             <TableRow>
@@ -458,11 +475,11 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                             ))}
                         </TableBody>
                     </Table>
-                </div>
+                </DataTableCard>
             </section>
 
             <Dialog open={resetStep > 0} onOpenChange={(open) => !open && setResetStep(0)}>
-                <DialogContent>
+                <DialogContent overlayClassName="bg-destructive/20">
                     {resetStep === 1 ? (
                         <>
                             <DialogHeader>

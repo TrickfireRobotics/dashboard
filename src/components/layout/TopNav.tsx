@@ -9,10 +9,6 @@ type RouteMeta = { label: string; description?: string };
 const routeMeta: Record<string, RouteMeta> = {
     "/dashboard": { label: "Dashboard", description: "Your TrickFire club dashboard" },
     "/orders": { label: "Orders", description: "Track orders and manage the team queue" },
-    "/orders/new": {
-        label: "New Order",
-        description: "Submit a purchase request for officer approval",
-    },
     "/api-keys": { label: "API Keys", description: "Shared credentials vault" },
     "/minecraft": { label: "Minecraft", description: "Server status and whitelist" },
     "/network": { label: "Network", description: "TrickFire private network" },
@@ -39,15 +35,18 @@ export function TopNav({ name, email }: { name: string; email: string }) {
     const meta = getRouteMeta(pathname);
 
     return (
-        <header className="border-border flex h-16 items-center gap-3 border-b px-6">
+        <header className="border-border flex h-16 items-center gap-4 border-b px-6">
             <MobileNav name={name} email={email} />
             {meta && (
-                <div className="flex min-w-0 items-baseline gap-3">
+                <div className="flex min-w-0 items-center gap-4">
                     <h1 className="text-foreground shrink-0 text-lg font-semibold">{meta.label}</h1>
                     {meta.description && (
-                        <span className="text-muted-foreground hidden truncate text-sm sm:inline">
-                            {meta.description}
-                        </span>
+                        <>
+                            <span className="bg-border hidden h-5 w-px shrink-0 sm:inline-block" />
+                            <span className="text-muted-foreground hidden truncate text-sm sm:inline">
+                                {meta.description}
+                            </span>
+                        </>
                     )}
                 </div>
             )}

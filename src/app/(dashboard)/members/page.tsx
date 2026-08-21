@@ -7,7 +7,7 @@ import { UserTable, type AdminUserRow } from "@/components/admin/UserTable";
 import { AdminGithubManager } from "@/components/github/AdminGithubManager";
 import { AdminOnshapeManager } from "@/components/onshape/AdminOnshapeManager";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsIndicator, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { db } from "@/lib/db";
 import { user } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
@@ -15,7 +15,7 @@ import { getOrg, isGithubConfigured } from "@/lib/integrations/github";
 import { getOnshapeCompany, isOnshapeConfigured } from "@/lib/integrations/onshape";
 
 const tabTriggerClass =
-    "gap-2 rounded-lg px-5 py-2.5 text-sm font-medium data-active:bg-primary data-active:text-primary-foreground data-active:shadow-none dark:data-active:border-transparent dark:data-active:bg-primary dark:data-active:text-primary-foreground";
+    "flex-1 gap-2 rounded-lg px-6 py-3.5 text-sm font-semibold shadow-none transition-colors duration-200 data-active:border-transparent data-active:bg-transparent data-active:text-primary-foreground dark:data-active:border-transparent dark:data-active:bg-transparent dark:data-active:text-primary-foreground sm:flex-none sm:px-10";
 
 export default async function MembersPage() {
     const current = await getSessionUser();
@@ -65,7 +65,8 @@ export default async function MembersPage() {
     return (
         <div className="space-y-6">
             <Tabs defaultValue="users">
-                <TabsList className="bg-muted/40 h-auto w-full justify-start gap-1 rounded-xl p-1.5 sm:w-fit">
+                <TabsList className="bg-muted/50 border-border/60 dark:bg-muted/20 mx-auto h-auto w-full max-w-xl justify-center gap-1.5 rounded-xl border p-2 shadow-sm sm:w-fit">
+                    <TabsIndicator className="bg-primary shadow-primary/25 rounded-lg shadow-md" />
                     <TabsTrigger value="users" className={tabTriggerClass}>
                         <Users className="size-4" />
                         Users
@@ -83,13 +84,7 @@ export default async function MembersPage() {
                 <TabsContent value="users" className="space-y-8 pt-6">
                     <PendingApprovals users={pendingUsers} />
 
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                            <h2>Members</h2>
-                            <span className="text-muted-foreground text-sm">{members.length}</span>
-                        </div>
-                        <UserTable users={members} currentUserId={current.id} />
-                    </div>
+                    <UserTable users={members} currentUserId={current.id} />
                 </TabsContent>
 
                 <TabsContent value="onshape" className="pt-6">

@@ -63,6 +63,49 @@ const emptyItem: ItemValues = {
     notes: "",
 };
 
+// Keeps an in-progress "new order" draft around in sessionStorage so closing
+// the dialog (Escape, backdrop click, Cancel) without submitting doesn't
+// lose what was typed. Only applies to new orders, never to edits.
+const DRAFT_STORAGE_KEY = "trickfire-order-draft";
+
+function loadDraftItems(): ItemValues[] | null {
+    if (typeof window === "undefined") return null;
+    try {
+        const raw = sessionStorage.getItem(DRAFT_STORAGE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as ItemValues[];
+        return Array.isArray(parsed) && parsed.length > 0 ? parsed : null;
+    } catch {
+        return null;
+    }
+}
+
+function saveDraftItems(items: ItemValues[]) {
+    if (typeof window === "undefined") return;
+    try {
+        sessionStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(items));
+    } catch {
+        // storage unavailable or over quota; not worth surfacing to the user
+    }
+}
+
+function clearDraftItems() {
+    if (typeof window === "undefined") return;
+    sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+}
+
+function hasDraftContent(items: ItemValues[]): boolean {
+    return items.some(
+        (item) =>
+            item?.vendor ||
+            item?.link ||
+            item?.itemName ||
+            item?.partNumber ||
+            item?.unitCost ||
+            item?.notes
+    );
+}
+
 // One shared track definition keeps the header labels aligned with every row.
 // Every flexible track uses a 0 minimum so the row always fits the viewport
 // instead of forcing a horizontal scrollbar; only the fixed tracks hold width.
@@ -117,7 +160,13 @@ function fillVendorFromLink(
     }
 }
 
-export function OrderForm({ initialOrder }: { initialOrder?: OrderFormInitial }) {
+export function OrderForm({
+    initialOrder,
+    onSuccess,
+}: {
+    initialOrder?: OrderFormInitial;
+    onSuccess?: () => void;
+}) {
     const router = useRouter();
     const [submitting, setSubmitting] = useState(false);
     const [pricing, setPricing] = useState<OrderPricing | null>(null);
@@ -127,7 +176,9 @@ export function OrderForm({ initialOrder }: { initialOrder?: OrderFormInitial })
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
         defaultValues: {
-            items: [initialOrder ? toItemValues(initialOrder) : { ...emptyItem }],
+            items: isEditing
+                ? [toItemValues(initialOrder)]
+                : (loadDraftItems() ?? [{ ...emptyItem }]),
         },
     });
 
@@ -142,6 +193,15 @@ export function OrderForm({ initialOrder }: { initialOrder?: OrderFormInitial })
             )
             .catch(() => setPricing(null));
     }, []);
+
+    useEffect(() => {
+        if (isEditing || !items) return;
+        if (hasDraftContent(items)) {
+            saveDraftItems(items);
+        } else {
+            clearDraftItems();
+        }
+    }, [isEditing, items]);
 
     const estimatedTotalCents = useMemo(() => {
         if (!pricing || !items) return null;
@@ -217,8 +277,13 @@ export function OrderForm({ initialOrder }: { initialOrder?: OrderFormInitial })
                         ? "Order submitted for review"
                         : `${count} orders submitted for review`
                 );
+                clearDraftItems();
             }
-            router.push("/orders");
+            if (onSuccess) {
+                onSuccess();
+            } else {
+                router.push("/orders");
+            }
             router.refresh();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Something went wrong");
@@ -319,7 +384,7 @@ export function OrderForm({ initialOrder }: { initialOrder?: OrderFormInitial })
                     <Button
                         type="button"
                         variant="outline"
-                        onClick={() => router.push("/orders")}
+                        onClick={() => (onSuccess ? onSuccess() : router.push("/orders"))}
                         disabled={submitting}
                     >
                         Cancel

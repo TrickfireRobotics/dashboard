@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataTableCard, DataTableCardHeader } from "@/components/ui/data-table-card";
 import {
     Table,
     TableBody,
@@ -56,7 +57,8 @@ export function UserTable({
     }
 
     return (
-        <div className="border-border rounded-lg border">
+        <DataTableCard>
+            <DataTableCardHeader title="Members" description={`${users.length} approved members`} />
             <Table>
                 <TableHeader>
                     <TableRow>
@@ -108,6 +110,6 @@ export function UserTable({
                     })}
                 </TableBody>
             </Table>
-        </div>
+        </DataTableCard>
     );
 }

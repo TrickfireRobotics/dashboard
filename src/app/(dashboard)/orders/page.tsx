@@ -1,12 +1,11 @@
 import { asc, desc, eq, sql } from "drizzle-orm";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminOrderQueue, type AdminOrderRow } from "@/components/orders/AdminOrderQueue";
 import { OrderBalancesSummary } from "@/components/orders/OrderBalancesSummary";
+import { OrderFormDialog } from "@/components/orders/OrderFormDialog";
 import { OrderTable, type MemberOrderRow } from "@/components/orders/OrderTable";
 import { TeamOrderTable, type TeamOrderRow } from "@/components/orders/TeamOrderTable";
-import { Button } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { order, stfBucket, user as userTable } from "@/lib/db/schema";
 import {
@@ -100,16 +99,17 @@ export default async function OrdersPage() {
     const orderedParts = teamOrders.filter((o) => o.status === "ordered");
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-end">
-                <Button nativeButton={false} render={<Link href="/orders/new" />}>
-                    Submit order
-                </Button>
+        <div className="space-y-8">
+            <div className="flex items-center justify-between gap-4">
+                <p className="text-muted-foreground text-sm">
+                    Submit a new purchase request or review orders below.
+                </p>
+                <OrderFormDialog />
             </div>
 
             <OrderBalancesSummary giftBalanceCents={giftBalanceCents} stfBuckets={stfBuckets} />
 
-            <section className="space-y-4">
+            <section className="space-y-5">
                 <div>
                     <h2 className="text-lg font-semibold">Your orders</h2>
                     <p className="text-muted-foreground text-sm">
@@ -119,7 +119,7 @@ export default async function OrdersPage() {
                 <OrderTable orders={myOrders} orderPricing={orderPricing} />
             </section>
 
-            <section className="space-y-4">
+            <section className="space-y-5">
                 <div>
                     <h2 className="text-lg font-semibold">Team orders</h2>
                     <p className="text-muted-foreground text-sm">
@@ -130,7 +130,7 @@ export default async function OrdersPage() {
                 <TeamOrderTable orders={teamOrders} orderPricing={orderPricing} />
             </section>
 
-            <section className="space-y-4">
+            <section className="space-y-5">
                 <div>
                     <h2 className="text-lg font-semibold">Ordered parts</h2>
                     <p className="text-muted-foreground text-sm">
@@ -145,7 +145,12 @@ export default async function OrdersPage() {
                 />
             </section>
 
-            <section className="space-y-4">
+            <div
+                aria-hidden
+                className="via-primary/50 h-0.5 w-full rounded-full bg-gradient-to-r from-transparent to-transparent"
+            />
+
+            <section className="space-y-5">
                 <div>
                     <h2 className="text-lg font-semibold">Order queue</h2>
                     <p className="text-muted-foreground text-sm">
