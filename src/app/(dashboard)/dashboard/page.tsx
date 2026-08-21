@@ -44,14 +44,14 @@ export default async function DashboardHome() {
             .get()?.value ?? 0;
 
     const adminStats = [
-        { label: "Pending approvals", value: pendingApprovals, href: "/admin/users" },
-        { label: "Pending orders", value: pendingOrders, href: "/admin/orders" },
-        { label: "Active members", value: activeMembers, href: "/admin/users" },
-        { label: "Open whitelist requests", value: openWhitelist, href: "/admin/minecraft" },
+        { label: "Pending approvals", value: pendingApprovals, href: "/members" },
+        { label: "Pending orders", value: pendingOrders, href: "/orders" },
+        { label: "Active members", value: activeMembers, href: "/members" },
+        { label: "Open whitelist requests", value: openWhitelist, href: "/minecraft" },
         {
             label: "Network join requests",
             value: pendingNetworkRequests,
-            href: "/admin/network",
+            href: "/network",
         },
     ];
 

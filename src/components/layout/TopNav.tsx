@@ -10,15 +10,8 @@ const routeLabels: Record<string, string> = {
     "/api-keys": "API Keys",
     "/minecraft": "Minecraft",
     "/network": "Network",
-    "/admin": "Admin",
-    "/admin/orders": "Order Queue",
-    "/admin/finance": "Finance",
-    "/admin/users": "Users",
-    "/admin/minecraft": "Whitelist",
-    "/admin/server": "Server",
-    "/admin/github": "Github",
-    "/admin/network": "Network",
-    "/admin/onshape": "Onshape",
+    "/members": "Members",
+    "/finance": "Finance",
 };
 
 function getPageTitle(pathname: string): string {

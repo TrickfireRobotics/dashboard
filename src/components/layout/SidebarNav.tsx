@@ -1,16 +1,12 @@
 "use client";
 
 import {
-    Boxes,
-    ClipboardList,
     DollarSign,
     Gamepad2,
-    GitBranch,
     KeyRound,
     LayoutDashboard,
     Network,
     Package,
-    Server,
     Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -24,30 +20,17 @@ type NavItem = {
     icon: React.ComponentType<{ className?: string }>;
 };
 
-export const baseNav: NavItem[] = [
+export const mainNav: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-];
-
-export const featureNav: NavItem[] = [
     { href: "/orders", label: "Orders", icon: Package },
     { href: "/minecraft", label: "Minecraft", icon: Gamepad2 },
     { href: "/network", label: "Network", icon: Network },
+    { href: "/members", label: "Members", icon: Users },
+    { href: "/finance", label: "Finance", icon: DollarSign },
+    { href: "/api-keys", label: "API Keys", icon: KeyRound },
 ];
 
-export const vaultNav: NavItem = { href: "/api-keys", label: "API Keys", icon: KeyRound };
-
-export const adminNav: NavItem[] = [
-    { href: "/admin/orders", label: "Order Queue", icon: ClipboardList },
-    { href: "/admin/finance", label: "Finance", icon: DollarSign },
-    { href: "/admin/users", label: "Users", icon: Users },
-    { href: "/admin/minecraft", label: "Whitelist", icon: Server },
-    { href: "/admin/server", label: "Server", icon: Gamepad2 },
-    { href: "/admin/github", label: "GitHub", icon: GitBranch },
-    { href: "/admin/network", label: "Network", icon: Network },
-    { href: "/admin/onshape", label: "Onshape", icon: Boxes },
-];
-
-const EXACT = new Set(["/dashboard", "/admin"]);
+const EXACT = new Set(["/dashboard"]);
 
 export function NavLink({
     item,
@@ -84,30 +67,7 @@ export function NavContent({ onLinkClick }: { onLinkClick?: () => void }) {
 
     return (
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3">
-            {baseNav.map((item) => (
-                <NavLink
-                    key={item.href}
-                    item={item}
-                    active={isActive(item.href)}
-                    onClick={onLinkClick}
-                />
-            ))}
-
-            {featureNav.map((item) => (
-                <NavLink
-                    key={item.href}
-                    item={item}
-                    active={isActive(item.href)}
-                    onClick={onLinkClick}
-                />
-            ))}
-
-            <NavLink item={vaultNav} active={isActive(vaultNav.href)} onClick={onLinkClick} />
-
-            <p className="text-muted-foreground mt-5 mb-1 px-3 text-xs tracking-wider uppercase">
-                Admin
-            </p>
-            {adminNav.map((item) => (
+            {mainNav.map((item) => (
                 <NavLink
                     key={item.href}
                     item={item}
