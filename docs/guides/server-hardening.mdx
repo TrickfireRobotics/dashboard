@@ -3,8 +3,6 @@ title: Server Hardening
 description: SSH key-only auth, firewall, fail2ban, and automatic security updates on the production server.
 ---
 
-# Server Hardening
-
 Documents what was hardened on the production server (`tfserver`) and how to reproduce it from scratch on a fresh Debian install.
 
 ## Before vs. After
@@ -19,8 +17,6 @@ Documents what was hardened on the production server (`tfserver`) and how to rep
 | X11 forwarding         | Enabled                                                           | Disabled                                                 |
 | Security updates       | Manual only                                                       | Unattended upgrades enabled                              |
 | Disk encryption        | None                                                              | None (planned - see [Remaining Risks](#remaining-risks)) |
-
----
 
 ## SSH: Key-Only Authentication
 
@@ -86,8 +82,6 @@ sudo chmod 600 /home/<username>/.ssh/authorized_keys
 sudo chown -R <username>:<username> /home/<username>/.ssh
 ```
 
----
-
 ## Firewall (ufw)
 
 SSH is allowed only on the `tailscale0` interface. The WiFi interface (`wlp2s0`) will refuse connections on port 22.
@@ -108,8 +102,10 @@ sudo ufw enable
 sudo ufw status verbose
 ```
 
-> [!IMPORTANT]
-> Enable ufw **after** confirming Tailscale is running and your SSH key works. If you lock yourself out, you will need physical console access to recover.
+<Callout type="warning" title="Important">
+    Enable ufw **after** confirming Tailscale is running and your SSH key works. If you lock
+    yourself out, you will need physical console access to recover.
+</Callout>
 
 **Verify** from outside Tailscale (e.g. the lab WiFi directly):
 
@@ -122,8 +118,6 @@ From inside Tailscale:
 ```bash
 ssh trickfire@<server-tailscale-ip>   # should connect (key required)
 ```
-
----
 
 ## Fail2ban
 
@@ -151,8 +145,6 @@ Check status:
 sudo fail2ban-client status sshd
 ```
 
----
-
 ## Automatic Security Updates
 
 ```bash
@@ -170,8 +162,6 @@ Verify:
 ```bash
 sudo unattended-upgrades --dry-run
 ```
-
----
 
 ## Tailscale ACL (optional)
 
@@ -192,8 +182,6 @@ Example ACL to allow SSH to the server from one machine only:
 ```
 
 Get IPs with `tailscale ip -4` on each machine.
-
----
 
 ## Remaining Risks
 

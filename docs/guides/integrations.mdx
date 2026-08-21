@@ -3,8 +3,6 @@ title: Server Integrations Setup
 description: Installing and configuring Tailscale, the Minecraft server, and Pl3xMap on the production server.
 ---
 
-# Integrations
-
 Optional services that extend dashboard functionality. Configure only what you need - the app degrades gracefully when any of these are absent.
 
 ## Tailscale (Network Tab)
@@ -37,11 +35,15 @@ Restart the dashboard to pick up the new values:
 sudo systemctl restart trickfire-dashboard
 ```
 
-> [!NOTE]
-> `TAILSCALE_TAILNET=-` is a special value meaning "the tailnet that owns this API key". You can also use your tailnet name explicitly (e.g. `trickfirerobotics.com`).
+<Callout type="info" title="Note">
+    `TAILSCALE_TAILNET=-` is a special value meaning "the tailnet that owns this API key". You can
+    also use your tailnet name explicitly (e.g. `trickfirerobotics.com`).
+</Callout>
 
-> [!CAUTION]
-> The key is shown once. If it leaks, rotate it immediately in the Tailscale admin console and update `.env.production`.
+<Callout type="error" title="Danger">
+    The key is shown once. If it leaks, rotate it immediately in the Tailscale admin console and
+    update `.env.production`.
+</Callout>
 
 ### Connect other devices
 
@@ -64,20 +66,21 @@ Log in with the club Tailscale account. The device will appear in the Tailscale 
 | Rotate API key  | Tailscale admin console → Settings → Keys       |
 | View logs       | `journalctl -u tailscaled -f`                   |
 
----
+## OnShape Simulation Export Proxy
 
-# OnShape API requests proxy
+`/api/sim/export` lets external tooling - notably our [simulation software](https://github.com/TrickFireRobotics/gazebo-simulations) - pull a OnShape model through the dashboard's own OnShape credentials and get back a generated simulation asset archive, without every script needing its own OnShape API keys. Callers authenticate with a per-user API key generated from the dashboard's Settings page (see [Development Setup](/guides/development/#api-key-vault) for the vault, or [Security](/tech-stack/security/#service-api-keys-srclibsecurityapi-keyts) for how these keys are hashed), sent as an `X-API-Key` header. See [External Integrations](/tech-stack/external-integrations/#onshape-simulation-export-proxy) for how the export/cache/streaming code itself works.
 
-There is a proxy for doing requests to onshape for every user. They authenticate using a generated token from their profile in the dashboard. One of the projects using this is our [simulation software](https://github.com/TrickFireRobotics/gazebo-simulations) for generating simulation assets from OnShape models. There needs to be a permission fixed for a directory serving as a cache for pulled assets. The Next.js server runs as the `trickfire` user but `/var/cache/` is root-owned, so the process can't create subdirectories itself. Create the directory and hand ownership to `trickfire` before starting the server:
+Generated archives are cached on disk under `SIM_CACHE_DIR` (default `/var/cache/trickfire-sim`). The Next.js server runs as the `trickfire` user, but `/var/cache/` itself is root-owned, so the process can't create its own subdirectory there. Create it and hand ownership to `trickfire` before starting the server:
 
 ```bash
 sudo mkdir -p /var/cache/trickfire-sim
 sudo chown trickfire: /var/cache/trickfire-sim
 ```
 
-Without this, API requests will get a 500 `EACCES: permission denied, mkdir '/var/cache/trickfire-sim'` from the export endpoint.
-
----
+<Callout type="warning" title="Warning">
+    Without this, export requests fail with a 500 `EACCES: permission denied, mkdir
+    '/var/cache/trickfire-sim'`.
+</Callout>
 
 ## Minecraft Server
 
@@ -130,8 +133,10 @@ rcon.port=25575
 rcon.password=<openssl rand -hex 16>
 ```
 
-> [!NOTE]
-> The Minecraft server must be restarted after changing `server.properties` for RCON to take effect.
+<Callout type="info" title="Note">
+    The Minecraft server must be restarted after changing `server.properties` for RCON to take
+    effect.
+</Callout>
 
 ### Environment variables
 
@@ -144,8 +149,10 @@ MINECRAFT_SERVER_PATH=/home/trickfire/minecraft
 MINECRAFT_WORLD_PATH=/home/trickfire/minecraft/world
 MINECRAFT_RCON_PORT=25575
 MINECRAFT_RCON_PASSWORD=<same password as server.properties>
-MINECRAFT_BOT_NAMES=BotA,BotB   # append :SkinURL for a custom skin
+MINECRAFT_BOT_SKIN_URL=https://your-skin-host/bot.png
 ```
+
+Bot _names_ aren't configured here - they're detected automatically from a Minecraft scoreboard team named `bots` via RCON (see [External Integrations](/tech-stack/external-integrations/#bot-detection-via-rcon-srclibintegrationsazaleats)). `MINECRAFT_BOT_SKIN_URL` only controls what skin those detected bots render with on the dashboard.
 
 Restart the dashboard to pick up the new values:
 
@@ -155,14 +162,13 @@ sudo systemctl restart trickfire-dashboard
 
 ### Troubleshooting
 
-<details>
-<summary><strong>Minecraft card shows "offline"</strong></summary>
-
-Verify `MINECRAFT_SERVER_HOST` and `MINECRAFT_SERVER_PORT` are correct in `.env.production` and that the dashboard server can reach the Minecraft server on the LAN. The status check fails gracefully to "offline" - it's not a crash.
-
-</details>
-
----
+<Accordions>
+    <Accordion title='Minecraft card shows "offline"'>
+        Verify `MINECRAFT_SERVER_HOST` and `MINECRAFT_SERVER_PORT` are correct in `.env.production`
+        and that the dashboard server can reach the Minecraft server on the LAN. The status check
+        fails gracefully to "offline" - it's not a crash.
+    </Accordion>
+</Accordions>
 
 ## Pl3xMap (World Map)
 
@@ -186,17 +192,21 @@ PL3XMAP_URL=http://<minecraft-server-ip>:8080
 
 Restart: `sudo systemctl restart trickfire-dashboard`
 
-> [!NOTE]
-> Port `8080` must **not** be open to the internet. The dashboard is the only entry point. If Pl3xMap is on a separate server, the dashboard host needs LAN access to port `8080` on that machine.
+<Callout type="warning" title="Warning">
+    Port `8080` must **not** be open to the internet. The dashboard is the only entry point. If
+    Pl3xMap is on a separate server, the dashboard host needs LAN access to port `8080` on that
+    machine.
+</Callout>
 
 ### Troubleshooting
 
-<details>
-<summary><strong>Pl3xMap shows "map unavailable"</strong></summary>
-
-1. Confirm Pl3xMap is running: `curl http://<pl3xmap-host>:8080` should return HTML.
-2. Check `PL3XMAP_URL` in `.env.production` points to the correct host and port, and the dashboard server can reach it on the LAN.
-3. Restart after any env change: `sudo systemctl restart trickfire-dashboard`
-4. If the map loads but tiles are empty, Pl3xMap may still be rendering the world - check its logs on the Minecraft server.
-
-</details>
+<Accordions>
+    <Accordion title='Pl3xMap shows "map unavailable"'>
+        1. Confirm Pl3xMap is running: `curl http://<pl3xmap-host>:8080` should return HTML.
+        2. Check `PL3XMAP_URL` in `.env.production` points to the correct host and port, and the
+           dashboard server can reach it on the LAN.
+        3. Restart after any env change: `sudo systemctl restart trickfire-dashboard`
+        4. If the map loads but tiles are empty, Pl3xMap may still be rendering the world - check
+           its logs on the Minecraft server.
+    </Accordion>
+</Accordions>

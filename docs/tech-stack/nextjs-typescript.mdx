@@ -1,13 +1,11 @@
 ---
 title: Next.js & TypeScript
-description: What Next.js and TypeScript are, and how this project's App Router, routing, and server/client split work.
+description: Simple guide to Typescript with Next & routing using App Router
 ---
 
 ## TypeScript, briefly
 
-TypeScript is JavaScript with an optional type system checked at compile time. It doesn't exist at runtime - `tsc` (or, here, Next.js's built-in compiler) strips the types away and emits plain JavaScript. The types exist purely to catch mistakes before the code runs and to make editor autocomplete/refactoring reliable.
-
-This project runs with `"strict": true` in `tsconfig.json`, which turns on the full set of stricter checks (no implicit `any`, strict null checks, etc.) - if a value can be `null` or `undefined`, the compiler forces you to handle that case rather than trusting you remembered to.
+TypeScript is JavaScript with an optional type system checked at compile time. It doesn't exist at runtime, a compiler strips the types away and emits plain JavaScript. The types exist purely to catch mistakes before the code runs and to make editor autocomplete reliable.
 
 Two settings worth knowing about:
 
@@ -16,7 +14,7 @@ Two settings worth knowing about:
 
 ## What Next.js is
 
-[Next.js](https://nextjs.org/) is a React framework: it takes React (the library for building UI out of components) and adds the parts a real application needs around it - file-based routing, server-side rendering, API endpoints, and a build/bundling pipeline - so you don't have to hand-assemble those from separate tools.
+[Next.js](https://nextjs.org/) is a React framework: it takes [React](LTD) and adds the parts a real application needs around it - file-based routing, server-side rendering, API endpoints, and a build/bundling pipeline - so you don't have to hand-assemble those from separate tools.
 
 This project uses **Next.js 16 (App Router)** - the routing convention based on folders under `src/app`, as opposed to the older `pages/` router.
 
