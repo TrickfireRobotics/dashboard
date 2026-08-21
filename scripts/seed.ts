@@ -107,11 +107,11 @@ async function main() {
     }
 
     db.update(user)
-        .set({ role: "admin", isActive: true, emailVerified: true, approved: true })
+        .set({ isActive: true, emailVerified: true, approved: true })
         .where(eq(user.email, email))
         .run();
 
-    console.log(`Ensured ${email} has role=admin, isActive=true, approved=true.`);
+    console.log(`Ensured ${email} has isActive=true, approved=true.`);
 
     const adminUser = db.select().from(user).where(eq(user.email, email)).get();
     const mechanical = db.select().from(stfBucket).where(eq(stfBucket.name, "Mechanical")).get();

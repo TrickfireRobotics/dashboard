@@ -10,7 +10,6 @@ import { getSessionUser } from "@/lib/auth/session";
 export default async function AdminServerPage() {
     const user = await getSessionUser();
     if (!user) redirect("/login");
-    if (user.role !== "admin") redirect("/dashboard");
 
     const configured = isConfigured();
     const running = isRunning();

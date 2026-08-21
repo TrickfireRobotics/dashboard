@@ -296,17 +296,12 @@ describe("stfBucketInputSchema", () => {
 
 describe("updateUserSchema", () => {
     it("accepts updating a single field", () => {
-        expect(() => updateUserSchema.parse({ role: "admin" })).not.toThrow();
         expect(() => updateUserSchema.parse({ isActive: false })).not.toThrow();
+        expect(() => updateUserSchema.parse({ approved: true })).not.toThrow();
     });
 
     it("rejects an update with no fields set", () => {
         const result = updateUserSchema.safeParse({});
-        expect(result.success).toBe(false);
-    });
-
-    it("rejects invalid role values", () => {
-        const result = updateUserSchema.safeParse({ role: "superuser" });
         expect(result.success).toBe(false);
     });
 });

@@ -24,7 +24,7 @@
         "setup": "pnpm db:migrate && pnpm db:seed",
         "staging": "bash scripts/stage.sh",
         "deploy": "bash scripts/deploy.sh",
-        "auth:generate": "pnpm dlx @better-auth/cli@latest generate --config src/lib/auth.ts --output src/lib/db/auth-schema.ts -y",
+        "auth:generate": "pnpm dlx @better-auth/cli@latest generate --config src/lib/auth/auth.ts --output src/lib/db/auth-schema.ts -y",
         "docs:dev": "npx -y trickfire-docs@latest dev",
         "prepare": "husky"
     },

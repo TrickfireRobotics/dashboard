@@ -10,21 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { signOut } from "@/lib/auth/client";
 import { NavContent } from "./SidebarNav";
-import type { FeatureKey } from "@/lib/features";
 
-export function MobileNav({
-    isAdmin,
-    canAccessVault,
-    name,
-    email,
-    grantedFeatures,
-}: {
-    isAdmin: boolean;
-    canAccessVault: boolean;
-    name: string;
-    email: string;
-    grantedFeatures: FeatureKey[];
-}) {
+export function MobileNav({ name, email }: { name: string; email: string }) {
     const [open, setOpen] = useState(false);
     const router = useRouter();
     const [loading, setLoading] = useState(false);
@@ -78,12 +65,7 @@ export function MobileNav({
                         </div>
                     </SheetHeader>
 
-                    <NavContent
-                        isAdmin={isAdmin}
-                        canAccessVault={canAccessVault}
-                        grantedFeatures={grantedFeatures}
-                        onLinkClick={() => setOpen(false)}
-                    />
+                    <NavContent onLinkClick={() => setOpen(false)} />
 
                     <div className="border-sidebar-border flex items-center gap-3 border-t px-4 py-3">
                         <div className="min-w-0 flex-1">

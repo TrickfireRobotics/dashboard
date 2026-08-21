@@ -27,17 +27,14 @@ export type VaultMember = {
     id: string;
     name: string;
     email: string;
-    isAdmin: boolean;
 };
 
 export function VaultManager({
     entries,
-    isAdmin,
     members,
     grants,
 }: {
     entries: VaultEntryRow[];
-    isAdmin: boolean;
     members: VaultMember[];
     grants: Record<number, string[]>;
 }) {
@@ -77,14 +74,12 @@ export function VaultManager({
 
     return (
         <div className="space-y-4">
-            {isAdmin ? (
-                <div className="flex justify-end">
-                    <Button onClick={openCreate}>
-                        <Plus className="size-4" />
-                        New entry
-                    </Button>
-                </div>
-            ) : null}
+            <div className="flex justify-end">
+                <Button onClick={openCreate}>
+                    <Plus className="size-4" />
+                    New entry
+                </Button>
+            </div>
 
             {entries.length === 0 ? (
                 <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
@@ -100,9 +95,7 @@ export function VaultManager({
                                 <TableHead className="hidden md:table-cell">Username</TableHead>
                                 <TableHead>Secret</TableHead>
                                 <TableHead className="hidden md:table-cell">Added</TableHead>
-                                {isAdmin ? (
-                                    <TableHead className="text-right">Actions</TableHead>
-                                ) : null}
+                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -132,42 +125,40 @@ export function VaultManager({
                                     <TableCell className="text-muted-foreground hidden md:table-cell">
                                         {formatDate(e.createdAt)}
                                     </TableCell>
-                                    {isAdmin ? (
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-1">
-                                                <Button
-                                                    size="icon-sm"
-                                                    variant="ghost"
-                                                    disabled={busy === e.id}
-                                                    onClick={() => setAccessEntry(e)}
-                                                    aria-label="Manage access"
-                                                    title="Manage access"
-                                                >
-                                                    <KeyRound className="size-4" />
-                                                </Button>
-                                                <Button
-                                                    size="icon-sm"
-                                                    variant="ghost"
-                                                    disabled={busy === e.id}
-                                                    onClick={() => openEdit(e)}
-                                                    aria-label="Edit entry"
-                                                    title="Edit"
-                                                >
-                                                    <Pencil className="size-4" />
-                                                </Button>
-                                                <Button
-                                                    size="icon-sm"
-                                                    variant="ghost"
-                                                    disabled={busy === e.id}
-                                                    onClick={() => remove(e)}
-                                                    aria-label="Delete entry"
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 className="text-destructive size-4" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
-                                    ) : null}
+                                    <TableCell className="text-right">
+                                        <div className="flex justify-end gap-1">
+                                            <Button
+                                                size="icon-sm"
+                                                variant="ghost"
+                                                disabled={busy === e.id}
+                                                onClick={() => setAccessEntry(e)}
+                                                aria-label="Manage access"
+                                                title="Manage access"
+                                            >
+                                                <KeyRound className="size-4" />
+                                            </Button>
+                                            <Button
+                                                size="icon-sm"
+                                                variant="ghost"
+                                                disabled={busy === e.id}
+                                                onClick={() => openEdit(e)}
+                                                aria-label="Edit entry"
+                                                title="Edit"
+                                            >
+                                                <Pencil className="size-4" />
+                                            </Button>
+                                            <Button
+                                                size="icon-sm"
+                                                variant="ghost"
+                                                disabled={busy === e.id}
+                                                onClick={() => remove(e)}
+                                                aria-label="Delete entry"
+                                                title="Delete"
+                                            >
+                                                <Trash2 className="text-destructive size-4" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -175,11 +166,9 @@ export function VaultManager({
                 </div>
             )}
 
-            {isAdmin ? (
-                <VaultEntryDialog open={dialogOpen} onOpenChange={setDialogOpen} entry={editing} />
-            ) : null}
+            <VaultEntryDialog open={dialogOpen} onOpenChange={setDialogOpen} entry={editing} />
 
-            {isAdmin && accessEntry ? (
+            {accessEntry ? (
                 <VaultAccessDialog
                     open={accessEntry !== undefined}
                     onOpenChange={(open) => {

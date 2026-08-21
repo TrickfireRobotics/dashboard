@@ -92,6 +92,13 @@
       "when": 1787267817158,
       "tag": "0012_smiling_loa",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1787295619743,
+      "tag": "0013_lowly_dagger",
+      "breakpoints": true
     }
   ]
 }

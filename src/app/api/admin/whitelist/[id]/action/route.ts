@@ -14,9 +14,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (!admin) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (admin.role !== "admin") {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     const id = Number((await params).id);
     if (!Number.isInteger(id)) {

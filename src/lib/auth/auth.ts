@@ -74,22 +74,10 @@ export const auth = betterAuth({
             },
         },
         additionalFields: {
-            role: {
-                type: "string",
-                required: false,
-                defaultValue: "member",
-                input: false,
-            },
             isActive: {
                 type: "boolean",
                 required: false,
                 defaultValue: true,
-                input: false,
-            },
-            canAccessVault: {
-                type: "boolean",
-                required: false,
-                defaultValue: false,
                 input: false,
             },
             approved: {

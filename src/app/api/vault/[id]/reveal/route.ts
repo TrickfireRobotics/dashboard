@@ -7,7 +7,7 @@ import { canReadVaultEntry, getSessionUser } from "@/lib/auth/session";
 import { decryptSecret } from "@/lib/security/vault-crypto";
 
 // Login secrets never ship in the page payload - they are decrypted on demand
-// here, only for users who hold a per-entry grant (or are an admin).
+// here, only for users who hold a per-entry grant.
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const user = await getSessionUser();
     if (!user) {
@@ -44,7 +44,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
             { status: 403 }
         );
     }
-    // Per-entry access: admin or an explicit grant for this login.
+    // Per-entry access: an explicit grant for this login.
     if (!canReadVaultEntry(user, id)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

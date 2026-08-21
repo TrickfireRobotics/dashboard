@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -62,7 +61,6 @@ export function VaultAccessDialog({
                     <DialogTitle>Manage access</DialogTitle>
                     <DialogDescription>
                         Choose who can access <span className="font-medium">{entryName}</span>.
-                        Admins always have access.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -75,18 +73,14 @@ export function VaultAccessDialog({
                                 </p>
                                 <p className="text-muted-foreground truncate text-xs">{m.email}</p>
                             </div>
-                            {m.isAdmin ? (
-                                <Badge variant="secondary">Always (admin)</Badge>
-                            ) : (
-                                <Button
-                                    size="sm"
-                                    variant={granted.has(m.id) ? "default" : "outline"}
-                                    disabled={busy === m.id}
-                                    onClick={() => toggle(m, !granted.has(m.id))}
-                                >
-                                    {granted.has(m.id) ? "Granted" : "No access"}
-                                </Button>
-                            )}
+                            <Button
+                                size="sm"
+                                variant={granted.has(m.id) ? "default" : "outline"}
+                                disabled={busy === m.id}
+                                onClick={() => toggle(m, !granted.has(m.id))}
+                            >
+                                {granted.has(m.id) ? "Granted" : "No access"}
+                            </Button>
                         </div>
                     ))}
                 </div>

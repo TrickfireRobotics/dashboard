@@ -107,12 +107,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
         return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    const isAdmin = user.role === "admin";
-    if (isLockedOrderStatus(existing.status)) {
-        if (!isAdmin) {
-            return NextResponse.json({ error: "This order cannot be deleted" }, { status: 403 });
-        }
-    } else if (!memberCanModifyOrder(existing, user.id)) {
+    if (!isLockedOrderStatus(existing.status) && !memberCanModifyOrder(existing, user.id)) {
         return NextResponse.json({ error: "This order cannot be deleted" }, { status: 403 });
     }
 

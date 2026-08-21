@@ -7,7 +7,6 @@ import { getSessionUser } from "@/lib/auth/session";
 export async function GET() {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     try {
         const members = await getOnshapeMembers();
@@ -30,7 +29,6 @@ const addMemberSchema = z.object({
 export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const body = await req.json().catch(() => null);
     const parsed = addMemberSchema.safeParse(body);

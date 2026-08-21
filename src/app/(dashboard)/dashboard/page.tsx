@@ -10,7 +10,7 @@ import { SystemVitals } from "@/components/dashboard/SystemVitals";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/db";
-import { networkJoinRequest, minecraftWhitelist, order, user, userFeature } from "@/lib/db/schema";
+import { networkJoinRequest, minecraftWhitelist, order, user } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
 
 export default async function DashboardHome() {
@@ -18,56 +18,42 @@ export default async function DashboardHome() {
     if (!sessionUser) redirect("/login");
 
     const firstName = sessionUser.name?.split(" ")[0] ?? "there";
-    const isAdmin = sessionUser.role === "admin";
 
-    let pendingOrders = 0;
-    let adminStats: { label: string; value: number; href: string }[] = [];
+    const pendingOrders =
+        db.select({ value: count() }).from(order).where(eq(order.status, "pending")).get()?.value ??
+        0;
+    const pendingApprovals =
+        db.select({ value: count() }).from(user).where(eq(user.approved, false)).get()?.value ?? 0;
+    const activeMembers =
+        db
+            .select({ value: count() })
+            .from(user)
+            .where(and(eq(user.isActive, true), eq(user.approved, true)))
+            .get()?.value ?? 0;
+    const openWhitelist =
+        db
+            .select({ value: count() })
+            .from(minecraftWhitelist)
+            .where(eq(minecraftWhitelist.status, "pending"))
+            .get()?.value ?? 0;
+    const pendingNetworkRequests =
+        db
+            .select({ value: count() })
+            .from(networkJoinRequest)
+            .where(eq(networkJoinRequest.status, "pending"))
+            .get()?.value ?? 0;
 
-    if (isAdmin) {
-        pendingOrders =
-            db.select({ value: count() }).from(order).where(eq(order.status, "pending")).get()
-                ?.value ?? 0;
-        const pendingApprovals =
-            db.select({ value: count() }).from(user).where(eq(user.approved, false)).get()?.value ??
-            0;
-        const activeMembers =
-            db
-                .select({ value: count() })
-                .from(user)
-                .where(and(eq(user.isActive, true), eq(user.approved, true)))
-                .get()?.value ?? 0;
-        const pendingFeatureRequests =
-            db
-                .select({ value: count() })
-                .from(userFeature)
-                .where(eq(userFeature.status, "pending"))
-                .get()?.value ?? 0;
-        const openWhitelist =
-            db
-                .select({ value: count() })
-                .from(minecraftWhitelist)
-                .where(eq(minecraftWhitelist.status, "pending"))
-                .get()?.value ?? 0;
-        const pendingNetworkRequests =
-            db
-                .select({ value: count() })
-                .from(networkJoinRequest)
-                .where(eq(networkJoinRequest.status, "pending"))
-                .get()?.value ?? 0;
-
-        adminStats = [
-            { label: "Pending approvals", value: pendingApprovals, href: "/admin/users" },
-            { label: "Pending orders", value: pendingOrders, href: "/admin/orders" },
-            { label: "Feature requests", value: pendingFeatureRequests, href: "/admin/users" },
-            { label: "Active members", value: activeMembers, href: "/admin/users" },
-            { label: "Open whitelist requests", value: openWhitelist, href: "/admin/minecraft" },
-            {
-                label: "Network join requests",
-                value: pendingNetworkRequests,
-                href: "/admin/network",
-            },
-        ];
-    }
+    const adminStats = [
+        { label: "Pending approvals", value: pendingApprovals, href: "/admin/users" },
+        { label: "Pending orders", value: pendingOrders, href: "/admin/orders" },
+        { label: "Active members", value: activeMembers, href: "/admin/users" },
+        { label: "Open whitelist requests", value: openWhitelist, href: "/admin/minecraft" },
+        {
+            label: "Network join requests",
+            value: pendingNetworkRequests,
+            href: "/admin/network",
+        },
+    ];
 
     const urgentItems = adminStats.filter((s) => s.value > 0 && s.label !== "Active members");
 
@@ -83,7 +69,7 @@ export default async function DashboardHome() {
             </div>
 
             {/* Admin alert strip */}
-            {isAdmin && urgentItems.length > 0 && (
+            {urgentItems.length > 0 && (
                 <div className="border-secondary/30 bg-secondary/5 flex flex-wrap items-center gap-3 rounded-xl border px-4 py-3">
                     <AlertTriangle className="text-secondary size-4 shrink-0" />
                     {urgentItems.map((item) => (
@@ -132,7 +118,7 @@ export default async function DashboardHome() {
                                     <CardTitle className="font-heading text-2xl">
                                         Order a Part
                                     </CardTitle>
-                                    {isAdmin && pendingOrders > 0 && (
+                                    {pendingOrders > 0 && (
                                         <Badge variant="secondary" className="shrink-0">
                                             {pendingOrders} pending
                                         </Badge>
@@ -197,7 +183,7 @@ export default async function DashboardHome() {
             </section>
 
             {/* Admin Overview */}
-            {isAdmin && (
+            {
                 <section className="space-y-4">
                     <div>
                         <h2>Admin Overview</h2>
@@ -243,7 +229,7 @@ export default async function DashboardHome() {
                         })}
                     </div>
                 </section>
-            )}
+            }
         </div>
     );
 }

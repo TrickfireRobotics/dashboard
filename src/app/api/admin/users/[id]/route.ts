@@ -11,9 +11,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!admin) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (admin.role !== "admin") {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     const userId = (await params).id;
 
@@ -26,16 +23,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         );
     }
 
-    // An admin cannot demote or deactivate themselves - avoids locking the club
-    // out of its own admin panel.
-    if (
-        userId === admin.id &&
-        (parsed.data.role === "member" ||
-            parsed.data.isActive === false ||
-            parsed.data.approved === false)
-    ) {
+    // A member cannot deactivate or unapprove themselves - avoids locking the
+    // club out of its own member list.
+    if (userId === admin.id && (parsed.data.isActive === false || parsed.data.approved === false)) {
         return NextResponse.json(
-            { error: "You cannot change your own role, active status, or approval" },
+            { error: "You cannot change your own active status or approval" },
             { status: 400 }
         );
     }
@@ -48,19 +40,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const updated = db
         .update(user)
         .set({
-            ...(parsed.data.role !== undefined ? { role: parsed.data.role } : {}),
             ...(parsed.data.isActive !== undefined ? { isActive: parsed.data.isActive } : {}),
-            ...(parsed.data.canAccessVault !== undefined
-                ? { canAccessVault: parsed.data.canAccessVault }
-                : {}),
             ...(parsed.data.approved !== undefined ? { approved: parsed.data.approved } : {}),
         })
         .where(eq(user.id, userId))
         .returning({
             id: user.id,
-            role: user.role,
             isActive: user.isActive,
-            canAccessVault: user.canAccessVault,
             approved: user.approved,
         })
         .get();
