@@ -28,16 +28,10 @@ const quickLinks = [
         icon: Package,
     },
     {
-        href: "/minecraft",
-        label: "Minecraft",
-        description: "Server status and whitelist.",
-        icon: Gamepad2,
-    },
-    {
-        href: "/network",
-        label: "Network",
-        description: "Private VPN device access.",
-        icon: Network,
+        href: "/finance",
+        label: "Finance",
+        description: "Budgets and gift fund.",
+        icon: DollarSign,
     },
     {
         href: "/members",
@@ -46,16 +40,22 @@ const quickLinks = [
         icon: UserCheck,
     },
     {
-        href: "/finance",
-        label: "Finance",
-        description: "Budgets and gift fund.",
-        icon: DollarSign,
-    },
-    {
         href: "/api-keys",
         label: "API Keys",
         description: "Shared credentials vault.",
         icon: KeyRound,
+    },
+    {
+        href: "/network",
+        label: "Network",
+        description: "Private VPN device access.",
+        icon: Network,
+    },
+    {
+        href: "/minecraft",
+        label: "Minecraft",
+        description: "Server status and whitelist.",
+        icon: Gamepad2,
     },
 ];
 

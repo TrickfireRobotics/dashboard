@@ -23,11 +23,11 @@ type NavItem = {
 export const mainNav: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/orders", label: "Orders", icon: Package },
-    { href: "/minecraft", label: "Minecraft", icon: Gamepad2 },
-    { href: "/network", label: "Network", icon: Network },
-    { href: "/members", label: "Members", icon: Users },
     { href: "/finance", label: "Finance", icon: DollarSign },
+    { href: "/members", label: "Members", icon: Users },
     { href: "/api-keys", label: "API Keys", icon: KeyRound },
+    { href: "/network", label: "Network", icon: Network },
+    { href: "/minecraft", label: "Minecraft", icon: Gamepad2 },
 ];
 
 const EXACT = new Set(["/dashboard"]);
