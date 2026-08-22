@@ -248,7 +248,7 @@ export function OrderForm({
         append({ ...form.getValues(`items.${index}`) });
     }
 
-    async function submitItems(values: FormValues, mode: "close" | "next") {
+    async function submitItems(values: FormValues) {
         setSubmitting(true);
         try {
             const payloadItems = values.items.map((item) => ({
@@ -287,14 +287,6 @@ export function OrderForm({
                 clearDraftItems();
             }
 
-            if (mode === "next") {
-                form.reset({ items: [{ ...emptyItem }] });
-                router.refresh();
-                setSubmitting(false);
-                setTimeout(() => form.setFocus("items.0.itemName"), 0);
-                return;
-            }
-
             if (onSuccess) {
                 onSuccess();
             } else {
@@ -316,7 +308,7 @@ export function OrderForm({
     return (
         <Form {...form}>
             <form
-                onSubmit={form.handleSubmit((values) => submitItems(values, "close"))}
+                onSubmit={form.handleSubmit(submitItems)}
                 className={cn("space-y-5", multiple ? "w-full" : "max-w-2xl")}
             >
                 {multiple ? (
@@ -401,20 +393,6 @@ export function OrderForm({
                                 ? `Submit ${fields.length} items`
                                 : "Submit order"}
                     </Button>
-                    {!isEditing ? (
-                        <Button
-                            type="button"
-                            variant="secondary"
-                            disabled={submitting}
-                            onClick={form.handleSubmit((values) => submitItems(values, "next"))}
-                        >
-                            {submitting
-                                ? "Saving..."
-                                : multiple
-                                  ? `Submit ${fields.length} & add next`
-                                  : "Submit & add next"}
-                        </Button>
-                    ) : null}
                     <Button
                         type="button"
                         variant="outline"
