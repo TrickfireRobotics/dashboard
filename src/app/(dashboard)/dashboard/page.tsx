@@ -48,7 +48,7 @@ const quickLinks = [
     {
         href: "/network",
         label: "Network",
-        description: "Private VPN device access.",
+        description: "Tailscale network for server maintnance.",
         icon: Network,
     },
     {

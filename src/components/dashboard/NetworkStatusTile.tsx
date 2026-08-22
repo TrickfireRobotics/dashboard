@@ -74,7 +74,7 @@ export function NetworkStatusTile() {
                         {status.configured ? "API unreachable" : "Not configured"}
                     </p>
                 )}
-                <p className="text-muted-foreground mt-2 text-xs">Tailscale · Private VPN</p>
+                <p className="text-muted-foreground mt-2 text-xs">Tailscale · Trickfire Tailnet.</p>
             </CardContent>
         </>
     );
