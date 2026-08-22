@@ -171,3 +171,33 @@
         background-position: 56px 56px;
     }
 }
+
+/*
+ * Poster background for /milestones: same layered-radial-gradient + drifting
+ * dot grid technique as .auth-background, pushed brighter/bigger since this
+ * page is meant to be screenshotted large.
+ */
+.milestones-background {
+    position: relative;
+    isolation: isolate;
+}
+
+.milestones-background::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background:
+        radial-gradient(ellipse 70% 55% at 12% 8%, rgb(0 254 0 / 16%), transparent 60%),
+        radial-gradient(ellipse 70% 55% at 88% 95%, rgb(233 60 172 / 14%), transparent 60%);
+}
+
+.milestones-background::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image: radial-gradient(circle, rgb(255 255 255 / 7%) 1px, transparent 1px);
+    background-size: 32px 32px;
+    animation: auth-grid-drift 50s linear infinite;
+}
