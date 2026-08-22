@@ -278,7 +278,7 @@ async function main() {
             partNumber: "91290A999",
             quantity: 1,
             unitCostCents: 99_900,
-            notes: "Denied — use steel alternative",
+            notes: "Denied - use steel alternative",
             status: "denied" as const,
             denialComment: "Too expensive for this application. Resubmit with steel hardware.",
         },

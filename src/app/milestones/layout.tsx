@@ -7,7 +7,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "Milestones — TrickFire Robotics",
+    title: "Milestones | TrickFire Robotics",
     robots: { index: false, follow: false },
 };
 

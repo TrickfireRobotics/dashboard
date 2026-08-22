@@ -109,7 +109,7 @@ function hasDraftContent(items: ItemValues[]): boolean {
 // One shared track definition keeps the header labels aligned with every row.
 // Every flexible track uses a 0 minimum so the row always fits the viewport
 // instead of forcing a horizontal scrollbar; only the fixed tracks hold width.
-// Qty and unit cost are fixed and generous on purpose — cramped number inputs
+// Qty and unit cost are fixed and generous on purpose - cramped number inputs
 // are exactly where typos happen in a big batch.
 const GRID_COLUMNS =
     "lg:grid-cols-[32px_minmax(0,1.6fr)_minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_90px_115px_minmax(0,1fr)_76px]";
@@ -236,7 +236,7 @@ export function OrderForm({
         append(accepted.map((item) => ({ ...emptyItem, ...item })));
         toast.success(`Added ${accepted.length} item${accepted.length === 1 ? "" : "s"}`);
         if (accepted.length < parsed.length) {
-            toast.warning(`${parsed.length - accepted.length} skipped — batch limit reached`);
+            toast.warning(`${parsed.length - accepted.length} skipped - batch limit reached`);
         }
     }
 

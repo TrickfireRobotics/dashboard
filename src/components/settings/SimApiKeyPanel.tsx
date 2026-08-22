@@ -71,7 +71,7 @@ export function SimApiKeyPanel({ initialKeys }: { initialKeys: Key[] }) {
                 {newKey && (
                     <div className="space-y-2 rounded-md border border-yellow-500/40 bg-yellow-500/10 p-3">
                         <p className="text-sm font-medium">
-                            Copy this key — it won&apos;t be shown again.
+                            Copy this key - it won&apos;t be shown again.
                         </p>
                         <div className="flex gap-2">
                             <Input

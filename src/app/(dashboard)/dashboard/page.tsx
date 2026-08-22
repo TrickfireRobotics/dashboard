@@ -136,7 +136,7 @@ export default async function DashboardHome() {
                     </p>
                 </div>
                 {actionItems.length === 0 ? (
-                    <EmptyState icon={CheckCircle2} title="All caught up — nothing needs action." />
+                    <EmptyState icon={CheckCircle2} title="All caught up! Nothing needs action." />
                 ) : (
                     <div className="divide-border border-border divide-y rounded-lg border">
                         {actionItems.map((item) => (

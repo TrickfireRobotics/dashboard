@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Run locally — rsyncs local working tree to the server (including uncommitted
+# Run locally - rsyncs local working tree to the server (including uncommitted
 # changes), builds, and starts staging on port 3001.
 # Browse to http://tfserver:3001 via Tailscale. Ctrl+C to stop.
+
 set -euo pipefail
 
 SERVER="trickfire@tfserver"

@@ -126,7 +126,7 @@ describe("formatGiftOrderRow", () => {
 
     it("uses empty string when notes is null", () => {
         const row = formatGiftOrderRow({ ...BASE_GIFT, notes: null });
-        // The last column (notes) should be empty — row ends with a tab
+        // The last column (notes) should be empty - row ends with a tab
         expect(row.endsWith("\t")).toBe(true);
     });
 

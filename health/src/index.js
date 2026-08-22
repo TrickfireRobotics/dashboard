@@ -5,7 +5,7 @@ async function ping() {
     const res = await fetch(HEALTH_URL, { signal: AbortSignal.timeout(10000) });
     const body = await res.text();
     if (!res.ok || !body.includes("ok")) {
-        return `HTTP ${res.status} — ${body.slice(0, 200)}`;
+        return `HTTP ${res.status} - ${body.slice(0, 200)}`;
     }
     return null;
 }

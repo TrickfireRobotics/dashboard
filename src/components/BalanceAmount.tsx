@@ -13,12 +13,12 @@ export function remainingBalanceLabel(cents: number): string {
 
 export function stfBucketSelectLabel(name: string, cents: number): string {
     if (isOverBudget(cents)) {
-        return `${name} — Over by ${formatPriceCents(Math.abs(cents))} (unavailable)`;
+        return `${name} - Over by ${formatPriceCents(Math.abs(cents))} (unavailable)`;
     }
     if (cents === 0) {
-        return `${name} — No funds remaining`;
+        return `${name} - No funds remaining`;
     }
-    return `${name} — ${formatPriceCents(cents)} remaining`;
+    return `${name} - ${formatPriceCents(cents)} remaining`;
 }
 
 type StfBucketSelectItemContentProps = {
@@ -48,7 +48,7 @@ export function StfBucketSelectItemContent({
                     unavailable && over ? "text-destructive/70" : "text-muted-foreground"
                 )}
             >
-                —
+                -
             </span>
             {over ? (
                 <span className={cn(unavailable && "font-semibold")}>

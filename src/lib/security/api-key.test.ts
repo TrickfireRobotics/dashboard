@@ -8,7 +8,7 @@ describe("hashApiKey", () => {
         expect(hash).toMatch(/^[0-9a-f]+$/);
     });
 
-    it("is deterministic — same input always produces the same hash", () => {
+    it("is deterministic - same input always produces the same hash", () => {
         expect(hashApiKey("test")).toBe(hashApiKey("test"));
         expect(hashApiKey("tf_abc123")).toBe(hashApiKey("tf_abc123"));
     });

@@ -83,7 +83,7 @@ export function PasteItemsPanel({ onAdd }: { onAdd: (items: ParsedItem[]) => voi
                 <Label htmlFor="paste-items">Paste rows from a spreadsheet</Label>
                 <p className="text-muted-foreground mt-1 text-sm">
                     One item per line, in this order: {COLUMNS.join(" · ")}. Tab or comma separated.
-                    Only the item name is required — fill the rest in after adding.
+                    Only the item name is required. Fill the rest in after adding.
                 </p>
             </div>
             <Textarea

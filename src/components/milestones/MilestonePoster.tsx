@@ -86,7 +86,7 @@ export function MilestonePoster({ stats }: { stats: MilestoneStats }) {
                   .then(() => toast.success("Copied poster to clipboard"))
             : blobPromise
                   .then(downloadBlob)
-                  .then(() => toast.success("Clipboard isn't supported here — downloaded instead"));
+                  .then(() => toast.success("Clipboard isn't supported here - downloaded instead"));
 
         result
             .catch((err: unknown) => {
