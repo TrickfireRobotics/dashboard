@@ -112,45 +112,49 @@ export function MilestonePoster({ stats }: { stats: MilestoneStats }) {
             </button>
 
             <div ref={posterRef} className="h-full overflow-y-auto bg-black text-white">
-                <div className="milestones-background relative mx-auto flex min-h-full w-full max-w-6xl flex-col justify-center px-6 py-20 sm:px-14 lg:px-20">
-                    <p className="text-primary/80 text-xs font-semibold tracking-[0.35em] uppercase sm:text-sm">
-                        TrickFire Robotics // Dashboard
-                    </p>
-                    <p className="mt-3 text-6xl leading-none font-extrabold tracking-tight text-white sm:text-8xl">
-                        MILESTONES
-                        <span className="text-primary animate-pulse">_</span>
-                    </p>
-                    <p className="mt-4 text-base text-white/50 sm:text-lg">
-                        The club&apos;s internal tools, measured in code.
-                    </p>
+                <div className="milestones-background relative min-h-full">
+                    <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col justify-center px-6 py-20 sm:px-14 lg:px-20">
+                        <p className="text-primary/80 text-xs font-semibold tracking-[0.35em] uppercase sm:text-sm">
+                            TrickFire Robotics // Dashboard
+                        </p>
+                        <p className="mt-3 text-6xl leading-none font-extrabold tracking-tight text-white sm:text-8xl">
+                            MILESTONES
+                            <span className="text-primary animate-pulse">_</span>
+                        </p>
+                        <p className="mt-4 text-base text-white/50 sm:text-lg">
+                            The club&apos;s internal tools, measured in code.
+                        </p>
 
-                    <div className="mt-14 border-y border-white/10 py-10 sm:mt-20 sm:py-14">
-                        <div className="text-primary text-7xl leading-none font-black tracking-tight [text-shadow:0_0_60px_rgba(0,254,0,0.35)] sm:text-9xl">
-                            {fmt(stats.linesOfCode)}
-                        </div>
-                        <div className="mt-3 text-sm font-medium tracking-[0.25em] text-white/60 uppercase sm:text-xl">
-                            Lines of TypeScript
-                        </div>
-                    </div>
-
-                    <div className="mt-12 grid grid-cols-2 gap-4 sm:mt-16 sm:grid-cols-3 sm:gap-6">
-                        {tiles.map((tile) => (
-                            <div
-                                key={tile.label}
-                                className="rounded-xl border border-white/10 bg-white/3 p-5 sm:p-7"
-                            >
-                                <tile.icon className="text-secondary mb-4 size-5 sm:size-6" />
-                                <div className="text-3xl font-bold sm:text-5xl">{tile.value}</div>
-                                <div className="mt-2 text-[0.65rem] tracking-[0.15em] text-white/50 uppercase sm:text-xs">
-                                    {tile.label}
-                                </div>
+                        <div className="mt-14 border-y border-white/10 py-10 sm:mt-20 sm:py-14">
+                            <div className="text-primary text-7xl leading-none font-black tracking-tight [text-shadow:0_0_60px_rgba(0,254,0,0.35)] sm:text-9xl">
+                                {fmt(stats.linesOfCode)}
                             </div>
-                        ))}
-                    </div>
+                            <div className="mt-3 text-sm font-medium tracking-[0.25em] text-white/60 uppercase sm:text-xl">
+                                Lines of TypeScript
+                            </div>
+                        </div>
 
-                    <div className="mt-14 flex items-center justify-between text-[0.65rem] tracking-[0.2em] text-white/35 uppercase sm:mt-20 sm:text-xs">
-                        <span>dashboard.trickfirerobotics.com</span>
-                        <span>Generated {dateFormat.format(new Date(stats.generatedAt))}</span>
+                        <div className="mt-12 grid grid-cols-2 gap-4 sm:mt-16 sm:grid-cols-3 sm:gap-6">
+                            {tiles.map((tile) => (
+                                <div
+                                    key={tile.label}
+                                    className="rounded-xl border border-white/10 bg-white/3 p-5 sm:p-7"
+                                >
+                                    <tile.icon className="text-secondary mb-4 size-5 sm:size-6" />
+                                    <div className="text-3xl font-bold sm:text-5xl">
+                                        {tile.value}
+                                    </div>
+                                    <div className="mt-2 text-[0.65rem] tracking-[0.15em] text-white/50 uppercase sm:text-xs">
+                                        {tile.label}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-14 flex items-center justify-between text-[0.65rem] tracking-[0.2em] text-white/35 uppercase sm:mt-20 sm:text-xs">
+                            <span>dashboard.trickfirerobotics.com</span>
+                            <span>Generated {dateFormat.format(new Date(stats.generatedAt))}</span>
+                        </div>
                     </div>
                 </div>
             </div>
