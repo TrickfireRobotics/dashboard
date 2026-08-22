@@ -58,7 +58,9 @@ The `@theme inline` block is what makes Tailwind aware of custom tokens like `bg
 }
 ```
 
-Installed primitives (`src/components/ui/`): `alert-dialog`, `badge`, `button`, `card`, `dialog`, `dropdown-menu`, `form`, `input`, `label`, `select`, `sheet`, `skeleton`, `sonner`, `table`, `textarea`. Run `pnpm dlx shadcn@latest add <component>` to pull in more.
+Installed primitives (`src/components/ui/`): `alert-dialog`, `badge`, `button`, `card`, `collapsible`, `dialog`, `dropdown-menu`, `form`, `input`, `label`, `select`, `sheet`, `skeleton`, `sonner`, `table`, `tabs`, `textarea`. Run `pnpm dlx shadcn@latest add <component>` to pull in more.
+
+Two more files live in the same folder but aren't shadcn-generated - `empty-state.tsx` and `data-table-card.tsx` are small in-house compositions (plain `div`s + `cn()`, no headless primitive underneath) that standardize patterns shadcn doesn't ship a component for: `EmptyState` for an icon/title/description/action block when a list has nothing in it, `DataTableCard`/`DataTableCardHeader`/`DataTableCardToolbar` for the bordered card-with-header wrapper most data tables in this app sit inside. Follow their existing shape rather than one-off-styling a new empty state or table wrapper per feature.
 
 ### The component pattern
 

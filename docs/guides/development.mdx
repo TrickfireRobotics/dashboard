@@ -17,7 +17,7 @@ Collection of info about the codebase environment, setup and design choices. For
 | `pnpm format:check`  | Check formatting without writing (used in CI)                    |
 | `pnpm db:generate`   | Generate migrations from schema changes                          |
 | `pnpm db:migrate`    | Apply all pending migrations                                     |
-| `pnpm db:seed`       | Seed the 6 teams + admin user (idempotent)                       |
+| `pnpm db:seed`       | Seed the 6 teams + a seed account (idempotent)                   |
 | `pnpm db:reset`      | Drop and recreate the local database (**blocked in production**) |
 | `pnpm db:studio`     | Open Drizzle Studio - visual database browser (dev only)         |
 | `pnpm test`          | Run the unit test suite once                                     |
@@ -58,10 +58,10 @@ Every push and PR runs ESLint, Prettier, a TypeScript check, and the Vitest suit
 | `SIM_CACHE_DIR`               | No        | Directory the simulation export proxy caches generated archives in (default: `/var/cache/trickfire-sim`)                                                                                                                               |
 | `SIM_CACHE_MAX_ENTRIES`       | No        | Max cached export archives before the oldest are evicted (default: `50`)                                                                                                                                                               |
 | `SIM_CACHE_TTL_DAYS`          | No        | Days before a cached export archive expires (default: `7`)                                                                                                                                                                             |
-| `SEED_ADMIN_EMAIL`            | No        | Email for the seeded admin account                                                                                                                                                                                                     |
-| `SEED_ADMIN_PASSWORD`         | No        | Password for the seeded admin account                                                                                                                                                                                                  |
-| `SEED_ADMIN_NAME`             | No        | Display name for the seeded admin                                                                                                                                                                                                      |
-| `GITHUB_ORG`                  | No        | GitHub organization name (e.g. `trickfirerobotics`) — enables the GitHub admin page                                                                                                                                                    |
+| `SEED_ADMIN_EMAIL`            | No        | Email for the seeded account                                                                                                                                                                                                           |
+| `SEED_ADMIN_PASSWORD`         | No        | Password for the seeded account                                                                                                                                                                                                        |
+| `SEED_ADMIN_NAME`             | No        | Display name for the seeded account                                                                                                                                                                                                    |
+| `GITHUB_ORG`                  | No        | GitHub organization name (e.g. `trickfirerobotics`) — enables the GitHub tab on the Members page                                                                                                                                       |
 | `GITHUB_TOKEN`                | No        | Fine-grained PAT with **Organization → Members: Read and write** permission                                                                                                                                                            |
 | `NEXT_PUBLIC_SENTRY_DSN`      | No        | Sentry DSN — errors are silently dropped when unset                                                                                                                                                                                    |
 | `SENTRY_AUTH_TOKEN`           | Build     | Sentry auth token for source map uploads — only needed during `pnpm build`                                                                                                                                                             |
@@ -77,16 +77,13 @@ Every push and PR runs ESLint, Prettier, a TypeScript check, and the Vitest suit
 
 ## API Key Vault
 
-The **API Keys** page is a shared credential vault where admins store third-party API keys and service logins. Two layers of access apply:
-
-- **Page visibility** - the **Vault access** toggle on the Users admin page controls who can open the vault at all (admins always can).
-- **Per-secret access** - reading any individual secret requires a per-person grant set from the entry's **Manage access** action. The global Vault-access toggle does not grant secret access on its own.
+The **API Keys** page is a shared credential vault to store third-party API keys and service logins. Any logged-in member can open the page and see what entries exist - reading a specific secret is the gated part, via a per-person grant set from that entry's **Manage access** action. There's no global "vault access" toggle and no bypass for any particular user.
 
 Each entry is either a `login` (username + password, revealed in the browser on demand) or an `api_key` (never shown in the UI - retrieved only via the API endpoint below).
 
 ### Fetching an API key - `GET /api/vault/{id}/key`
 
-Authenticated by the caller's dashboard session cookie. Returns the key only if the user is an admin or has been granted access.
+Authenticated by the caller's dashboard session cookie. Returns the key only if the user has been granted access to that entry.
 
 | Status | Meaning                                                                            |
 | ------ | ---------------------------------------------------------------------------------- |

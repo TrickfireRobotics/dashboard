@@ -12,7 +12,6 @@ export type GiftFundChangeType = "order_approved" | "order_deleted" | "manual_ad
 export type WhitelistStatus = "pending" | "approved" | "rejected";
 export type JoinRequestStatus = "pending" | "approved" | "rejected";
 export type VaultEntryType = "login" | "api_key";
-export type FeatureStatus = "pending" | "granted" | "rejected";
 
 export const team = sqliteTable("team", {
     id: integer("id").primaryKey({ autoIncrement: true }),
@@ -289,29 +288,3 @@ export const simExportCache = sqliteTable(
         index("sim_export_cache_accessed").on(table.lastAccessedAt),
     ]
 );
-
-export const userFeature = sqliteTable(
-    "user_feature",
-    {
-        id: integer("id").primaryKey({ autoIncrement: true }),
-        userId: text("user_id")
-            .notNull()
-            .references(() => user.id, { onDelete: "cascade" }),
-        featureKey: text("feature_key").notNull(),
-        status: text("status").$type<FeatureStatus>().notNull().default("pending"),
-        requestNote: text("request_note"),
-        adminNote: text("admin_note"),
-        reviewedBy: text("reviewed_by").references(() => user.id, { onDelete: "set null" }),
-        reviewedAt: integer("reviewed_at", { mode: "timestamp_ms" }),
-        requestedAt: integer("requested_at", { mode: "timestamp_ms" }).default(now).notNull(),
-    },
-    (table) => [
-        uniqueIndex("user_feature_unique").on(table.userId, table.featureKey),
-        index("user_feature_userId_idx").on(table.userId),
-    ]
-);
-
-export const userFeatureRelations = relations(userFeature, ({ one }) => ({
-    user: one(user, { fields: [userFeature.userId], references: [user.id] }),
-    reviewer: one(user, { fields: [userFeature.reviewedBy], references: [user.id] }),
-}));

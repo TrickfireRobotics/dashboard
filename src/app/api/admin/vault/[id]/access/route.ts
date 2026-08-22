@@ -6,12 +6,10 @@ import { user, vaultEntry, vaultEntryAccess } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
 import { vaultAccessSchema } from "@/lib/validation";
 
-async function requireAdmin() {
+async function requireSession() {
     const sessionUser = await getSessionUser();
     if (!sessionUser)
         return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-    if (sessionUser.role !== "admin")
-        return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
     return { user: sessionUser };
 }
 
@@ -48,7 +46,7 @@ async function loadEntryAndBody(req: NextRequest, idRaw: string) {
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-    const auth = await requireAdmin();
+    const auth = await requireSession();
     if (auth.error) return auth.error;
 
     const loaded = await loadEntryAndBody(req, (await params).id);
@@ -67,7 +65,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-    const auth = await requireAdmin();
+    const auth = await requireSession();
     if (auth.error) return auth.error;
 
     const loaded = await loadEntryAndBody(req, (await params).id);

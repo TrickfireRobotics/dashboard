@@ -19,21 +19,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth/client";
 import { NavContent } from "./SidebarNav";
-import type { FeatureKey } from "@/lib/features";
 
-export function Sidebar({
-    isAdmin,
-    canAccessVault,
-    name,
-    email,
-    grantedFeatures,
-}: {
-    isAdmin: boolean;
-    canAccessVault: boolean;
-    name: string;
-    email: string;
-    grantedFeatures: FeatureKey[];
-}) {
+export function Sidebar({ name, email }: { name: string; email: string }) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [confirmOpen, setConfirmOpen] = useState(false);
@@ -65,11 +52,7 @@ export function Sidebar({
                     />
                 </Link>
             </div>
-            <NavContent
-                isAdmin={isAdmin}
-                canAccessVault={canAccessVault}
-                grantedFeatures={grantedFeatures}
-            />
+            <NavContent />
             <div className="border-sidebar-border flex items-center gap-3 border-t px-4 py-3">
                 <Link
                     href="/settings"

@@ -7,11 +7,9 @@ import { getSessionUser } from "@/lib/auth/session";
 import { encryptSecret } from "@/lib/security/vault-crypto";
 import { vaultEntryUpdateSchema } from "@/lib/validation";
 
-async function requireAdmin() {
+async function requireSession() {
     const user = await getSessionUser();
     if (!user) return { error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
-    if (user.role !== "admin")
-        return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
     return { user };
 }
 
@@ -21,7 +19,7 @@ function parseId(raw: string) {
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-    const auth = await requireAdmin();
+    const auth = await requireSession();
     if (auth.error) return auth.error;
 
     const id = parseId((await params).id);
@@ -59,7 +57,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-    const auth = await requireAdmin();
+    const auth = await requireSession();
     if (auth.error) return auth.error;
 
     const id = parseId((await params).id);

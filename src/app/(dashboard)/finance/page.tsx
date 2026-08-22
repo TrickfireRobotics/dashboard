@@ -28,13 +28,6 @@ export default async function AdminFinancePage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl">Finance</h1>
-                <p className="text-muted-foreground">
-                    Manage STF buckets, gift fund value, order pricing, and school year resets.
-                </p>
-            </div>
-
             <FinanceManager
                 initial={{
                     giftBalanceCents: getGiftFundValueCents(),

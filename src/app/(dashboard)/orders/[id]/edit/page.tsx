@@ -32,15 +32,7 @@ export default async function EditOrderPage({ params }: PageProps) {
 
     return (
         <div className="max-w-2xl space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl">Edit Order</h1>
-                    <p className="text-muted-foreground">
-                        {existing.status === "denied"
-                            ? "Update your order and resubmit it for officer review."
-                            : "Update your pending order before it is reviewed."}
-                    </p>
-                </div>
+            <div className="flex justify-end">
                 <Button variant="outline" nativeButton={false} render={<Link href="/orders" />}>
                     Back
                 </Button>

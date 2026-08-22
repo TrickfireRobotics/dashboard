@@ -10,7 +10,6 @@ import { quarterResetSchema } from "@/lib/validation";
 export async function POST(req: NextRequest) {
     const user = await getSessionUser();
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (user.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const body = await req.json().catch(() => null);
     const parsed = quarterResetSchema.safeParse(body);

@@ -6,7 +6,6 @@ import { getSessionUser } from "@/lib/auth/session";
 export async function POST(req: NextRequest) {
     const admin = await getSessionUser();
     if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (admin.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const body = await req.json().catch(() => null);
     const cmd = typeof body?.command === "string" ? body.command.trim() : null;

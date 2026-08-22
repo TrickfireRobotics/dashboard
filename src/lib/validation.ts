@@ -153,11 +153,6 @@ const minecraftUsername = z
     .max(16, "Username is too long")
     .regex(/^[A-Za-z0-9_]+$/, "Letters, numbers and underscore only");
 
-export const whitelistRequestSchema = z.object({
-    username: minecraftUsername,
-    requestNote: z.string().trim().max(500).optional(),
-});
-
 export const whitelistActionSchema = z.object({
     action: z.enum(["approve", "reject"]),
     adminNote: z.string().trim().max(500).optional(),
@@ -185,30 +180,9 @@ export const joinRequestActionSchema = z.object({
 
 export const updateUserSchema = z
     .object({
-        role: z.enum(["member", "admin"]).optional(),
         isActive: z.boolean().optional(),
-        canAccessVault: z.boolean().optional(),
         approved: z.boolean().optional(),
     })
-    .refine(
-        (v) =>
-            v.role !== undefined ||
-            v.isActive !== undefined ||
-            v.canAccessVault !== undefined ||
-            v.approved !== undefined,
-        {
-            message: "Nothing to update",
-        }
-    );
-
-// Feature access -----------------------------------------------------------
-
-export const featureRequestSchema = z.object({
-    featureKey: z.enum(["orders", "api-keys", "minecraft", "network"]),
-    requestNote: z.string().trim().max(500).optional(),
-});
-
-export const featureActionSchema = z.object({
-    action: z.enum(["grant", "reject"]),
-    adminNote: z.string().trim().max(500).optional(),
-});
+    .refine((v) => v.isActive !== undefined || v.approved !== undefined, {
+        message: "Nothing to update",
+    });

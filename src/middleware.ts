@@ -1,10 +1,6 @@
-import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { auth } from "@/lib/auth/auth";
-import { db } from "@/lib/db";
-import { userFeature } from "@/lib/db/schema";
-import { FEATURE_ROUTES } from "@/lib/features";
 
 export const runtime = "nodejs";
 
@@ -46,43 +42,17 @@ export async function middleware(req: NextRequest) {
         return NextResponse.redirect(resolveUrl(req, "/pending"));
     }
 
-    // Admins bypass per-feature checks.
-    if (session.user.role !== "admin") {
-        const path = req.nextUrl.pathname;
-        for (const [prefix, featureKey] of Object.entries(FEATURE_ROUTES)) {
-            if (path === prefix || path.startsWith(`${prefix}/`)) {
-                const granted = db
-                    .select({ id: userFeature.id })
-                    .from(userFeature)
-                    .where(
-                        and(
-                            eq(userFeature.userId, session.user.id),
-                            eq(userFeature.featureKey, featureKey),
-                            eq(userFeature.status, "granted")
-                        )
-                    )
-                    .get();
-                if (!granted) {
-                    const url = resolveUrl(req, "/features");
-                    url.searchParams.set("denied", featureKey);
-                    return NextResponse.redirect(url);
-                }
-                break;
-            }
-        }
-    }
-
     return NextResponse.next();
 }
 
 export const config = {
     matcher: [
         "/dashboard/:path*",
-        "/features/:path*",
         "/orders/:path*",
         "/api-keys/:path*",
         "/minecraft/:path*",
         "/network/:path*",
-        "/admin/:path*",
+        "/members/:path*",
+        "/finance/:path*",
     ],
 };

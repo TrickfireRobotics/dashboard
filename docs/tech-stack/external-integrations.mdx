@@ -1,6 +1,6 @@
 ---
 title: External Integrations
-description: How the code talks to Minecraft/RCON, GitHub, Resend, OnShape, Tailscale, and the host system - from a developer's perspective.
+description: How the code talks to Minecraft/RCON, GitHub, Resend, OnShape, and Tailscale - from a developer's perspective.
 ---
 
 This page explains _how the integration code works_. For installing and configuring these services on the production server, see the [Server Integrations Setup guide](/guides/integrations/) instead - that page is ops-focused, this one is code-focused.
@@ -35,21 +35,11 @@ export async function getBotNames(): Promise<Set<string>> {
 
 ### Sending server commands
 
-`sendCommand()` in the same file is the generic RCON executor used by the admin server-control page (`/admin/server`) to run arbitrary console commands - it requires `MINECRAFT_RCON_PASSWORD` to be set and connects/logs in/executes/closes per call, same as `rconQuery()` but without the timeout race (used from an authenticated admin-only context, not a background poll).
+`sendCommand()` in the same file is the generic RCON executor used by the server-control card on the `/minecraft` page to run arbitrary console commands - it requires `MINECRAFT_RCON_PASSWORD` to be set and connects/logs in/executes/closes per call, same as `rconQuery()` but without the timeout race (used from an authenticated session, not a background poll).
 
-## Host system stats (`systeminformation`)
+## GitHub org management (`src/lib/integrations/github.ts`)
 
-Used in exactly one place: `src/app/api/system/stats/route.ts`, an authenticated `GET` endpoint backing an admin server-stats widget. It calls `currentLoad()`, `mem()`, and `fsSize()` from the [`systeminformation`](https://systeminformation.io/) package in parallel, plus Node's built-in `os.loadavg()`/`os.uptime()`, computes CPU/memory/disk percentages, and caches the result for 5 seconds:
-
-```ts
-const [load, memory, disks] = await Promise.all([currentLoad(), mem(), fsSize()]);
-```
-
-`better-sqlite3` and `systeminformation` are both listed in `next.config.ts`'s `serverExternalPackages` because they rely on native bindings/OS calls that shouldn't be bundled by webpack - see [Next.js & TypeScript](/tech-stack/nextjs-typescript/#nextconfigts---the-notable-bits).
-
-## GitHub org admin (`src/lib/integrations/github.ts`)
-
-Backs the `/admin/github` page - lets admins view org members, pending invitations, and teams, and send new invitations, without leaving the dashboard. Talks directly to `api.github.com` with `Authorization: Bearer <GITHUB_TOKEN>` and the `2022-11-28` API version header.
+Backs the GitHub tab on the `/members` page - lets members view org members, pending invitations, and teams, and send new invitations, without leaving the dashboard. Talks directly to `api.github.com` with `Authorization: Bearer <GITHUB_TOKEN>` and the `2022-11-28` API version header.
 
 The file's own doc comment states the security intent clearly: the token should be a **fine-grained PAT scoped only to "Organization → Members: Read and write"** - enough to list/invite/remove members, deliberately _not_ enough to promote anyone to org owner. Invitations are always sent as `direct_member`, and there is intentionally no role-promotion call in this client. If `GITHUB_TOKEN`/`GITHUB_ORG` are unset, or the API call fails, the page renders a "not configured"/"unreachable" empty state rather than erroring.
 
@@ -74,7 +64,7 @@ Called from two places: `src/lib/auth/auth.ts` (email verification codes, passwo
 
 ## OnShape
 
-`src/lib/integrations/onshape.ts` follows the same pattern as the GitHub client - a thin authenticated wrapper around OnShape's API (`ONSHAPE_BASE_URL`/`ONSHAPE_ACCESS_KEY`/`ONSHAPE_SECRET_KEY`/`ONSHAPE_COMPANY_ID`) backing the `/admin/onshape` page, degrading to a "not configured" state when unset.
+`src/lib/integrations/onshape.ts` follows the same pattern as the GitHub client - a thin authenticated wrapper around OnShape's API (`ONSHAPE_BASE_URL`/`ONSHAPE_ACCESS_KEY`/`ONSHAPE_SECRET_KEY`/`ONSHAPE_COMPANY_ID`) backing the OnShape tab on the `/members` page, degrading to a "not configured" state when unset.
 
 ### OnShape simulation export proxy
 
@@ -90,7 +80,7 @@ Callers generate their own key from the dashboard's Settings page (`SimApiKeyPan
 
 ## Tailscale (Network tab)
 
-`src/lib/integrations/network.ts` talks to the Tailscale API (`TAILSCALE_API_KEY`/`TAILSCALE_TAILNET`) to list devices on the club's shared tailnet and surface join requests, backing the Network tab and `/admin/network`. See the [Server Integrations Setup guide](/guides/integrations/#tailscale-network-tab) for how the API key itself is generated and rotated.
+`src/lib/integrations/network.ts` talks to the Tailscale API (`TAILSCALE_API_KEY`/`TAILSCALE_TAILNET`) to list devices on the club's shared tailnet and surface join requests, backing the `/network` page. See the [Server Integrations Setup guide](/guides/integrations/#tailscale-network-tab) for how the API key itself is generated and rotated.
 
 ## Pl3xMap (world map proxy)
 

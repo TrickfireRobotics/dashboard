@@ -63,6 +63,11 @@ async function main() {
         { name: "Mechanical", startingBalanceCents: 43_000 },
         { name: "Electronics", startingBalanceCents: 12_050 },
         { name: "Software", startingBalanceCents: 0 },
+        { name: "Poggers", startingBalanceCents: 67 },
+        { name: "Wind Turbines", startingBalanceCents: 999 },
+        { name: "Some more", startingBalanceCents: 929 },
+        { name: "Some more 2", startingBalanceCents: 8795 },
+        { name: "I'm unoriginal ik", startingBalanceCents: 999 },
     ];
     for (const bucket of defaultBuckets) {
         const exists = db.select().from(stfBucket).where(eq(stfBucket.name, bucket.name)).get();
@@ -107,11 +112,11 @@ async function main() {
     }
 
     db.update(user)
-        .set({ role: "admin", isActive: true, emailVerified: true, approved: true })
+        .set({ isActive: true, emailVerified: true, approved: true })
         .where(eq(user.email, email))
         .run();
 
-    console.log(`Ensured ${email} has role=admin, isActive=true, approved=true.`);
+    console.log(`Ensured ${email} has isActive=true, approved=true.`);
 
     const adminUser = db.select().from(user).where(eq(user.email, email)).get();
     const mechanical = db.select().from(stfBucket).where(eq(stfBucket.name, "Mechanical")).get();

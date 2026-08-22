@@ -36,7 +36,7 @@ This codebase is server-first almost everywhere: `page.tsx` files are async serv
 
 ### Route handlers (API routes)
 
-Files at `src/app/api/**/route.ts` are plain HTTP endpoints, used by client components that need to fetch or mutate data after the initial page load (e.g. a form's submit handler `POST`ing to `/api/orders`, or a status tile polling `/api/minecraft/status` every few seconds). They receive a standard `NextRequest`/`Request` and return a `NextResponse`/`Response` - there's no framework-specific request object to learn. Nearly every handler in this project independently checks the caller's session and role, since `/api/*` isn't covered by `middleware.ts` (see [Authentication & Authorization](/tech-stack/auth/)).
+Files at `src/app/api/**/route.ts` are plain HTTP endpoints, used by client components that need to fetch or mutate data after the initial page load (e.g. a form's submit handler `POST`ing to `/api/orders`, or a status tile polling `/api/minecraft/status` every few seconds). They receive a standard `NextRequest`/`Request` and return a `NextResponse`/`Response` - there's no framework-specific request object to learn. Nearly every handler in this project independently checks the caller's session (and `isActive` status), since `/api/*` isn't covered by `middleware.ts` (see [Authentication & Authorization](/tech-stack/auth/)).
 
 ### Middleware
 

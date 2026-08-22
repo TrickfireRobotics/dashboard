@@ -92,7 +92,7 @@ export function PendingApprovals({ users }: { users: PendingUserRow[] }) {
                             <TableRow key={u.id}>
                                 <TableCell className="font-medium">{u.name}</TableCell>
                                 <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                                <TableCell className="text-muted-foreground">
+                                <TableCell className="text-muted-foreground whitespace-nowrap">
                                     {formatDate(u.createdAt)}
                                 </TableCell>
                                 <TableCell className="text-right">

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
+import { AdminNetworkManager } from "@/components/network/AdminNetworkManager";
 import { NetworkStatusCard } from "@/components/network/NetworkStatusCard";
-import { NodeList } from "@/components/network/NodeList";
 import { getSessionUser } from "@/lib/auth/session";
 
 export default async function NetworkPage() {
@@ -9,14 +9,10 @@ export default async function NetworkPage() {
     if (!user) redirect("/login");
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl">Network</h1>
-                <p className="text-muted-foreground">TrickFire private network status.</p>
-            </div>
-
+        <div className="space-y-8">
             <NetworkStatusCard />
-            <NodeList />
+
+            <AdminNetworkManager />
         </div>
     );
 }

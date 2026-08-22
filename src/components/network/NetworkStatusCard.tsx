@@ -5,7 +5,6 @@ import { useCallback, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePoll } from "@/lib/use-poll";
 
@@ -45,27 +44,28 @@ export function NetworkStatusCard() {
     const isOnline = status?.online ?? false;
 
     return (
-        <Card>
-            <CardHeader>
-                <div className="flex items-center justify-between">
-                    <CardTitle>Network Status</CardTitle>
-                    {status ? (
-                        <Badge variant={isOnline ? "default" : "secondary"}>
-                            {isOnline ? "Online" : "Offline"}
-                        </Badge>
-                    ) : null}
+        <div className="border-border rounded-lg border p-4">
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className="font-heading text-base font-medium">Network Status</p>
+                    <p className="text-muted-foreground text-sm">
+                        {loading && !status
+                            ? "Checking network…"
+                            : !status?.configured
+                              ? "Tailscale not configured"
+                              : isOnline
+                                ? `${status.nodeCount} device${status.nodeCount !== 1 ? "s" : ""} registered`
+                                : "Tailscale API unreachable"}
+                    </p>
                 </div>
-                <CardDescription>
-                    {loading && !status
-                        ? "Checking network…"
-                        : !status?.configured
-                          ? "Tailscale not configured"
-                          : isOnline
-                            ? `${status.nodeCount} device${status.nodeCount !== 1 ? "s" : ""} registered`
-                            : "Tailscale API unreachable"}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
+                {status ? (
+                    <Badge variant={isOnline ? "default" : "secondary"}>
+                        {isOnline ? "Online" : "Offline"}
+                    </Badge>
+                ) : null}
+            </div>
+
+            <div className="mt-4">
                 {loading && !status ? (
                     <div className="grid grid-cols-2 gap-4">
                         <Skeleton className="h-12" />
@@ -83,13 +83,14 @@ export function NetworkStatusCard() {
                             : "Tailscale is not yet configured on this server."}
                     </p>
                 )}
-                <div className="mt-4">
-                    <Button size="sm" variant="outline" onClick={load} disabled={loading}>
-                        <RefreshCw className="size-4" />
-                        Refresh
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
+            </div>
+
+            <div className="mt-4">
+                <Button size="sm" variant="outline" onClick={load} disabled={loading}>
+                    <RefreshCw className="size-4" />
+                    Refresh
+                </Button>
+            </div>
+        </div>
     );
 }

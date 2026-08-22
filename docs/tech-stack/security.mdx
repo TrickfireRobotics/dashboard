@@ -13,10 +13,7 @@ Three distinct security mechanisms live under `src/lib/security/`, solving three
 
 ## The API Key Vault
 
-The **API Keys** page is a shared credential store for admins to keep track of third-party API keys and service logins (Resend, Tailscale, etc.) in one place instead of a shared password doc. Two independent layers of access apply:
-
-- **Page visibility** - the `canAccessVault` field on a user (see [Authentication & Authorization](/tech-stack/auth/#what-each-additional-field-means)) controls whether they can open the vault page at all. Admins always can.
-- **Per-secret access** - reading any _individual_ entry additionally requires a grant in the `vaultEntryAccess` table, set via that entry's "Manage access" action. Having vault-page access does **not** imply access to every entry in it.
+The **API Keys** page is a shared credential store to keep track of third-party API keys and service logins (Resend, Tailscale, etc.) in one place instead of a shared password doc. Any logged-in member can open the page and see entry names/descriptions - reading a specific secret is the part that's gated: it requires a grant in the `vaultEntryAccess` table, set via that entry's "Manage access" action. There's no bypass - not even the entry's creator can read it back without an explicit grant for themselves (which the creation flow adds automatically).
 
 Each entry is either a `login` (username + password, revealed in the UI on demand) or an `api_key` (never rendered in the UI - only retrievable via the API endpoint below, e.g. for pasting into another tool's config).
 
@@ -61,7 +58,7 @@ GET /api/vault/{id}/reveal   # login entries only - returns { name, username, pa
 
 Both endpoints are authenticated by the caller's dashboard session cookie (not a separate API key) and both:
 
-- Call `canReadVaultEntry(user, id)` (admin, or a matching `vaultEntryAccess` row).
+- Call `canReadVaultEntry(user, id)` (a matching `vaultEntryAccess` row - no other bypass).
 - Independently re-check `isActive`, because `/api/*` isn't covered by `middleware.ts` (see [Architecture Overview](/architecture/#how-a-page-request-is-authorized-three-layers)).
 - Set `Cache-Control: no-store` so a decrypted secret is never cached by a browser or intermediary.
 
@@ -81,7 +78,7 @@ export function generateApiKey(): { raw: string; hash: string; prefix: string } 
 }
 ```
 
-The raw key (`tf_...`) is shown to the admin exactly once at creation time and never persisted - only its hash and a short `prefix` (for identifying which key is which in a UI list, without revealing the whole thing) are stored in the `apiKey` table. A caller authenticates by sending the raw key; the server hashes what it received and compares against the stored hash.
+The raw key (`tf_...`) is shown to the user exactly once at creation time and never persisted - only its hash and a short `prefix` (for identifying which key is which in a UI list, without revealing the whole thing) are stored in the `apiKey` table. A caller authenticates by sending the raw key; the server hashes what it received and compares against the stored hash.
 
 ## Rate limiting (`src/lib/security/rate-limit.ts`)
 

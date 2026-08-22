@@ -17,9 +17,6 @@ export async function POST(req: NextRequest) {
     if (!sessionUser) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (sessionUser.role !== "admin") {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     const body = await req.json().catch(() => null);
     const parsed = orderAssignSchema.safeParse(body);

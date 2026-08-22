@@ -7,6 +7,11 @@ import { toast } from "sonner";
 
 import { isOverBudget, StfBucketSelectItemContent } from "@/components/BalanceAmount";
 import { Button } from "@/components/ui/button";
+import {
+    DataTableCard,
+    DataTableCardHeader,
+    DataTableCardToolbar,
+} from "@/components/ui/data-table-card";
 import { Label } from "@/components/ui/label";
 import {
     Select,
@@ -592,7 +597,7 @@ function TriageToolbar({
     onDeny: (comment: string) => void;
 }) {
     return (
-        <div className="bg-muted/40 border-border flex flex-wrap items-center gap-4 rounded-lg border px-4 py-3">
+        <DataTableCardToolbar>
             <span className="text-sm font-medium">
                 {selectedCount > 0 ? `${selectedCount} selected` : "Select orders to assign"}
             </span>
@@ -604,7 +609,7 @@ function TriageToolbar({
                 label="Assign"
             />
             <BulkDenyControl selectedCount={selectedCount} busy={busy} onDeny={onDeny} />
-        </div>
+        </DataTableCardToolbar>
     );
 }
 
@@ -624,7 +629,7 @@ function ReviewToolbar({
     onReassign: (fundType: FundType, bucketId: number | null) => void;
 }) {
     return (
-        <div className="bg-muted/40 border-border flex flex-wrap items-center gap-4 rounded-lg border px-4 py-3">
+        <DataTableCardToolbar>
             <span className="text-sm font-medium">
                 {selectedCount > 0 ? `${selectedCount} selected` : "Select orders to review"}
             </span>
@@ -639,7 +644,7 @@ function ReviewToolbar({
                 onAssign={onReassign}
                 label="Reassign"
             />
-        </div>
+        </DataTableCardToolbar>
     );
 }
 
@@ -690,133 +695,123 @@ function OrderSection({
     const columnCount = selection ? 7 : 6;
 
     return (
-        <div className="space-y-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                    <h2 className="text-lg font-semibold">
+        <DataTableCard>
+            <DataTableCardHeader
+                title={
+                    <>
                         {title}{" "}
                         <span className="text-muted-foreground font-normal">({orders.length})</span>
-                    </h2>
-                    {description ? (
-                        <p className="text-muted-foreground text-sm">{description}</p>
-                    ) : null}
-                </div>
-                {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
-            </div>
+                    </>
+                }
+                description={description}
+                action={headerAction}
+            />
             {toolbar}
-            <div className="border-border rounded-lg border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            {selection ? (
-                                <TableHead className="w-10">
-                                    <input
-                                        type="checkbox"
-                                        aria-label={`Select all ${title.toLowerCase()} orders`}
-                                        checked={selection.allSelected}
-                                        ref={(el) => {
-                                            if (el) el.indeterminate = selection.someSelected;
-                                        }}
-                                        onChange={selection.onToggleAll}
-                                        className="border-input size-4 rounded border"
-                                    />
-                                </TableHead>
-                            ) : null}
-                            <TableHead>Submitted by</TableHead>
-                            <TableHead>Item</TableHead>
-                            <TableHead className="hidden md:table-cell">Fund / bucket</TableHead>
-                            <TableHead className="hidden text-right md:table-cell">
-                                Total cost
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        {selection ? (
+                            <TableHead className="w-10">
+                                <input
+                                    type="checkbox"
+                                    aria-label={`Select all ${title.toLowerCase()} orders`}
+                                    checked={selection.allSelected}
+                                    ref={(el) => {
+                                        if (el) el.indeterminate = selection.someSelected;
+                                    }}
+                                    onChange={selection.onToggleAll}
+                                    className="border-input size-4 rounded border"
+                                />
                             </TableHead>
-                            <TableHead className="hidden md:table-cell">Date submitted</TableHead>
-                            <TableHead>Status</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {orders.map((o) => {
-                            const expanded = expandedId === o.id;
-                            return (
-                                <Fragment key={o.id}>
-                                    <TableRow
-                                        className="cursor-pointer"
-                                        onClick={() => onToggle(o.id)}
-                                    >
-                                        {selection ? (
-                                            <TableCell onClick={(e) => e.stopPropagation()}>
-                                                <input
-                                                    type="checkbox"
-                                                    aria-label={`Select order for ${o.itemName}`}
-                                                    checked={selection.selectedIds.has(o.id)}
-                                                    onChange={() => selection.onToggle(o.id)}
-                                                    className="border-input size-4 rounded border"
-                                                />
-                                            </TableCell>
-                                        ) : null}
-                                        <TableCell className="text-muted-foreground">
-                                            {o.requesterName ?? o.requesterEmail ?? "-"}
+                        ) : null}
+                        <TableHead>Submitted by</TableHead>
+                        <TableHead>Item</TableHead>
+                        <TableHead className="hidden md:table-cell">Fund / bucket</TableHead>
+                        <TableHead className="hidden text-right md:table-cell">
+                            Total cost
+                        </TableHead>
+                        <TableHead className="hidden md:table-cell">Date submitted</TableHead>
+                        <TableHead>Status</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {orders.map((o) => {
+                        const expanded = expandedId === o.id;
+                        return (
+                            <Fragment key={o.id}>
+                                <TableRow className="cursor-pointer" onClick={() => onToggle(o.id)}>
+                                    {selection ? (
+                                        <TableCell onClick={(e) => e.stopPropagation()}>
+                                            <input
+                                                type="checkbox"
+                                                aria-label={`Select order for ${o.itemName}`}
+                                                checked={selection.selectedIds.has(o.id)}
+                                                onChange={() => selection.onToggle(o.id)}
+                                                className="border-input size-4 rounded border"
+                                            />
                                         </TableCell>
-                                        <TableCell className="text-foreground font-medium">
-                                            {o.itemName}
-                                        </TableCell>
-                                        <TableCell className="hidden md:table-cell">
-                                            {o.fundType ? (
-                                                <>
-                                                    {o.fundType}
-                                                    {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
-                                                </>
-                                            ) : (
-                                                <span className="text-muted-foreground italic">
-                                                    Unassigned
-                                                </span>
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="hidden text-right md:table-cell">
-                                            {o.fundType ? null : (
-                                                <span className="text-muted-foreground">est. </span>
-                                            )}
-                                            {formatPriceCents(
-                                                orderChargeCents(
-                                                    o.fundType,
-                                                    o.quantity,
-                                                    o.unitCostCents,
-                                                    pricingSettings
-                                                )
-                                            )}
-                                        </TableCell>
-                                        <TableCell className="text-muted-foreground hidden md:table-cell">
-                                            {formatDate(o.createdAt)}
-                                        </TableCell>
-                                        <TableCell>
-                                            <OrderStatusBadge status={o.status} />
+                                    ) : null}
+                                    <TableCell className="text-muted-foreground">
+                                        {o.requesterName ?? o.requesterEmail ?? "-"}
+                                    </TableCell>
+                                    <TableCell className="text-foreground font-medium">
+                                        {o.itemName}
+                                    </TableCell>
+                                    <TableCell className="hidden md:table-cell">
+                                        {o.fundType ? (
+                                            <>
+                                                {o.fundType}
+                                                {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
+                                            </>
+                                        ) : (
+                                            <span className="text-muted-foreground italic">
+                                                Unassigned
+                                            </span>
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="hidden text-right whitespace-nowrap md:table-cell">
+                                        {o.fundType ? null : (
+                                            <span className="text-muted-foreground">est. </span>
+                                        )}
+                                        {formatPriceCents(
+                                            orderChargeCents(
+                                                o.fundType,
+                                                o.quantity,
+                                                o.unitCostCents,
+                                                pricingSettings
+                                            )
+                                        )}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
+                                        {formatDate(o.createdAt)}
+                                    </TableCell>
+                                    <TableCell>
+                                        <OrderStatusBadge status={o.status} />
+                                    </TableCell>
+                                </TableRow>
+                                {expanded ? (
+                                    <TableRow>
+                                        <TableCell colSpan={columnCount} className="bg-muted/30">
+                                            <OrderDetail
+                                                order={o}
+                                                showActions={showActions}
+                                                denialComment={denialComment}
+                                                onDenialCommentChange={onDenialCommentChange}
+                                                pending={pending}
+                                                onAction={onAction}
+                                                orderPricing={orderPricing}
+                                                onDelete={onDelete}
+                                                deletingId={deletingId}
+                                            />
                                         </TableCell>
                                     </TableRow>
-                                    {expanded ? (
-                                        <TableRow>
-                                            <TableCell
-                                                colSpan={columnCount}
-                                                className="bg-muted/30"
-                                            >
-                                                <OrderDetail
-                                                    order={o}
-                                                    showActions={showActions}
-                                                    denialComment={denialComment}
-                                                    onDenialCommentChange={onDenialCommentChange}
-                                                    pending={pending}
-                                                    onAction={onAction}
-                                                    orderPricing={orderPricing}
-                                                    onDelete={onDelete}
-                                                    deletingId={deletingId}
-                                                />
-                                            </TableCell>
-                                        </TableRow>
-                                    ) : null}
-                                </Fragment>
-                            );
-                        })}
-                    </TableBody>
-                </Table>
-            </div>
-        </div>
+                                ) : null}
+                            </Fragment>
+                        );
+                    })}
+                </TableBody>
+            </Table>
+        </DataTableCard>
     );
 }
 

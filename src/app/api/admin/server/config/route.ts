@@ -6,7 +6,6 @@ import { getSessionUser } from "@/lib/auth/session";
 export async function GET() {
     const admin = await getSessionUser();
     if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (admin.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     try {
         return NextResponse.json(readConfig());
@@ -18,7 +17,6 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
     const admin = await getSessionUser();
     if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (admin.role !== "admin") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const body = await req.json().catch(() => null);
     if (!body || typeof body !== "object") {
