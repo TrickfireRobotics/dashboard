@@ -111,11 +111,8 @@ export function MilestonePoster({ stats }: { stats: MilestoneStats }) {
                 {isCapturing ? "Capturing" : "Screenshot"}
             </button>
 
-            <div
-                ref={posterRef}
-                className="milestones-background relative h-full overflow-y-auto bg-black text-white"
-            >
-                <div className="mx-auto flex min-h-full w-full max-w-6xl flex-col justify-center px-6 py-20 sm:px-14 lg:px-20">
+            <div ref={posterRef} className="h-full overflow-y-auto bg-black text-white">
+                <div className="milestones-background relative mx-auto flex min-h-full w-full max-w-6xl flex-col justify-center px-6 py-20 sm:px-14 lg:px-20">
                     <p className="text-primary/80 text-xs font-semibold tracking-[0.35em] uppercase sm:text-sm">
                         TrickFire Robotics // Dashboard
                     </p>

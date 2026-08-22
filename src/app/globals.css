@@ -183,15 +183,18 @@
 }
 
 /*
- * `fixed` (not `absolute`) deliberately: .milestones-background is itself the
- * scroll container, so an absolutely-positioned pseudo-element only covers
- * its client height and gets left behind once the poster scrolls past one
- * screen - the footer would sit on plain black. Fixed pins the glow to the
- * viewport so it fills whatever's on screen at any scroll position.
+ * `.milestones-background` must sit on the element sized to the full poster
+ * content (not the viewport-sized scroll container) so `inset:0` covers the
+ * whole scrollable height. `position: fixed` was tried first to pin the glow
+ * to the viewport during live scrolling, but html-to-image's SVG
+ * foreignObject render doesn't honor `fixed` against the expanded capture
+ * height - only the top viewport-sized slice got the glow, leaving the
+ * screenshot's footer black. Plain `absolute` on a content-sized ancestor
+ * works correctly both live and in the exported image.
  */
 .milestones-background::before {
     content: "";
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: -2;
     background:
@@ -201,7 +204,7 @@
 
 .milestones-background::after {
     content: "";
-    position: fixed;
+    position: absolute;
     inset: 0;
     z-index: -1;
     background-image: radial-gradient(circle, rgb(255 255 255 / 7%) 1px, transparent 1px);
