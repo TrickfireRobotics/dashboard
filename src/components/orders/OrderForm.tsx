@@ -109,8 +109,10 @@ function hasDraftContent(items: ItemValues[]): boolean {
 // One shared track definition keeps the header labels aligned with every row.
 // Every flexible track uses a 0 minimum so the row always fits the viewport
 // instead of forcing a horizontal scrollbar; only the fixed tracks hold width.
+// Qty and unit cost are fixed and generous on purpose — cramped number inputs
+// are exactly where typos happen in a big batch.
 const GRID_COLUMNS =
-    "lg:grid-cols-[26px_minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.4fr)_minmax(0,0.9fr)_56px_84px_minmax(0,1.2fr)_64px]";
+    "lg:grid-cols-[32px_minmax(0,1.6fr)_minmax(0,1.1fr)_minmax(0,1.3fr)_minmax(0,0.9fr)_90px_115px_minmax(0,1fr)_76px]";
 
 export type OrderFormInitial = {
     id: number;
@@ -162,10 +164,14 @@ function fillVendorFromLink(
 
 export function OrderForm({
     initialOrder,
+    initialItemCount = 1,
     onSuccess,
+    onLayoutChange,
 }: {
     initialOrder?: OrderFormInitial;
+    initialItemCount?: number;
     onSuccess?: () => void;
+    onLayoutChange?: (multiple: boolean) => void;
 }) {
     const router = useRouter();
     const [submitting, setSubmitting] = useState(false);
@@ -178,7 +184,8 @@ export function OrderForm({
         defaultValues: {
             items: isEditing
                 ? [toItemValues(initialOrder)]
-                : (loadDraftItems() ?? [{ ...emptyItem }]),
+                : (loadDraftItems() ??
+                  Array.from({ length: initialItemCount }, () => ({ ...emptyItem }))),
         },
     });
 
@@ -241,7 +248,7 @@ export function OrderForm({
         append({ ...form.getValues(`items.${index}`) });
     }
 
-    async function onSubmit(values: FormValues) {
+    async function submitItems(values: FormValues, mode: "close" | "next") {
         setSubmitting(true);
         try {
             const payloadItems = values.items.map((item) => ({
@@ -279,6 +286,15 @@ export function OrderForm({
                 );
                 clearDraftItems();
             }
+
+            if (mode === "next") {
+                form.reset({ items: [{ ...emptyItem }] });
+                router.refresh();
+                setSubmitting(false);
+                setTimeout(() => form.setFocus("items.0.itemName"), 0);
+                return;
+            }
+
             if (onSuccess) {
                 onSuccess();
             } else {
@@ -293,10 +309,14 @@ export function OrderForm({
 
     const multiple = fields.length > 1;
 
+    useEffect(() => {
+        onLayoutChange?.(multiple);
+    }, [multiple, onLayoutChange]);
+
     return (
         <Form {...form}>
             <form
-                onSubmit={form.handleSubmit(onSubmit)}
+                onSubmit={form.handleSubmit((values) => submitItems(values, "close"))}
                 className={cn("space-y-5", multiple ? "w-full" : "max-w-2xl")}
             >
                 {multiple ? (
@@ -306,7 +326,7 @@ export function OrderForm({
                         <div
                             className={cn(
                                 GRID_COLUMNS,
-                                "bg-muted/50 border-border text-muted-foreground hidden items-center gap-2 border-b px-3 py-2 text-xs font-medium lg:grid"
+                                "bg-muted border-border text-muted-foreground sticky top-0 z-10 hidden items-center gap-3 rounded-t-lg border-b px-4 py-3 text-xs font-medium lg:grid"
                             )}
                         >
                             <span>#</span>
@@ -369,7 +389,7 @@ export function OrderForm({
                     </p>
                 ) : null}
 
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                     <Button type="submit" disabled={submitting}>
                         {submitting
                             ? "Saving..."
@@ -381,6 +401,20 @@ export function OrderForm({
                                 ? `Submit ${fields.length} items`
                                 : "Submit order"}
                     </Button>
+                    {!isEditing ? (
+                        <Button
+                            type="button"
+                            variant="secondary"
+                            disabled={submitting}
+                            onClick={form.handleSubmit((values) => submitItems(values, "next"))}
+                        >
+                            {submitting
+                                ? "Saving..."
+                                : multiple
+                                  ? `Submit ${fields.length} & add next`
+                                  : "Submit & add next"}
+                        </Button>
+                    ) : null}
                     <Button
                         type="button"
                         variant="outline"
@@ -566,7 +600,7 @@ function ItemRow({
         <div
             className={cn(
                 GRID_COLUMNS,
-                "border-border grid grid-cols-1 items-start gap-2 border-b px-3 py-3 last:border-b-0 lg:py-2"
+                "border-border hover:bg-muted/30 grid grid-cols-1 items-start gap-3 border-b px-4 py-3 transition-colors last:border-b-0"
             )}
         >
             <span className="text-muted-foreground text-xs font-medium tabular-nums lg:pt-2">
@@ -600,12 +634,12 @@ function ItemRow({
             ))}
 
             {cell("quantity", "Quantity", (field) => (
-                <Input className="h-9 px-2" type="number" min={1} {...field} />
+                <Input className="h-9" type="number" min={1} {...field} />
             ))}
 
             {cell("unitCost", "Unit cost", (field) => (
                 <Input
-                    className="h-9 px-2"
+                    className="h-9"
                     type="number"
                     min={0.01}
                     step="0.01"
@@ -618,14 +652,24 @@ function ItemRow({
                 <Input className="h-9" placeholder="Optional" {...field} />
             ))}
 
-            <div className="flex gap-0.5 pt-0.5">
-                <Button type="button" variant="ghost" size="sm" onClick={onDuplicate}>
+            <div className="flex gap-1 pt-0.5">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={onDuplicate}
+                    aria-label={`Duplicate item ${index + 1}`}
+                >
                     <Copy className="size-4" />
-                    <span className="sr-only">Duplicate item {index + 1}</span>
                 </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={onRemove}
+                    aria-label={`Remove item ${index + 1}`}
+                >
                     <Trash2 className="size-4" />
-                    <span className="sr-only">Remove item {index + 1}</span>
                 </Button>
             </div>
         </div>

@@ -1,10 +1,8 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { BalanceAmount } from "@/components/BalanceAmount";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { DataTableCard } from "@/components/ui/data-table-card";
 import type { StfBucketBalance } from "@/lib/finance/finance";
 import { cn } from "@/lib/utils";
@@ -39,50 +37,60 @@ function FundRow({
 }
 
 export function OrderBalancesSummary({ giftBalanceCents, stfBuckets }: OrderBalancesSummaryProps) {
-    const [open, setOpen] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const [showBottomShadow, setShowBottomShadow] = useState(false);
+
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+
+        function updateShadow() {
+            if (!el) return;
+            setShowBottomShadow(el.scrollHeight - el.scrollTop - el.clientHeight > 1);
+        }
+
+        updateShadow();
+        el.addEventListener("scroll", updateShadow);
+        return () => el.removeEventListener("scroll", updateShadow);
+    }, [stfBuckets.length]);
 
     return (
         <DataTableCard>
-            <Collapsible open={open} onOpenChange={setOpen}>
-                <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 px-4 py-3">
-                    <div className="min-w-0 text-left">
-                        <h2 className="text-lg font-semibold">Available funds</h2>
-                        <p className="text-muted-foreground text-sm">
-                            Gift fund and {stfBuckets.length} STF{" "}
-                            {stfBuckets.length === 1 ? "bucket" : "buckets"}
-                        </p>
-                    </div>
-                    <ChevronDown
-                        className={cn(
-                            "text-muted-foreground size-4 shrink-0 transition-transform duration-200",
-                            open && "rotate-180"
-                        )}
-                    />
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                    <div className="border-border divide-border max-h-72 divide-y overflow-y-auto border-t">
+            <div className="px-4 py-3">
+                <h2 className="text-lg font-semibold">Available funds</h2>
+                <p className="text-muted-foreground text-sm">
+                    Gift fund and {stfBuckets.length} STF{" "}
+                    {stfBuckets.length === 1 ? "bucket" : "buckets"}
+                </p>
+            </div>
+            <div className="relative">
+                <div
+                    ref={scrollRef}
+                    className="border-border divide-border max-h-72 divide-y overflow-y-auto border-t"
+                >
+                    <FundRow label="Gift fund" cents={giftBalanceCents} mode="signed" highlighted />
+                    {stfBuckets.map((bucket) => (
                         <FundRow
-                            label="Gift fund"
-                            cents={giftBalanceCents}
-                            mode="signed"
-                            highlighted
+                            key={bucket.id}
+                            label={bucket.name}
+                            cents={bucket.remainingBalanceCents}
+                            mode="remaining"
                         />
-                        {stfBuckets.map((bucket) => (
-                            <FundRow
-                                key={bucket.id}
-                                label={bucket.name}
-                                cents={bucket.remainingBalanceCents}
-                                mode="remaining"
-                            />
-                        ))}
-                    </div>
-                    {stfBuckets.length === 0 ? (
-                        <p className="text-muted-foreground border-border border-t px-4 py-3 text-xs">
-                            No active STF buckets are configured for this school year.
-                        </p>
-                    ) : null}
-                </CollapsibleContent>
-            </Collapsible>
+                    ))}
+                </div>
+                <div
+                    aria-hidden
+                    className={cn(
+                        "from-card pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t to-transparent transition-opacity duration-200",
+                        showBottomShadow ? "opacity-100" : "opacity-0"
+                    )}
+                />
+            </div>
+            {stfBuckets.length === 0 ? (
+                <p className="text-muted-foreground border-border border-t px-4 py-3 text-xs">
+                    No active STF buckets are configured for this school year.
+                </p>
+            ) : null}
         </DataTableCard>
     );
 }
