@@ -12,6 +12,8 @@ export type GiftFundChangeType = "order_approved" | "order_deleted" | "manual_ad
 export type WhitelistStatus = "pending" | "approved" | "rejected";
 export type JoinRequestStatus = "pending" | "approved" | "rejected";
 export type VaultEntryType = "login" | "api_key";
+export type FeedbackCategory = "bug" | "idea" | "other";
+export type FeedbackStatus = "open" | "resolved";
 
 export const team = sqliteTable("team", {
     id: integer("id").primaryKey({ autoIncrement: true }),
@@ -195,6 +197,19 @@ export const orderHistory = sqliteTable("order_history", {
     changedAt: integer("changed_at", { mode: "timestamp_ms" }).default(now).notNull(),
 });
 
+export const feedback = sqliteTable("feedback", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
+    category: text("category").$type<FeedbackCategory>().notNull().default("other"),
+    message: text("message").notNull(),
+    // Pathname the user was on when they opened the feedback window.
+    page: text("page"),
+    status: text("status").$type<FeedbackStatus>().notNull().default("open"),
+    resolvedBy: text("resolved_by").references(() => user.id, { onDelete: "set null" }),
+    resolvedAt: integer("resolved_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+});
+
 export const stfQuarterRelations = relations(stfQuarter, ({ many }) => ({
     buckets: many(stfBucket),
     orders: many(order),
@@ -262,6 +277,11 @@ export const networkJoinRequestRelations = relations(networkJoinRequest, ({ one 
         fields: [networkJoinRequest.reviewedBy],
         references: [user.id],
     }),
+}));
+
+export const feedbackRelations = relations(feedback, ({ one }) => ({
+    user: one(user, { fields: [feedback.userId], references: [user.id] }),
+    resolver: one(user, { fields: [feedback.resolvedBy], references: [user.id] }),
 }));
 
 export const simExportCache = sqliteTable(

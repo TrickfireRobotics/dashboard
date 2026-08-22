@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 
+import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 import { MobileNav } from "./MobileNav";
 
 type RouteMeta = { label: string; description?: string };
@@ -50,6 +51,9 @@ export function TopNav({ name, email }: { name: string; email: string }) {
                     )}
                 </div>
             )}
+            <div className="ml-auto">
+                <FeedbackButton />
+            </div>
         </header>
     );
 }

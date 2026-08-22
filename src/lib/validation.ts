@@ -176,6 +176,20 @@ export const joinRequestActionSchema = z.object({
     adminNote: z.string().trim().max(500).optional(),
 });
 
+// Feedback -------------------------------------------------------------
+
+export const feedbackCategories = ["bug", "idea", "other"] as const;
+
+export const feedbackInputSchema = z.object({
+    category: z.enum(feedbackCategories),
+    message: z.string().trim().min(1, "Feedback can't be empty").max(2000),
+    page: z.string().trim().max(200).optional(),
+});
+
+export const feedbackStatusSchema = z.object({
+    status: z.enum(["open", "resolved"]),
+});
+
 // Admin user management ----------------------------------------------------
 
 export const updateUserSchema = z
