@@ -86,84 +86,157 @@ export function VaultManager({
                     No vault entries yet.
                 </div>
             ) : (
-                <div className="border-border rounded-lg border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead className="hidden md:table-cell">Username</TableHead>
-                                <TableHead>Secret</TableHead>
-                                <TableHead className="hidden md:table-cell">Added</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {entries.map((e) => (
-                                <TableRow key={e.id}>
-                                    <TableCell className="text-foreground font-medium">
-                                        <EntryName name={e.name} />
-                                        {e.description ? (
-                                            <p className="text-muted-foreground wrap-break-words max-w-[16rem] text-xs font-normal">
-                                                {e.description}
-                                            </p>
-                                        ) : null}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground">
-                                        {TYPE_LABEL[e.type]}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground hidden font-mono text-xs md:table-cell">
-                                        {e.type === "login" ? e.username : "-"}
-                                    </TableCell>
-                                    <TableCell>
-                                        {e.type === "api_key" ? (
-                                            <KeyEndpointField entryId={e.id} />
-                                        ) : (
-                                            <SecretField entryId={e.id} />
-                                        )}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
-                                        {formatDate(e.createdAt)}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <div className="flex justify-end gap-1">
-                                            <Button
-                                                size="icon-sm"
-                                                variant="ghost"
-                                                disabled={busy === e.id}
-                                                onClick={() => setAccessEntry(e)}
-                                                aria-label="Manage access"
-                                                title="Manage access"
-                                            >
-                                                <KeyRound className="size-4" />
-                                            </Button>
-                                            <Button
-                                                size="icon-sm"
-                                                variant="ghost"
-                                                disabled={busy === e.id}
-                                                onClick={() => openEdit(e)}
-                                                aria-label="Edit entry"
-                                                title="Edit"
-                                            >
-                                                <Pencil className="size-4" />
-                                            </Button>
-                                            <Button
-                                                size="icon-sm"
-                                                variant="ghost"
-                                                disabled={busy === e.id}
-                                                onClick={() => remove(e)}
-                                                aria-label="Delete entry"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="text-destructive size-4" />
-                                            </Button>
-                                        </div>
-                                    </TableCell>
+                <>
+                    <div className="border-border hidden rounded-lg border md:block">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Type</TableHead>
+                                    <TableHead>Username</TableHead>
+                                    <TableHead>Secret</TableHead>
+                                    <TableHead>Added</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                            </TableHeader>
+                            <TableBody>
+                                {entries.map((e) => (
+                                    <TableRow key={e.id}>
+                                        <TableCell className="text-foreground font-medium">
+                                            <EntryName name={e.name} />
+                                            {e.description ? (
+                                                <p className="text-muted-foreground wrap-break-words max-w-[16rem] text-xs font-normal">
+                                                    {e.description}
+                                                </p>
+                                            ) : null}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">
+                                            {TYPE_LABEL[e.type]}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground font-mono text-xs">
+                                            {e.type === "login" ? e.username : "-"}
+                                        </TableCell>
+                                        <TableCell>
+                                            {e.type === "api_key" ? (
+                                                <KeyEndpointField entryId={e.id} />
+                                            ) : (
+                                                <SecretField entryId={e.id} />
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground whitespace-nowrap">
+                                            {formatDate(e.createdAt)}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end gap-1">
+                                                <Button
+                                                    size="icon-sm"
+                                                    variant="ghost"
+                                                    disabled={busy === e.id}
+                                                    onClick={() => setAccessEntry(e)}
+                                                    aria-label="Manage access"
+                                                    title="Manage access"
+                                                >
+                                                    <KeyRound className="size-4" />
+                                                </Button>
+                                                <Button
+                                                    size="icon-sm"
+                                                    variant="ghost"
+                                                    disabled={busy === e.id}
+                                                    onClick={() => openEdit(e)}
+                                                    aria-label="Edit entry"
+                                                    title="Edit"
+                                                >
+                                                    <Pencil className="size-4" />
+                                                </Button>
+                                                <Button
+                                                    size="icon-sm"
+                                                    variant="ghost"
+                                                    disabled={busy === e.id}
+                                                    onClick={() => remove(e)}
+                                                    aria-label="Delete entry"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="text-destructive size-4" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    <div className="space-y-3 md:hidden">
+                        {entries.map((e) => (
+                            <div
+                                key={e.id}
+                                className="border-border bg-card space-y-3 rounded-lg border p-4"
+                            >
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                        <p className="text-foreground wrap-break-words font-medium">
+                                            {e.name}
+                                        </p>
+                                        <p className="text-muted-foreground text-xs">
+                                            {TYPE_LABEL[e.type]}
+                                            {e.type === "login" && e.username
+                                                ? ` · ${e.username}`
+                                                : ""}
+                                        </p>
+                                    </div>
+                                    <div className="flex shrink-0 gap-1">
+                                        <Button
+                                            size="icon-sm"
+                                            variant="ghost"
+                                            disabled={busy === e.id}
+                                            onClick={() => setAccessEntry(e)}
+                                            aria-label="Manage access"
+                                            title="Manage access"
+                                        >
+                                            <KeyRound className="size-4" />
+                                        </Button>
+                                        <Button
+                                            size="icon-sm"
+                                            variant="ghost"
+                                            disabled={busy === e.id}
+                                            onClick={() => openEdit(e)}
+                                            aria-label="Edit entry"
+                                            title="Edit"
+                                        >
+                                            <Pencil className="size-4" />
+                                        </Button>
+                                        <Button
+                                            size="icon-sm"
+                                            variant="ghost"
+                                            disabled={busy === e.id}
+                                            onClick={() => remove(e)}
+                                            aria-label="Delete entry"
+                                            title="Delete"
+                                        >
+                                            <Trash2 className="text-destructive size-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {e.description ? (
+                                    <p className="text-muted-foreground wrap-break-words text-xs">
+                                        {e.description}
+                                    </p>
+                                ) : null}
+
+                                {e.type === "api_key" ? (
+                                    <KeyEndpointField entryId={e.id} />
+                                ) : (
+                                    <SecretField entryId={e.id} />
+                                )}
+
+                                <p className="text-muted-foreground text-xs">
+                                    Added {formatDate(e.createdAt)}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </>
             )}
 
             <VaultEntryDialog open={dialogOpen} onOpenChange={setDialogOpen} entry={editing} />
