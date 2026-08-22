@@ -24,7 +24,7 @@ export function Pl3xmapEmbed() {
     }, []);
 
     return (
-        <Card>
+        <Card className="h-full">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -46,18 +46,18 @@ export function Pl3xmapEmbed() {
                 <CardDescription>Live Pl3xMap view of the server world.</CardDescription>
             </CardHeader>
 
-            <CardContent className={cn(available ? "p-0" : undefined)}>
+            <CardContent className={cn("min-h-48 flex-1", available ? "p-0" : undefined)}>
                 {available === null ? (
-                    <Skeleton className="aspect-square w-full rounded-none rounded-b-xl" />
+                    <Skeleton className="h-full min-h-48 w-full rounded-none rounded-b-xl" />
                 ) : available ? (
                     <iframe
                         src="/pl3xmap"
                         title="Pl3xMap World Map"
-                        className="aspect-square w-full rounded-b-xl border-0"
+                        className="h-full min-h-48 w-full rounded-b-xl border-0"
                         allowFullScreen
                     />
                 ) : (
-                    <div className="flex h-64 flex-col items-center justify-center gap-3 rounded-lg border border-dashed">
+                    <div className="flex h-full min-h-48 flex-col items-center justify-center gap-3 rounded-lg border border-dashed">
                         <Map className="text-muted-foreground size-8" />
                         <div className="text-center">
                             <p className="text-foreground text-sm font-medium">Map unavailable</p>

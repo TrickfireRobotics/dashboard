@@ -59,15 +59,15 @@ export default async function MinecraftPage() {
         <div className="space-y-6">
             {/*
              * ServerStatusSection uses display:contents so its two child cards
-             * (ServerInfoCard, OnlinePlayersCard) become direct grid items.
+             * (ServerInfoCard, OnlinePlayersCard) become direct grid items,
+             * sitting alongside the map as a third column.
              */}
-            <div className="grid gap-6 sm:grid-cols-2">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 <ServerStatusSection />
+                <Pl3xmapEmbed />
             </div>
 
             <PlaytimeLeaderboard />
-
-            <Pl3xmapEmbed />
 
             <section className="space-y-4">
                 <div>
