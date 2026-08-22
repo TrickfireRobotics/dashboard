@@ -51,7 +51,7 @@ export function Pl3xmapEmbed() {
                     <Skeleton className="h-full min-h-48 w-full rounded-none rounded-b-xl" />
                 ) : available ? (
                     <iframe
-                        src="/pl3xmap"
+                        src="/pl3xmap?embed=1"
                         title="Pl3xMap World Map"
                         className="h-full min-h-48 w-full rounded-b-xl border-0"
                         allowFullScreen

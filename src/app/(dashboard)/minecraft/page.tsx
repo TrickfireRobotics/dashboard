@@ -1,4 +1,3 @@
-import { ChevronDown } from "lucide-react";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
@@ -10,7 +9,6 @@ import { ServerLogViewer } from "@/components/admin/server/ServerLogViewer";
 import { Pl3xmapEmbed } from "@/components/minecraft/Pl3xmapEmbed";
 import { PlaytimeLeaderboard } from "@/components/minecraft/PlaytimeLeaderboard";
 import { ServerStatusSection } from "@/components/minecraft/ServerStatusSection";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { db } from "@/lib/db";
 import { minecraftWhitelist, user } from "@/lib/db/schema";
 import { isConfigured, isRunning, readConfig } from "@/lib/integrations/azalea";
@@ -79,43 +77,38 @@ export default async function MinecraftPage() {
                 <WhitelistManager requests={whitelistRequests} />
             </section>
 
-            <Collapsible className="space-y-4" defaultOpen={false}>
-                <CollapsibleTrigger className="group flex w-full items-center justify-between text-left">
-                    <div>
-                        <h2>Server control</h2>
-                        <p className="text-muted-foreground text-sm">
-                            Start, stop, and configure the Minecraft server via azalea.
-                        </p>
-                    </div>
-                    <ChevronDown className="text-muted-foreground size-5 shrink-0 transition-transform group-data-[panel-open]:rotate-180" />
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-6">
-                    <div className="grid gap-6 lg:grid-cols-3">
-                        <div className="flex flex-col gap-6">
-                            <ServerControlCard
-                                initial={{ running, configured: serverConfigured, installedTag }}
-                            />
-                            {serverConfig && <RunSettingsCard initial={serverConfig} />}
-                            {!serverConfigured && (
-                                <div className="border-border text-muted-foreground rounded-lg border p-6 text-center text-sm">
-                                    Set <code className="font-mono">MINECRAFT_SERVER_PATH</code> to
-                                    enable configuration.
-                                </div>
-                            )}
-                        </div>
-                        {/* relative+self-stretch makes this column stretch to the left column's height.
-                            The inner absolute div fills that height without contributing to row sizing,
-                            so the grid row height is driven only by the left column. */}
-                        <div className="lg:relative lg:col-span-2 lg:self-stretch">
-                            <div className="flex min-h-96 flex-col lg:absolute lg:inset-0">
-                                <ServerLogViewer />
+            <section className="space-y-6">
+                <div>
+                    <h2>Server control</h2>
+                    <p className="text-muted-foreground text-sm">
+                        Start, stop, and configure the Minecraft server via azalea.
+                    </p>
+                </div>
+                <div className="grid gap-6 lg:grid-cols-3">
+                    <div className="flex flex-col gap-6">
+                        <ServerControlCard
+                            initial={{ running, configured: serverConfigured, installedTag }}
+                        />
+                        {serverConfig && <RunSettingsCard initial={serverConfig} />}
+                        {!serverConfigured && (
+                            <div className="border-border text-muted-foreground rounded-lg border p-6 text-center text-sm">
+                                Set <code className="font-mono">MINECRAFT_SERVER_PATH</code> to
+                                enable configuration.
                             </div>
+                        )}
+                    </div>
+                    {/* relative+self-stretch makes this column stretch to the left column's height.
+                        The inner absolute div fills that height without contributing to row sizing,
+                        so the grid row height is driven only by the left column. */}
+                    <div className="lg:relative lg:col-span-2 lg:self-stretch">
+                        <div className="flex min-h-96 flex-col lg:absolute lg:inset-0">
+                            <ServerLogViewer />
                         </div>
                     </div>
+                </div>
 
-                    {serverConfig && <ServerConfigEditor initial={serverConfig} />}
-                </CollapsibleContent>
-            </Collapsible>
+                {serverConfig && <ServerConfigEditor initial={serverConfig} />}
+            </section>
         </div>
     );
 }

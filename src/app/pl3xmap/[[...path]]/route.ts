@@ -3,13 +3,19 @@ import type { NextRequest } from "next/server";
 const UPSTREAM =
     process.env.PL3XMAP_URL ?? `http://${process.env.MINECRAFT_SERVER_HOST ?? "localhost"}:8080`;
 
+// Leaflet's zoom/layer/coordinate controls clutter the embedded card view.
+const STYLE_OVERRIDES = "<style>.leaflet-control-container{display:none!important}</style>";
+
 export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ path?: string[] }> }
 ) {
     const { path } = await params;
     const subpath = path?.length ? "/" + path.join("/") : "/";
-    const search = new URL(request.url).search;
+    const url = new URL(request.url);
+    const embed = url.searchParams.get("embed") === "1";
+    url.searchParams.delete("embed");
+    const search = url.search;
 
     try {
         const res = await fetch(`${UPSTREAM}${subpath}${search}`, {
@@ -28,6 +34,10 @@ export async function GET(
                 html = html.replace(/<base\s+href="[^"]*"/gi, '<base href="/pl3xmap/"');
             } else {
                 html = html.replace("<head>", '<head><base href="/pl3xmap/">');
+            }
+
+            if (embed) {
+                html = html.replace("<head>", `<head>${STYLE_OVERRIDES}`);
             }
 
             return new Response(html, {
