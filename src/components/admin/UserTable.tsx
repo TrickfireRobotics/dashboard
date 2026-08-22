@@ -8,6 +8,13 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DataTableCard, DataTableCardHeader } from "@/components/ui/data-table-card";
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import {
     Table,
     TableBody,
     TableCell,
@@ -34,6 +41,7 @@ export function UserTable({
 }) {
     const router = useRouter();
     const [busy, setBusy] = useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<AdminUserRow | null>(null);
 
     async function patchUser(id: string, body: Record<string, unknown>) {
         setBusy(id);
@@ -48,6 +56,24 @@ export function UserTable({
                 throw new Error(data?.error ?? "Update failed");
             }
             toast.success("User updated");
+            router.refresh();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Something went wrong");
+        } finally {
+            setBusy(null);
+        }
+    }
+
+    async function deleteUser(id: string) {
+        setBusy(id);
+        try {
+            const res = await fetch(`/api/admin/users/${id}`, { method: "DELETE" });
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                throw new Error(data?.error ?? "Delete failed");
+            }
+            toast.success("User deleted");
+            setDeleteTarget(null);
             router.refresh();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Something went wrong");
@@ -96,20 +122,62 @@ export function UserTable({
                                     {formatDate(u.createdAt)}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <Button
-                                        size="sm"
-                                        variant={u.isActive ? "destructive" : "outline"}
-                                        disabled={isSelf || busy === u.id}
-                                        onClick={() => patchUser(u.id, { isActive: !u.isActive })}
-                                    >
-                                        {u.isActive ? "Deactivate" : "Activate"}
-                                    </Button>
+                                    <div className="flex justify-end gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant={u.isActive ? "destructive" : "outline"}
+                                            disabled={isSelf || busy === u.id}
+                                            onClick={() =>
+                                                patchUser(u.id, { isActive: !u.isActive })
+                                            }
+                                        >
+                                            {u.isActive ? "Deactivate" : "Activate"}
+                                        </Button>
+                                        {!u.isActive ? (
+                                            <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                disabled={isSelf || busy === u.id}
+                                                onClick={() => setDeleteTarget(u)}
+                                            >
+                                                Delete
+                                            </Button>
+                                        ) : null}
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         );
                     })}
                 </TableBody>
             </Table>
+
+            <Dialog
+                open={deleteTarget !== null}
+                onOpenChange={(open) => !open && setDeleteTarget(null)}
+            >
+                <DialogContent overlayClassName="bg-destructive/20">
+                    <DialogHeader>
+                        <DialogTitle>Permanently delete this user?</DialogTitle>
+                        <DialogDescription>
+                            This will permanently remove <strong>{deleteTarget?.name}</strong> (
+                            {deleteTarget?.email}) and all of their associated data. This cannot be
+                            undone.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="flex justify-end gap-2">
+                        <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="destructive"
+                            disabled={busy === deleteTarget?.id}
+                            onClick={() => deleteTarget && deleteUser(deleteTarget.id)}
+                        >
+                            Delete permanently
+                        </Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </DataTableCard>
     );
 }

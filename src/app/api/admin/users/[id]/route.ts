@@ -53,3 +53,34 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     return NextResponse.json({ user: updated });
 }
+
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const admin = await getSessionUser();
+    if (!admin) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userId = (await params).id;
+
+    if (userId === admin.id) {
+        return NextResponse.json({ error: "You cannot delete your own account" }, { status: 400 });
+    }
+
+    const existing = db.select().from(user).where(eq(user.id, userId)).get();
+    if (!existing) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    // Deleting is only permitted once a user has been deactivated - keeps
+    // permanent removal a deliberate two-step action.
+    if (existing.isActive) {
+        return NextResponse.json(
+            { error: "Deactivate the user before deleting them" },
+            { status: 400 }
+        );
+    }
+
+    db.delete(user).where(eq(user.id, userId)).run();
+
+    return NextResponse.json({ id: userId });
+}
