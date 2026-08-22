@@ -119,7 +119,7 @@ export default async function DashboardHome() {
     return (
         <div className="space-y-10">
             <div className="flex items-start justify-between gap-4">
-                <h1>
+                <h1 className="text-4xl sm:text-5xl">
                     {getGreeting()}
                     <span className="from-primary to-secondary bg-gradient-to-r bg-clip-text text-transparent">
                         {firstName}
