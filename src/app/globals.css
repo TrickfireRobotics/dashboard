@@ -182,9 +182,16 @@
     isolation: isolate;
 }
 
+/*
+ * `fixed` (not `absolute`) deliberately: .milestones-background is itself the
+ * scroll container, so an absolutely-positioned pseudo-element only covers
+ * its client height and gets left behind once the poster scrolls past one
+ * screen - the footer would sit on plain black. Fixed pins the glow to the
+ * viewport so it fills whatever's on screen at any scroll position.
+ */
 .milestones-background::before {
     content: "";
-    position: absolute;
+    position: fixed;
     inset: 0;
     z-index: -2;
     background:
@@ -194,7 +201,7 @@
 
 .milestones-background::after {
     content: "";
-    position: absolute;
+    position: fixed;
     inset: 0;
     z-index: -1;
     background-image: radial-gradient(circle, rgb(255 255 255 / 7%) 1px, transparent 1px);

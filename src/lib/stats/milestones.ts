@@ -13,7 +13,10 @@ import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-import { getOrgMembers, isGithubConfigured } from "@/lib/integrations/github";
+import { and, eq } from "drizzle-orm";
+
+import { db } from "@/lib/db";
+import { user } from "@/lib/db/schema";
 
 export type MilestoneStats = {
     linesOfCode: number;
@@ -22,7 +25,7 @@ export type MilestoneStats = {
     daysInDevelopment: number | null;
     apiRouteCount: number;
     dbTableCount: number;
-    teamMemberCount: number | null;
+    teamMemberCount: number;
     generatedAt: string;
 };
 
@@ -95,22 +98,18 @@ async function countDbTables(): Promise<number> {
     }
 }
 
-async function countTeamMembers(): Promise<number | null> {
-    if (!isGithubConfigured()) return null;
-    try {
-        const members = await getOrgMembers();
-        return members?.length ?? null;
-    } catch {
-        return null;
-    }
+/** Approved, active members registered in the dashboard - not GitHub org members. */
+function countDashboardMembers(): number {
+    return db
+        .select({ id: user.id })
+        .from(user)
+        .where(and(eq(user.approved, true), eq(user.isActive, true)))
+        .all().length;
 }
 
 export async function getMilestoneStats(): Promise<MilestoneStats> {
     const { lines, files } = countTypeScriptLoc();
-    const [dbTableCount, teamMemberCount] = await Promise.all([
-        countDbTables(),
-        countTeamMembers(),
-    ]);
+    const dbTableCount = await countDbTables();
 
     return {
         linesOfCode: lines,
@@ -119,7 +118,7 @@ export async function getMilestoneStats(): Promise<MilestoneStats> {
         daysInDevelopment: daysSinceFirstCommit(),
         apiRouteCount: countApiRoutes(),
         dbTableCount,
-        teamMemberCount,
+        teamMemberCount: countDashboardMembers(),
         generatedAt: new Date().toISOString(),
     };
 }

@@ -52,11 +52,7 @@ export function MilestonePoster({ stats }: { stats: MilestoneStats }) {
         { icon: FileCode2, value: fmt(stats.fileCount), label: "TypeScript Files" },
         { icon: Route, value: fmt(stats.apiRouteCount), label: "API Routes" },
         { icon: Database, value: fmt(stats.dbTableCount), label: "Database Tables" },
-        stats.teamMemberCount != null && {
-            icon: Users,
-            value: fmt(stats.teamMemberCount),
-            label: "Team Members",
-        },
+        { icon: Users, value: fmt(stats.teamMemberCount), label: "Active Members" },
         stats.daysInDevelopment != null && {
             icon: CalendarDays,
             value: fmt(stats.daysInDevelopment),
