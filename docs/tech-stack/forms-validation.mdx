@@ -13,7 +13,7 @@ None of these are Next.js-specific - this is a general pattern for any React app
 
 ## The pattern used throughout this codebase
 
-Every form-heavy component (`OrderForm`, `LoginForm`, `SettingsForm`, `JoinRequestForm`, `WhitelistRequestForm`, `VaultEntryDialog`) follows the same shape. Using `src/components/orders/OrderForm.tsx` as the concrete example:
+Every form-heavy component (`OrderForm`, `LoginForm`, `SettingsForm`, `JoinRequestForm`, `VaultEntryDialog`) follows the same shape. Using `src/components/orders/OrderForm.tsx` as the concrete example:
 
 **1. Define a Zod schema at the top of the file.** `OrderForm` submits a list of
 items, so its schema wraps a per-item schema in an array:

@@ -11,29 +11,35 @@ It's a single Next.js app (no separate backend service) that renders pages on th
 
 ## Top-level `src/` layout
 
-| Folder           | Purpose                                                                                                                                                                                                                                                                                                                                         |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/app`        | Every route: pages, layouts, and API route handlers (Next.js App Router - see [Next.js & TypeScript](/tech-stack/nextjs-typescript/)).                                                                                                                                                                                                          |
-| `src/components` | Client-facing UI, one subfolder per feature area (`admin`, `auth`, `dashboard`, `finance`, `github`, `minecraft`, `network`, `onshape`, `orders`, `settings`, `vault`, `layout`) plus `ui` for the shadcn/ui primitives.                                                                                                                        |
-| `src/lib`        | Everything that isn't UI: `auth/` (better-auth setup + session helpers), `db/` (Drizzle schema + SQLite client), `finance/`, `integrations/` (GitHub, OnShape, Minecraft/Azalea, email), `security/` (vault crypto, API-key hashing, rate limiting), plus small root-level modules (`features.ts`, `use-poll.ts`, `utils.ts`, `validation.ts`). |
+| Folder           | Purpose                                                                                                                                                                                                                                                                                                                          |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app`        | Every route: pages, layouts, and API route handlers (Next.js App Router - see [Next.js & TypeScript](/tech-stack/nextjs-typescript/)).                                                                                                                                                                                           |
+| `src/components` | Client-facing UI, one subfolder per feature area (`admin`, `auth`, `dashboard`, `finance`, `github`, `minecraft`, `network`, `onshape`, `orders`, `settings`, `vault`, `layout`) plus `ui` for the shadcn/ui primitives.                                                                                                         |
+| `src/lib`        | Everything that isn't UI: `auth/` (better-auth setup + session helpers), `db/` (Drizzle schema + SQLite client), `finance/`, `integrations/` (GitHub, OnShape, Minecraft/Azalea, email), `security/` (vault crypto, API-key hashing, rate limiting), plus small root-level modules (`use-poll.ts`, `utils.ts`, `validation.ts`). |
 
 There's no `src/hooks` or `src/types` folder - the one meaningful custom hook (`usePoll`) lives in `src/lib`, and types are defined next to the schema/integration code they belong to rather than centralized.
+
+<Callout type="info" title="Note">
+    The `admin` subfolder under `src/components` (and `admin/*` under `src/app/api`) is a naming
+    holdover, not a live access tier - there's no admin role anymore (see below). It groups
+    components/routes that happen to manage shared/global data (users, whitelist, server control,
+    vault), as opposed to a member's own data.
+</Callout>
 
 ## `src/app` structure
 
 ```
 src/app/
 ├── (auth)/            # /login, /pending - unauthenticated flow, own layout
-├── (dashboard)/       # everything behind auth - own layout
+├── (dashboard)/       # everything behind auth - own layout, flat routes
 │   ├── dashboard/
-│   ├── orders/[id]/edit, orders/new
-│   ├── api-keys/
-│   ├── minecraft/
+│   ├── orders/[id]/edit
+│   ├── api-keys/      # the vault UI
+│   ├── minecraft/     # status, whitelist, server control, playtime, map
 │   ├── network/
-│   ├── features/
-│   ├── settings/
-│   └── admin/         # nested layout re-checks role === "admin"
-│       ├── finance/ github/ minecraft/ network/ onshape/ orders/ server/ users/
+│   ├── members/       # users, GitHub org, OnShape company - tabbed
+│   ├── finance/
+│   └── settings/
 ├── pl3xmap/[[...path]]  # Minecraft map proxy - relaxed CSP, no auth group
 ├── sentry-example-page/
 └── api/               # route handlers - see the tech-stack pages for details
@@ -41,13 +47,14 @@ src/app/
 
 The two parenthesized folders - `(auth)` and `(dashboard)` - are [Next.js route groups](/tech-stack/nextjs-typescript/#route-groups-and-layouts): they organize routes and give each area its own `layout.tsx` without adding a `/auth` or `/dashboard` segment to the URL.
 
-## How a page request is authorized (three layers)
+Every `(dashboard)` route is a flat top-level page - there used to be a nested `admin/` section with its own layout, but that's gone along with the admin role (see below). What were once separate admin pages (users, GitHub, OnShape, server control) are now tabs or sections on the ordinary top-level pages (`/members`, `/minecraft`) instead of a separate route tree.
 
-Access control isn't handled in one place - it's layered, and each layer exists for a different reason:
+## How a page request is authorized (two layers)
 
-1. **`src/middleware.ts`** runs first, before any page renders, for everything matched by its `matcher` (`/dashboard`, `/orders`, `/minecraft`, `/network`, `/features`, `/api-keys`, `/admin` - notably _not_ `/api/*`). It checks the session cookie via `auth.api.getSession()`, redirects to `/login` if missing or the account is deactivated, to `/pending` if not yet approved, and for non-admins, checks the requested path against `FEATURE_ROUTES` (in `src/lib/features.ts`) against a `userFeature` grant in the database.
-2. **`(dashboard)/admin/layout.tsx`** re-checks `role === "admin"` as a server component, independent of the middleware. This is defense in depth - if the middleware matcher were ever misconfigured, the admin section still guards itself.
-3. **Individual API route handlers** each call `getSessionUser()` and re-check role/`isActive` themselves, because `/api/*` isn't covered by the middleware at all. This is why you'll see the same-looking auth check copy-pasted at the top of many `route.ts` files rather than factored into one shared function - see [Authentication & Authorization](/tech-stack/auth/) for why, and where the vault endpoints add an extra check on top.
+Access control isn't layered by role anymore - every approved, active user reaches the same pages and the same data. What's still layered is _where_ the session/status check happens, because `/api/*` isn't covered by the middleware:
+
+1. **`src/middleware.ts`** runs first, before any page renders, for everything matched by its `matcher` (`/dashboard`, `/orders`, `/minecraft`, `/network`, `/members`, `/finance`, `/api-keys` - notably _not_ `/api/*`). It checks the session cookie via `auth.api.getSession()`, redirects to `/login` if missing or the account is deactivated, and to `/pending` if not yet approved. That's the entire check - there's no further per-route or per-role gate after it.
+2. **Individual API route handlers** each call `getSessionUser()` and re-check the session/`isActive` themselves, because `/api/*` isn't covered by the middleware at all. This is why you'll see the same-looking auth check copy-pasted at the top of many `route.ts` files rather than factored into one shared function - see [Authentication & Authorization](/tech-stack/auth/) for why, and where the vault endpoints add an extra per-entry check on top.
 
 ## Data fetching pattern
 
@@ -58,20 +65,22 @@ Only three files in the entire `src/app` tree are `"use client"` at the page/lay
 
 ## The ordering workflow
 
-Parts ordering is the largest feature, and it splits deliberately between what a
-member does and what an officer does.
+Parts ordering is the largest feature, and it splits deliberately between
+submitting an item and triaging it - not between two different roles. Both
+halves live on the single `/orders` page; anyone can do either.
 
-**Members submit items only.** The submission form asks for vendor, link, item
-name, part number, quantity, cost and notes - no fund type and no STF bucket.
-One form can carry many items (see the repeatable-rows section in
+**Submission carries items only.** The submission form asks for vendor, link,
+item name, part number, quantity, cost and notes - no fund type and no STF
+bucket. One form can carry many items (see the repeatable-rows section in
 [Forms & Validation](/tech-stack/forms-validation/)), and `POST /api/orders`
 writes them all in one request, stamping a shared `batchId` when there is more
 than one. Orders therefore land with `fundType`, `stfBucketId` and `quarterId`
 all null.
 
-**Officers triage in batches.** `/admin/orders` groups pending orders into
-"Needs triage" (no fund yet) and "Ready to review" (assigned). Officers
-multi-select rows and act on the whole selection:
+**The order queue triages in batches.** The "Order queue" section of `/orders`
+groups pending orders into "Needs triage" (no fund yet) and "Ready to review"
+(assigned). Whoever's triaging multi-selects rows and acts on the whole
+selection:
 
 | Endpoint                       | What it does                                                     |
 | ------------------------------ | ---------------------------------------------------------------- |
@@ -92,15 +101,15 @@ the time an officer reviews it. Two consequences worth knowing:
 
 ## Where each concern is documented
 
-| Concern                                                          | Page                                                        |
-| ---------------------------------------------------------------- | ----------------------------------------------------------- |
-| Next.js routing, server/client components, `next.config.ts`      | [Next.js & TypeScript](/tech-stack/nextjs-typescript/)      |
-| Tailwind v4, shadcn/ui, icons, toasts                            | [Styling & UI Components](/tech-stack/styling-ui/)          |
-| Forms and input validation                                       | [Forms & Validation](/tech-stack/forms-validation/)         |
-| Schema, migrations, seeding                                      | [Database](/tech-stack/database/)                           |
-| Sessions, roles, feature grants                                  | [Authentication & Authorization](/tech-stack/auth/)         |
-| Vault encryption, API keys, rate limiting                        | [Security](/tech-stack/security/)                           |
-| Unit tests                                                       | [Testing](/tech-stack/testing/)                             |
-| Linting, formatting, git hooks, CI                               | [Code Quality Tooling](/tech-stack/tooling/)                |
-| Error tracking, uptime monitoring                                | [Observability](/tech-stack/observability/)                 |
-| Minecraft/RCON, GitHub, Resend, OnShape, Tailscale, system stats | [External Integrations](/tech-stack/external-integrations/) |
+| Concern                                                     | Page                                                        |
+| ----------------------------------------------------------- | ----------------------------------------------------------- |
+| Next.js routing, server/client components, `next.config.ts` | [Next.js & TypeScript](/tech-stack/nextjs-typescript/)      |
+| Tailwind v4, shadcn/ui, icons, toasts                       | [Styling & UI Components](/tech-stack/styling-ui/)          |
+| Forms and input validation                                  | [Forms & Validation](/tech-stack/forms-validation/)         |
+| Schema, migrations, seeding                                 | [Database](/tech-stack/database/)                           |
+| Sessions, account status                                    | [Authentication & Authorization](/tech-stack/auth/)         |
+| Vault encryption, API keys, rate limiting                   | [Security](/tech-stack/security/)                           |
+| Unit tests                                                  | [Testing](/tech-stack/testing/)                             |
+| Linting, formatting, git hooks, CI                          | [Code Quality Tooling](/tech-stack/tooling/)                |
+| Error tracking, uptime monitoring                           | [Observability](/tech-stack/observability/)                 |
+| Minecraft/RCON, GitHub, Resend, OnShape, Tailscale          | [External Integrations](/tech-stack/external-integrations/) |

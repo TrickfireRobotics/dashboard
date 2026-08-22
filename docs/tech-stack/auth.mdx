@@ -1,6 +1,6 @@
 ---
 title: Authentication & Authorization
-description: better-auth setup, sessions, roles, feature grants, and where each access check actually lives.
+description: better-auth setup, sessions, and where each access check actually lives.
 ---
 
 ## What better-auth is
@@ -10,7 +10,14 @@ description: better-auth setup, sessions, roles, feature grants, and where each 
 It's worth distinguishing two related but different ideas this page covers:
 
 - **Authentication** - "who is this user?" (better-auth's job: sessions, login, verification)
-- **Authorization** - "is this user allowed to do this?" (this app's job: roles, feature grants, vault access - built on top of the session better-auth provides)
+- **Authorization** - "is this user allowed to do this?" (this app's job: account status and vault access - built on top of the session better-auth provides)
+
+<Callout type="info" title="Single access tier">
+    There is no admin/member role split anymore - every approved, active user has the same access to
+    every page and API route. The one exception is the API Key Vault, where reading a _specific_
+    secret still requires an explicit per-entry grant (see [below](#helpers-in-srclibauthsessionts)
+    and [Security](/tech-stack/security/)).
+</Callout>
 
 ## Server configuration (`src/lib/auth/auth.ts`)
 
@@ -21,9 +28,7 @@ export const auth = betterAuth({
     plugins: [emailOTP({ otpLength: 6, expiresIn: 600 })],
     user: {
         additionalFields: {
-            role: { type: "string", defaultValue: "member", input: false },
             isActive: { type: "boolean", defaultValue: true, input: false },
-            canAccessVault: { type: "boolean", defaultValue: false, input: false },
             approved: { type: "boolean", defaultValue: false, input: false },
         },
         changeEmail: { enabled: true },
@@ -37,16 +42,14 @@ Key points:
 - **`emailAndPassword`** is the only sign-in method - no OAuth/social login is configured.
 - **`requireEmailVerification: true`** means a new account can't log in until it clicks a verification link/code.
 - **The `emailOTP` plugin** is reused for two purposes: verifying a new email address, and resetting a forgotten password - both send a 6-digit code (`sendEmail`, via [Resend](/tech-stack/external-integrations/#resend-transactional-email)) rather than a magic link.
-- **`additionalFields`** all have `input: false` - this means a client **cannot** set these fields through the normal sign-up/update-profile API, even if it tries to send them in the request body. They can only be changed by server-side code writing to the database directly (e.g. an admin API route, or the seed script). This is the whole security model for roles: a user cannot promote themselves to admin by crafting a request.
+- **`additionalFields`** both have `input: false` - this means a client **cannot** set these fields through the normal sign-up/update-profile API, even if it tries to send them in the request body. They can only be changed by server-side code writing to the database directly (e.g. `PATCH /api/admin/users/[id]`, or the seed script). This is what stops a user from approving or reactivating their own account by crafting a request.
 
 ### What each additional field means
 
-| Field            | Default    | Meaning                                                                                                                                                          |
-| ---------------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `role`           | `"member"` | `"member"` or `"admin"` - checked throughout the app wherever admin-only UI or API access is gated.                                                              |
-| `isActive`       | `true`     | Set `false` to deactivate an account without deleting it - `middleware.ts` immediately redirects deactivated users to `/login` and clears their session cookies. |
-| `approved`       | `false`    | New sign-ups aren't approved by default - unapproved users are redirected to `/pending` until an admin approves them.                                            |
-| `canAccessVault` | `false`    | Whether this user can open the API Key Vault page at all (separate from _which_ vault entries they can read - see [Security](/tech-stack/security/)).            |
+| Field      | Default | Meaning                                                                                                                                                          |
+| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isActive` | `true`  | Set `false` to deactivate an account without deleting it - `middleware.ts` immediately redirects deactivated users to `/login` and clears their session cookies. |
+| `approved` | `false` | New sign-ups aren't approved by default - unapproved users are redirected to `/pending` until an existing member approves them from the Members page.            |
 
 ### Regenerating the schema
 
@@ -67,17 +70,16 @@ export const authClient = createAuthClient({
 export const { signIn, signOut, signUp, useSession } = authClient;
 ```
 
-`inferAdditionalFields<typeof auth>()` is what gives `useSession()` correct TypeScript types for `role`/`isActive`/`approved`/`canAccessVault` on the client, inferred from the same server config rather than redeclared.
+`inferAdditionalFields<typeof auth>()` is what gives `useSession()` correct TypeScript types for `isActive`/`approved` on the client, inferred from the same server config rather than redeclared.
 
-## The three layers of access control
+## The two layers of access control
 
-This is covered in more depth in [Architecture Overview](/architecture/#how-a-page-request-is-authorized-three-layers) - summarized here from the auth side:
+This is covered in more depth in [Architecture Overview](/architecture/#how-a-page-request-is-authorized-two-layers) - summarized here from the auth side:
 
-1. **`middleware.ts`** - session exists? active? approved? (for non-admins) does a `userFeature` grant exist for this route, per `FEATURE_ROUTES` in `src/lib/features.ts`?
-2. **`(dashboard)/admin/layout.tsx`** - re-checks `role === "admin"` as a server component.
-3. **Every `api/admin/**/route.ts`and other sensitive route handler** - calls`getSessionUser()` (`src/lib/auth/session.ts`) and checks `role`/`isActive`itself, since middleware doesn't cover`/api/\*`.
+1. **`middleware.ts`** - session exists? account active? approved? That's the whole check - once all three are true, a user can reach any page covered by the matcher, there's no further per-route gating.
+2. **Individual API route handlers** each call `getSessionUser()` (`src/lib/auth/session.ts`) and re-check the session/`isActive` themselves, since `/api/*` isn't covered by the middleware at all.
 
-There is currently no single shared `requireAdmin()` helper - the same-shaped check is repeated per route handler. If you're adding a new admin API route, copy the pattern from a neighboring `api/admin/*/route.ts` file rather than inventing a new shape.
+There is no shared `requireAuth()` helper for route handlers - the same-shaped check is repeated per file. If you're adding a new API route, copy the pattern from a neighboring `route.ts` rather than inventing a new shape.
 
 ### Helpers in `src/lib/auth/session.ts`
 
@@ -85,14 +87,9 @@ There is currently no single shared `requireAdmin()` helper - the same-shaped ch
 export async function getSessionUser() {
     /* wraps auth.api.getSession({ headers }) */
 }
-export function canUseVault(user): boolean {
-    /* admin, or user.canAccessVault */
-}
 export function canReadVaultEntry(user, entryId): boolean {
-    /* admin, or a matching vaultEntryAccess row */
+    /* true only if a matching vaultEntryAccess row exists - no bypass */
 }
 ```
 
-## Feature grants (`userFeature` table + `src/lib/features.ts`)
-
-Some routes aren't purely admin/member - they're gated behind a per-user, per-feature grant (e.g. a member might be granted access to `/minecraft` without being an admin). `FEATURE_ROUTES` maps a URL prefix to a feature key; `middleware.ts` checks whether the current user has a `userFeature` row for that key with `status: "granted"`. Users without a grant land on `/features?denied=<key>`, where they can request access.
+`canReadVaultEntry` is the one place authorization is still per-user rather than all-or-nothing - see [Security](/tech-stack/security/#the-api-key-vault) for how vault entry grants work.

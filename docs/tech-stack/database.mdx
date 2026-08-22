@@ -30,9 +30,8 @@ Tables are defined with Drizzle's `sqliteTable()`. This file re-exports the auth
 | `giftFundLog`, `orderHistory`     | Audit trails for balance changes and order status transitions                                                                                                                       |
 | `apiKey`                          | One-way hashed service API keys for the external simulation-script API (distinct from the vault - see [Security](/tech-stack/security/))                                            |
 | `vaultEntry` / `vaultEntryAccess` | The shared credential vault and its per-user read grants                                                                                                                            |
-| `minecraftWhitelist`              | Minecraft whitelist requests (username, status, admin review)                                                                                                                       |
+| `minecraftWhitelist`              | Minecraft whitelist entries (username, status, review note) - added directly or via an older member-request flow, see `addedDirectly`                                               |
 | `networkJoinRequest`              | Tailscale/network device join requests                                                                                                                                              |
-| `userFeature`                     | Per-user feature-flag grant requests (pending/granted/rejected) - what `middleware.ts` checks for non-admin routes                                                                  |
 
 Money is always stored as integer cents (`unitCostCents`, `startingBalanceCents`, etc.), never floats - this avoids floating-point rounding errors in financial arithmetic. Timestamps are stored as millisecond integers via a shared SQL fragment:
 
@@ -74,9 +73,9 @@ Generated files live in `drizzle/migrations/*.sql`, with a `meta/_journal.json` 
 
 ## Seeding (`scripts/seed.ts`, run via `pnpm db:seed`)
 
-Populates the 6 subteams, a gift fund/quarter/buckets row, an admin user (from `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD`/`SEED_ADMIN_NAME` - throws if unset), and ~13 sample orders spanning every status, all prefixed `[seed] ` so they're easy to spot and distinguish from real data.
+Populates the 6 subteams, a gift fund/quarter/buckets row, an approved+active seed user (from `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD`/`SEED_ADMIN_NAME` - throws if unset), and sample orders spanning every status, all prefixed `[seed] ` so they're easy to spot and distinguish from real data.
 
-It's **idempotent** - every insert is either `.onConflictDoNothing()` (teams) or an explicit select-then-insert/update check keyed on a unique name (gift fund, buckets, admin user, seed orders), so running `pnpm db:seed` again never creates duplicates. This is what makes `pnpm setup` (`db:migrate` + `db:seed`) safe to run repeatedly, including as part of the production deploy path.
+It's **idempotent** - every insert is either `.onConflictDoNothing()` (teams) or an explicit select-then-insert/update check keyed on a unique name (gift fund, buckets, seed user, seed orders), so running `pnpm db:seed` again never creates duplicates. This is what makes `pnpm setup` (`db:migrate` + `db:seed`) safe to run repeatedly, including as part of the production deploy path.
 
 ## Studio - a GUI for the local database
 
