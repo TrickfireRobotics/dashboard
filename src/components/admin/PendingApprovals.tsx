@@ -82,8 +82,8 @@ export function PendingApprovals({ users }: { users: PendingUserRow[] }) {
                     <TableHeader>
                         <TableRow>
                             <TableHead>Name</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Registered</TableHead>
+                            <TableHead className="hidden md:table-cell">Email</TableHead>
+                            <TableHead className="hidden md:table-cell">Registered</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -91,8 +91,10 @@ export function PendingApprovals({ users }: { users: PendingUserRow[] }) {
                         {users.map((u) => (
                             <TableRow key={u.id}>
                                 <TableCell className="font-medium">{u.name}</TableCell>
-                                <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                                <TableCell className="text-muted-foreground whitespace-nowrap">
+                                <TableCell className="text-muted-foreground hidden md:table-cell">
+                                    {u.email}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
                                     {formatDate(u.createdAt)}
                                 </TableCell>
                                 <TableCell className="text-right">

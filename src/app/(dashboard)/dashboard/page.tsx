@@ -118,10 +118,10 @@ export default async function DashboardHome() {
 
     return (
         <div className="space-y-10">
-            <div className="flex items-start justify-between gap-4">
-                <h1 className="text-4xl sm:text-5xl">
+            <div className="flex flex-col items-start justify-between gap-4 sm:flex-row">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl">
                     {getGreeting()}
-                    <span className="from-primary to-secondary bg-gradient-to-r bg-clip-text text-transparent">
+                    <span className="from-primary to-secondary bg-linear-to-r bg-clip-text text-transparent">
                         {firstName}
                     </span>
                 </h1>

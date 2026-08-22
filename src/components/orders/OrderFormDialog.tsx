@@ -46,6 +46,7 @@ export function OrderFormDialog() {
                 <DialogTrigger
                     render={<Button variant="outline" />}
                     onClick={() => openDialog("multiple")}
+                    className="hidden sm:inline-flex"
                 >
                     <ListPlus className="size-4" />
                     Submit multiple

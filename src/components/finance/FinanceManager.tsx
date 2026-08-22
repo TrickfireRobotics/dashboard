@@ -289,8 +289,12 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Name</TableHead>
-                                <TableHead className="text-right">Starting</TableHead>
-                                <TableHead className="text-right">Spent</TableHead>
+                                <TableHead className="hidden text-right md:table-cell">
+                                    Starting
+                                </TableHead>
+                                <TableHead className="hidden text-right md:table-cell">
+                                    Spent
+                                </TableHead>
                                 <TableHead className="text-right">Remaining</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -299,10 +303,10 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                             {data.stfBuckets.map((b) => (
                                 <TableRow key={b.id}>
                                     <TableCell>{b.name}</TableCell>
-                                    <TableCell className="text-right whitespace-nowrap">
+                                    <TableCell className="hidden text-right whitespace-nowrap md:table-cell">
                                         {formatPriceCents(b.startingBalanceCents)}
                                     </TableCell>
-                                    <TableCell className="text-right whitespace-nowrap">
+                                    <TableCell className="hidden text-right whitespace-nowrap md:table-cell">
                                         {formatPriceCents(b.approvedSpendCents)}
                                     </TableCell>
                                     <TableCell className="text-right whitespace-nowrap">
@@ -451,10 +455,12 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Date</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead className="text-right">Previous</TableHead>
+                                <TableHead className="hidden md:table-cell">Type</TableHead>
+                                <TableHead className="hidden text-right md:table-cell">
+                                    Previous
+                                </TableHead>
                                 <TableHead className="text-right">New</TableHead>
-                                <TableHead>Note</TableHead>
+                                <TableHead className="hidden md:table-cell">Note</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -463,14 +469,18 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                                     <TableCell className="whitespace-nowrap">
                                         {formatDate(entry.timestamp)}
                                     </TableCell>
-                                    <TableCell>{entry.changeType}</TableCell>
-                                    <TableCell className="text-right whitespace-nowrap">
+                                    <TableCell className="hidden md:table-cell">
+                                        {entry.changeType}
+                                    </TableCell>
+                                    <TableCell className="hidden text-right whitespace-nowrap md:table-cell">
                                         {formatPriceCents(entry.previousValueCents)}
                                     </TableCell>
                                     <TableCell className="text-right whitespace-nowrap">
                                         {formatPriceCents(entry.newValueCents)}
                                     </TableCell>
-                                    <TableCell>{entry.note ?? "-"}</TableCell>
+                                    <TableCell className="hidden md:table-cell">
+                                        {entry.note ?? "-"}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

@@ -22,7 +22,7 @@ export function LiveClock() {
     });
 
     return (
-        <div className="text-right">
+        <div className="text-left sm:text-right">
             <p suppressHydrationWarning className="font-heading text-3xl text-white tabular-nums">
                 {time}
             </p>

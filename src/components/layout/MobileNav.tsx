@@ -68,14 +68,18 @@ export function MobileNav({ name, email }: { name: string; email: string }) {
                     <NavContent onLinkClick={() => setOpen(false)} />
 
                     <div className="border-sidebar-border flex items-center gap-3 border-t px-4 py-3">
-                        <div className="min-w-0 flex-1">
+                        <Link
+                            href="/settings"
+                            onClick={() => setOpen(false)}
+                            className="hover:bg-sidebar-accent min-w-0 flex-1 rounded-md p-1 transition-colors"
+                        >
                             <p className="truncate text-sm font-medium" title={name}>
                                 {name}
                             </p>
                             <p className="text-muted-foreground truncate text-xs" title={email}>
                                 {email}
                             </p>
-                        </div>
+                        </Link>
                         <Button
                             variant="outline"
                             size="icon"
