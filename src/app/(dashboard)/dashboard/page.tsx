@@ -20,6 +20,15 @@ import { db } from "@/lib/db";
 import { minecraftWhitelist, order, user } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
 
+function getGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 5) return "Still up, ";
+    if (hour < 12) return "Good morning, ";
+    if (hour < 17) return "Good afternoon, ";
+    if (hour < 21) return "Good evening, ";
+    return "Working late, ";
+}
+
 const quickLinks = [
     {
         href: "/orders",
@@ -110,7 +119,12 @@ export default async function DashboardHome() {
     return (
         <div className="space-y-10">
             <div className="flex items-start justify-between gap-4">
-                <h1>Welcome back, {firstName}</h1>
+                <h1>
+                    {getGreeting()}
+                    <span className="from-primary to-secondary bg-gradient-to-r bg-clip-text text-transparent">
+                        {firstName}
+                    </span>
+                </h1>
                 <LiveClock />
             </div>
 
