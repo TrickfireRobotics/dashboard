@@ -1,8 +1,10 @@
-import { Users } from "lucide-react";
+import { ArrowDown, Users } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { PlayerHead } from "./PlayerHead";
 
 type Player = { name: string; uuid: string; isBot: boolean; skinSource?: string };
@@ -22,7 +24,16 @@ export function OnlinePlayersCard({ status, loading }: Props) {
     return (
         <Card className="h-full">
             <CardHeader>
-                <CardTitle>Online Now</CardTitle>
+                <div className="flex items-center justify-between">
+                    <CardTitle>Online Now</CardTitle>
+                    <a
+                        href="#whitelist"
+                        className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+                    >
+                        <ArrowDown className="size-4" />
+                        Whitelist
+                    </a>
+                </div>
                 <CardDescription>
                     {isOnline
                         ? players.length === 0

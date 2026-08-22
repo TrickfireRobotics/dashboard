@@ -1,4 +1,3 @@
-import { ArrowDown } from "lucide-react";
 import { asc, desc, eq, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
@@ -10,12 +9,10 @@ import { ServerLogViewer } from "@/components/admin/server/ServerLogViewer";
 import { Pl3xmapEmbed } from "@/components/minecraft/Pl3xmapEmbed";
 import { PlaytimeLeaderboard } from "@/components/minecraft/PlaytimeLeaderboard";
 import { ServerStatusSection } from "@/components/minecraft/ServerStatusSection";
-import { buttonVariants } from "@/components/ui/button";
 import { db } from "@/lib/db";
 import { minecraftWhitelist, user } from "@/lib/db/schema";
 import { isConfigured, isRunning, readConfig } from "@/lib/integrations/azalea";
 import { getSessionUser } from "@/lib/auth/session";
-import { cn } from "@/lib/utils";
 
 export default async function MinecraftPage() {
     const sessionUser = await getSessionUser();
@@ -58,16 +55,6 @@ export default async function MinecraftPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-end">
-                <a
-                    href="#whitelist"
-                    className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
-                >
-                    <ArrowDown className="size-4" />
-                    Whitelist
-                </a>
-            </div>
-
             {/*
              * ServerStatusSection uses display:contents so its two child cards
              * (ServerInfoCard, OnlinePlayersCard) become direct grid items,
