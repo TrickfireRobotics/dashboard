@@ -256,13 +256,6 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                 <DataTableCardHeader
                     title="STF school year"
                     description={`Active school year: ${activeQuarter?.name ?? "None"}`}
-                    action={
-                        activeQuarter ? (
-                            <Button variant="destructive" onClick={() => setResetStep(1)}>
-                                Reset school year
-                            </Button>
-                        ) : null
-                    }
                 />
                 {!activeQuarter ? (
                     <div className="flex flex-wrap items-end gap-3 p-4">
@@ -487,6 +480,22 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                     </Table>
                 </DataTableCard>
             </section>
+
+            {activeQuarter ? (
+                <div className="border-border bg-card flex flex-wrap items-end justify-between gap-3 rounded-lg border p-4">
+                    <div className="max-w-prose space-y-1">
+                        <h2 className="text-lg font-semibold">Reset school year</h2>
+                        <p className="text-muted-foreground text-sm">
+                            Archives every STF bucket for <strong>{activeQuarter.name}</strong> and
+                            clears them for a fresh school year. The gift fund is not affected. This
+                            cannot be undone — only run it at the start of a new school year.
+                        </p>
+                    </div>
+                    <Button variant="destructive" onClick={() => setResetStep(1)}>
+                        Reset school year
+                    </Button>
+                </div>
+            ) : null}
 
             <Dialog open={resetStep > 0} onOpenChange={(open) => !open && setResetStep(0)}>
                 <DialogContent overlayClassName="bg-destructive/20">
