@@ -482,13 +482,14 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
             </section>
 
             {activeQuarter ? (
-                <div className="border-border bg-card flex flex-wrap items-end justify-between gap-3 rounded-lg border p-4">
+                <div className="border-border bg-card flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4">
                     <div className="max-w-prose space-y-1">
                         <h2 className="text-lg font-semibold">Reset school year</h2>
                         <p className="text-muted-foreground text-sm">
                             Archives every STF bucket for <strong>{activeQuarter.name}</strong> and
                             clears them for a fresh school year. The gift fund is not affected. This
-                            cannot be undone — only run it at the start of a new school year.
+                            cannot be undone.{" "}
+                            <strong>Only run at the start of a new school year!</strong>
                         </p>
                     </div>
                     <Button variant="destructive" onClick={() => setResetStep(1)}>
