@@ -14,6 +14,8 @@ export type JoinRequestStatus = "pending" | "approved" | "rejected";
 export type VaultEntryType = "login" | "api_key";
 export type FeedbackCategory = "bug" | "idea" | "other";
 export type FeedbackStatus = "open" | "resolved";
+// Source "Supplier Status" from the approved-vendor export; blank -> "Unknown".
+export type VendorStatus = "Active" | "Inactive" | "Hold" | "Unknown";
 
 export const team = sqliteTable("team", {
     id: integer("id").primaryKey({ autoIncrement: true }),
@@ -306,5 +308,38 @@ export const simExportCache = sqliteTable(
             table.elementId
         ),
         index("sim_export_cache_accessed").on(table.lastAccessedAt),
+    ]
+);
+
+// Approved-vendor list imported from the finance office's supplier export
+// (scripts/import-vendors.ts), one row per distinct supplier. `approved` is a
+// stored mirror of `status === "Active"` so search results can filter/flag
+// without recomputing. Free-text search is served by an FTS5 virtual table
+// (approved_vendors_fts) that the import script builds via raw SQL, since
+// Drizzle can't express FTS5.
+export const approvedVendor = sqliteTable(
+    "approved_vendors",
+    {
+        id: integer("id").primaryKey({ autoIncrement: true }),
+        supplierName: text("supplier_name").notNull(),
+        // Punctuation/spacing-stripped, lowercased form of supplierName for
+        // formatting-insensitive lookup (see normalizeVendorName).
+        searchName: text("search_name").notNull().default(""),
+        supplierId: text("supplier_id"),
+        status: text("status").$type<VendorStatus>().notNull().default("Unknown"),
+        approved: integer("approved", { mode: "boolean" }).notNull().default(false),
+        category: text("category"),
+        group: text("group"),
+        uei: text("unique_entity_identifier"),
+        email: text("email"),
+        contact: text("contact"),
+        remitAddress: text("remit_address"),
+        useFor: text("use_for"),
+        importedAt: integer("imported_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    },
+    (table) => [
+        uniqueIndex("approved_vendors_name_key").on(table.supplierName),
+        index("approved_vendors_search_name_idx").on(table.searchName),
+        index("approved_vendors_approved_idx").on(table.approved),
     ]
 );
