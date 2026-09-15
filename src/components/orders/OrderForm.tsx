@@ -24,8 +24,11 @@ import type { OrderStatus } from "@/lib/db/schema";
 import { computeOrderTotalCents, displayPercentToBps } from "@/lib/finance/order-pricing";
 import { MAX_ORDER_BATCH_ITEMS } from "@/lib/validation";
 import { cn, formatPriceCents } from "@/lib/utils";
+import { useVendorApproval } from "@/lib/vendors/use-vendor-approval";
 
 import { PasteItemsPanel, type ParsedItem } from "./PasteItemsPanel";
+import { VendorApprovalBadge } from "./VendorApprovalBadge";
+import { VendorCombobox } from "./VendorCombobox";
 
 type OrderPricing = { taxPercent: number; shippingPercent: number };
 
@@ -407,6 +410,15 @@ export function OrderForm({
     );
 }
 
+// Advisory approval flag under the vendor field. Resolves the typed/picked
+// vendor against the approved-vendor list; renders nothing until a vendor is
+// entered. Purely informational - it never blocks submitting an order.
+function VendorApprovalIndicator({ name, iconOnly = false }: { name: string; iconOnly?: boolean }) {
+    const { status } = useVendorApproval(name);
+    if (!status) return null;
+    return <VendorApprovalBadge status={status} iconOnly={iconOnly} />;
+}
+
 function ItemFields({
     form,
     index,
@@ -423,8 +435,15 @@ function ItemFields({
                     <FormItem>
                         <FormLabel>Vendor</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g. McMaster-Carr" {...field} />
+                            <VendorCombobox
+                                name={field.name}
+                                value={field.value}
+                                onChange={field.onChange}
+                                onBlur={field.onBlur}
+                                placeholder="e.g. McMaster-Carr"
+                            />
                         </FormControl>
+                        <VendorApprovalIndicator name={field.value} />
                         <FormMessage />
                     </FormItem>
                 )}
@@ -591,7 +610,17 @@ function ItemRow({
             ))}
 
             {cell("vendor", "Vendor", (field) => (
-                <Input className="h-9" placeholder="McMaster-Carr" {...field} />
+                <div className="space-y-1">
+                    <VendorCombobox
+                        name={field.name}
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        placeholder="McMaster-Carr"
+                        className="h-9"
+                    />
+                    <VendorApprovalIndicator name={field.value ?? ""} iconOnly />
+                </div>
             ))}
 
             {cell("link", "Link", (field) => (

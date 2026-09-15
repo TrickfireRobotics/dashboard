@@ -11,7 +11,7 @@ if (!process.env.PORT) {
     }
 }
 
-const child = spawn("next", ["dev"], { stdio: "inherit", env: process.env });
+const child = spawn("next", ["dev"], { stdio: "inherit", env: process.env, shell: true });
 child.on("exit", (code, signal) => {
     if (signal) process.kill(process.pid, signal);
     else process.exit(code ?? 0);
