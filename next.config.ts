@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { withSentryConfig } from "@sentry/nextjs";
 
 const imgSrc = [
     "'self'",
@@ -58,16 +57,4 @@ const nextConfig: NextConfig = {
     },
 };
 
-export default withSentryConfig(nextConfig, {
-    org: "trickfire-robotics",
-    project: "dashboard",
-    silent: !process.env.CI,
-    widenClientFileUpload: true,
-    tunnelRoute: "/api/intake",
-
-    webpack: {
-        treeshake: {
-            removeDebugLogging: true,
-        },
-    },
-});
+export default nextConfig;

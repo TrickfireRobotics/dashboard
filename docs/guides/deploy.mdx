@@ -269,10 +269,9 @@ it from touching live external services. Create it once, manually, based on `.en
   vault table, which is encrypted with this key - a different key makes every entry fail to
   decrypt
 - `RESEND_API_KEY`, `TAILSCALE_API_KEY`, `GITHUB_TOKEN`, `ONSHAPE_ACCESS_KEY`,
-  `ONSHAPE_SECRET_KEY`, `SENTRY_AUTH_TOKEN`, `NEXT_PUBLIC_SENTRY_DSN` - leave **blank**. Every
-  integration checks `Boolean(process.env.X)` before doing anything, so an unset key makes it
-  report "not configured" instead of erroring - and it means staging never sends real email,
-  calls the real Tailscale/GitHub/OnShape APIs, or reports errors into prod's Sentry project
+  `ONSHAPE_SECRET_KEY` - leave **blank**. Every integration checks `Boolean(process.env.X)`
+  before doing anything, so an unset key makes it report "not configured" instead of erroring -
+  and it means staging never sends real email or calls the real Tailscale/GitHub/OnShape APIs
 - Everything else - copy as-is
 
 <Callout type="warning" title="Important">

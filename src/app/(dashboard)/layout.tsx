@@ -1,4 +1,3 @@
-import * as Sentry from "@sentry/nextjs";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -15,8 +14,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
     if (!session.user.approved) {
         redirect("/pending");
     }
-
-    Sentry.setUser({ id: session.user.id, email: session.user.email });
 
     return (
         <div className="flex h-full overflow-hidden">

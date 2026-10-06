@@ -41,7 +41,6 @@ src/app/
 │   ├── finance/
 │   └── settings/
 ├── pl3xmap/[[...path]]  # Minecraft map proxy - relaxed CSP, no auth group
-├── sentry-example-page/
 └── api/               # route handlers - see the tech-stack pages for details
 ```
 
@@ -61,7 +60,7 @@ Access control isn't layered by role anymore - every approved, active user reach
 - **Server components** (most `page.tsx` and `layout.tsx` files) query the database directly - `db.select(...).from(...).get()` - inside an `async` component. No API call, no client-side loading state, no waterfall.
 - **Client components** that need live or interactive data call an API route (e.g. a Minecraft status tile polling `/api/minecraft/status` via the `usePoll` hook in `src/lib/use-poll.ts`), because a server component can't re-fetch on an interval without a full page reload.
 
-Only three files in the entire `src/app` tree are `"use client"` at the page/layout level (`global-error.tsx`, the dashboard `error.tsx`, and the Sentry example page) - all three are boundaries Next.js or Sentry require to be client components. Everything else that needs interactivity is a small client component imported _into_ a server page, not the page itself.
+Only two files in the entire `src/app` tree are `"use client"` at the page/layout level (`global-error.tsx` and the dashboard `error.tsx`) - both are boundaries Next.js requires to be client components. Everything else that needs interactivity is a small client component imported _into_ a server page, not the page itself.
 
 ## The ordering workflow
 

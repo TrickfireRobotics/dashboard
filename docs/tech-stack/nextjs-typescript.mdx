@@ -47,7 +47,6 @@ Files at `src/app/api/**/route.ts` are plain HTTP endpoints, used by client comp
 - **`output: "standalone"`** - produces a minimal, self-contained server bundle (`node .next/standalone/server.js`) instead of requiring the full `node_modules` tree and Next.js CLI in production. See the [Deployment guide](/guides/deploy/) for the exact copy steps this requires.
 - **`serverExternalPackages: ["better-sqlite3", "systeminformation"]`** - tells Next.js not to try to bundle these two native/Node-specific packages; they're loaded from `node_modules` at runtime instead, which is required for their compiled/native bindings to work.
 - **Security headers** - a `headers()` function sets HSTS, a Content-Security-Policy, `X-Frame-Options: DENY`, and a Permissions-Policy on every route, with a deliberately relaxed set (no CSP/`X-Frame-Options`) scoped to `/pl3xmap/*` so the Minecraft map can be embedded.
-- **`withSentryConfig(...)`** wraps the whole config to wire up source map uploads and the Sentry webpack plugin - see [Observability](/tech-stack/observability/).
 
 ## Commands
 
