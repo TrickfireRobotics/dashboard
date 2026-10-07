@@ -20,7 +20,7 @@
                 },
                 { "label": "Testing (Vitest)", "slug": "tech-stack/testing" },
                 { "label": "Code Quality Tooling", "slug": "tech-stack/tooling" },
-                { "label": "Observability (Sentry & Uptime)", "slug": "tech-stack/observability" },
+                { "label": "Uptime Monitoring", "slug": "tech-stack/observability" },
                 { "label": "External Integrations", "slug": "tech-stack/external-integrations" }
             ]
         },

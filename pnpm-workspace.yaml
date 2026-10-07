@@ -4,7 +4,6 @@ allowBuilds:
     better-sqlite3: true
     esbuild: true
     msw: false
-    "@sentry/cli": true
     "@swc/core": true
     core-js: true
 
