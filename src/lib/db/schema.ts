@@ -312,11 +312,12 @@ export const simExportCache = sqliteTable(
 );
 
 // Approved-vendor list imported from the finance office's supplier export
-// (scripts/import-vendors.ts), one row per distinct supplier. `approved` is a
+// (uploaded on the Finance page, or scripts/import-vendors.ts), one row per
+// distinct supplier. `approved` is a
 // stored mirror of `status === "Active"` so search results can filter/flag
 // without recomputing. Free-text search is served by an FTS5 virtual table
-// (approved_vendors_fts) that the import script builds via raw SQL, since
-// Drizzle can't express FTS5.
+// (approved_vendors_fts) that src/lib/vendors/import.ts builds via raw SQL,
+// since Drizzle can't express FTS5.
 export const approvedVendor = sqliteTable(
     "approved_vendors",
     {
@@ -343,3 +344,22 @@ export const approvedVendor = sqliteTable(
         index("approved_vendors_approved_idx").on(table.approved),
     ]
 );
+
+// One row per applied vendor-list import, so the Finance page can show when the
+// list was last refreshed and by whom. importedBy is null for CLI imports.
+export const vendorImport = sqliteTable("vendor_import", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    importedAt: integer("imported_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    importedBy: text("imported_by").references(() => user.id, { onDelete: "set null" }),
+    fileName: text("file_name").notNull(),
+    fileHash: text("file_hash").notNull(),
+    totalCount: integer("total_count").notNull(),
+    approvedCount: integer("approved_count").notNull(),
+    addedCount: integer("added_count").notNull(),
+    removedCount: integer("removed_count").notNull(),
+    changedCount: integer("changed_count").notNull(),
+});
+
+export const vendorImportRelations = relations(vendorImport, ({ one }) => ({
+    importer: one(user, { fields: [vendorImport.importedBy], references: [user.id] }),
+}));

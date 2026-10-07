@@ -69,6 +69,8 @@ pnpm db:seed
 
 The seed is idempotent - safe to run again without creating duplicates.
 
+The approved-vendor list isn't seeded. After the first deploy, load it from the dashboard - see [Updating the approved vendor list](#updating-the-approved-vendor-list).
+
 ## 5. Build
 
 ```bash
@@ -301,6 +303,16 @@ Check logs immediately after restarting:
 ```bash
 journalctl -u trickfire-dashboard -f
 ```
+
+## Updating the approved vendor list
+
+The vendor search and the order form's Approved / Out-of-scope badge read from `approved_vendors`, which is loaded from the finance office's supplier export (.xlsx). Nothing in git or the deploy carries this data - it lives only in the database.
+
+1. Get the latest supplier export from finance.
+2. In the dashboard, open **Finance -> Approved vendors -> Upload export** and pick the file.
+3. Review the preview: every vendor that will be added, removed, or changed (with old and new values). Nothing changes until you click **Apply**.
+
+Do this once after the first deploy, then again whenever finance sends a new export. The card shows when the list was last updated and by whom. Locally, `pnpm db:import-vendors [path] [--dry-run]` does the same import from the command line.
 
 ## Backups
 

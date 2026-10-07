@@ -120,6 +120,13 @@
       "when": 1789453440529,
       "tag": "0016_broken_shadowcat",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1791357166035,
+      "tag": "0017_third_sunfire",
+      "breakpoints": true
     }
   ]
 }
