@@ -6,6 +6,7 @@ import { OrderBalancesSummary } from "@/components/orders/OrderBalancesSummary";
 import { OrderFormDialog } from "@/components/orders/OrderFormDialog";
 import { OrderTable, type MemberOrderRow } from "@/components/orders/OrderTable";
 import { TeamOrderTable, type TeamOrderRow } from "@/components/orders/TeamOrderTable";
+import { VendorSearchDialog } from "@/components/orders/VendorSearchDialog";
 import { db } from "@/lib/db";
 import { order, stfBucket, user as userTable } from "@/lib/db/schema";
 import {
@@ -104,7 +105,10 @@ export default async function OrdersPage() {
                 <p className="text-muted-foreground text-sm">
                     Submit a new purchase request or review orders below.
                 </p>
-                <OrderFormDialog />
+                <div className="flex flex-wrap gap-2">
+                    <VendorSearchDialog />
+                    <OrderFormDialog />
+                </div>
             </div>
 
             <OrderBalancesSummary giftBalanceCents={giftBalanceCents} stfBuckets={stfBuckets} />
