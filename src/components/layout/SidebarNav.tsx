@@ -2,6 +2,7 @@
 
 import {
     DollarSign,
+    Bot,
     Gamepad2,
     KeyRound,
     LayoutDashboard,
@@ -28,6 +29,7 @@ export const mainNav: NavItem[] = [
     { href: "/api-keys", label: "API Keys", icon: KeyRound },
     { href: "/network", label: "Network", icon: Network },
     { href: "/minecraft", label: "Minecraft", icon: Gamepad2 },
+    { href: "/discord", label: "Discord Bot", icon: Bot },
 ];
 
 const EXACT = new Set(["/dashboard"]);
