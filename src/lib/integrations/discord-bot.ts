@@ -52,6 +52,28 @@ async function botFetch<T>(path: string): Promise<T | null> {
     }
 }
 
+export async function clearBotError(): Promise<boolean> {
+    const base = process.env.DISCORD_BOT_URL;
+    const token = process.env.DISCORD_BOT_TOKEN;
+    if (!base || !token) return false;
+
+    try {
+        const res = await fetch(`${base}/api/errors/clear`, {
+            method: "POST",
+            headers: { "X-Dashboard-Token": token },
+            cache: "no-store",
+            signal: AbortSignal.timeout(5000),
+        });
+        if (!res.ok) {
+            console.error(`Discord bot API error: ${res.status} ${res.statusText} clearing error`);
+        }
+        return res.ok;
+    } catch (err) {
+        console.error("Discord bot error clear failed:", err);
+        return false;
+    }
+}
+
 export function getBotStatus() {
     return botFetch<BotStatus>("/api/status");
 }

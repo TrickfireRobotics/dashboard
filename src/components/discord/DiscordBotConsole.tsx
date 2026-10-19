@@ -6,20 +6,18 @@ import {
     Check,
     ChevronRight,
     CircleAlert,
-    Clock3,
     HeartPulse,
     MessagesSquare,
-    Radio,
     ScrollText,
     ShieldCheck,
     TriangleAlert,
     Users,
     Wifi,
+    X,
     Zap,
 } from "lucide-react";
 import { useCallback, useState } from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { BotActivityEntry, BotLogLine, BotStatus } from "@/lib/integrations/discord-bot";
@@ -105,6 +103,7 @@ function ActivityIcon({ kind }: { kind: string }) {
 
 export function DiscordBotConsole() {
     const [snapshot, setSnapshot] = useState<Snapshot>(initialSnapshot);
+    const [clearingError, setClearingError] = useState(false);
 
     const load = useCallback(async () => {
         try {
@@ -149,6 +148,54 @@ export function DiscordBotConsole() {
     }
 
     const syncReady = Boolean(status.health.lastRoleSyncAt);
+    const health = !status.connected
+        ? {
+              label: "Discord offline",
+              detail: "The Discord gateway is disconnected.",
+              className: "border-destructive/30 bg-destructive/8 text-destructive",
+              dotClassName: "bg-destructive shadow-destructive/25",
+          }
+        : status.health.lastError || !syncReady
+          ? {
+                label: "Needs attention",
+                detail: status.health.lastError
+                    ? "The bot is online, but a recent operation failed."
+                    : "Discord is online. Waiting for the first successful Notion role sync.",
+                className: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                dotClassName: "bg-amber-500 shadow-amber-500/25",
+            }
+          : {
+                label: "Bot online",
+                detail: `${status.guild?.name ?? "Discord"} is connected and Notion role sync is healthy.`,
+                className:
+                    "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+                dotClassName: "bg-emerald-500 shadow-emerald-500/25",
+            };
+
+    async function dismissError() {
+        setClearingError(true);
+        try {
+            const response = await fetch("/api/discord-bot/errors/clear", { method: "POST" });
+            if (!response.ok) return;
+
+            setSnapshot((current) => {
+                if (!current.status) return current;
+                return {
+                    ...current,
+                    status: {
+                        ...current.status,
+                        health: {
+                            ...current.status.health,
+                            lastError: null,
+                            lastErrorAt: null,
+                        },
+                    },
+                };
+            });
+        } finally {
+            setClearingError(false);
+        }
+    }
 
     return (
         <div className="space-y-6">
@@ -169,39 +216,28 @@ export function DiscordBotConsole() {
                         <time className="text-muted-foreground shrink-0 pt-0.5 text-xs">
                             {formatTime(status.health.lastErrorAt)}
                         </time>
+                        <button
+                            type="button"
+                            onClick={dismissError}
+                            disabled={clearingError}
+                            aria-label="Dismiss latest bot error"
+                            className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:ring-ring flex size-7 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-wait disabled:opacity-50"
+                        >
+                            <X className="size-4" />
+                        </button>
                     </div>
                 </section>
             )}
 
-            <section className="border-border/70 from-card to-primary/5 relative overflow-hidden rounded-xl border bg-linear-to-br">
-                <div className="from-primary/20 pointer-events-none absolute -top-20 -right-20 size-64 rounded-full bg-radial to-transparent" />
-                <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <div className="text-primary mb-2 flex items-center gap-2 text-xs font-semibold tracking-[0.16em] uppercase">
-                            <Radio className="size-3.5" /> Live operations
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-2xl font-semibold tracking-tight">
-                                {status.connected
-                                    ? "All systems connected"
-                                    : "Gateway disconnected"}
-                            </h2>
-                            <Badge variant={status.connected ? "default" : "destructive"}>
-                                {status.connected ? "Live" : "Offline"}
-                            </Badge>
-                        </div>
-                        <p className="text-muted-foreground mt-1.5 text-sm">
-                            {status.guild?.name ?? "Discord guild"} · online for{" "}
-                            {formatDuration(status.uptimeSeconds)}
-                        </p>
-                    </div>
-                    <div className="border-border/70 bg-background/60 flex items-center gap-3 rounded-lg border px-3 py-2.5 backdrop-blur-sm">
-                        <Clock3 className="text-primary size-4" />
-                        <div>
-                            <p className="text-xs font-medium">Auto-refreshing</p>
-                            <p className="text-muted-foreground text-[11px]">Every 15 seconds</p>
-                        </div>
-                    </div>
+            <section
+                className={`flex items-center gap-3 rounded-xl border px-4 py-3.5 ${health.className}`}
+            >
+                <span
+                    className={`size-2.5 shrink-0 rounded-full shadow-[0_0_0_5px] ${health.dotClassName}`}
+                />
+                <div className="min-w-0">
+                    <p className="text-sm font-semibold">{health.label}</p>
+                    <p className="text-foreground/70 mt-0.5 text-sm">{health.detail}</p>
                 </div>
             </section>
 
