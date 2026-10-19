@@ -26,10 +26,10 @@ export const mainNav: NavItem[] = [
     { href: "/orders", label: "Orders", icon: Package },
     { href: "/finance", label: "Finance", icon: DollarSign },
     { href: "/members", label: "Members", icon: Users },
+    { href: "/discord", label: "Discord Bot", icon: Bot },
     { href: "/api-keys", label: "API Keys", icon: KeyRound },
     { href: "/network", label: "Network", icon: Network },
     { href: "/minecraft", label: "Minecraft", icon: Gamepad2 },
-    { href: "/discord", label: "Discord Bot", icon: Bot },
 ];
 
 const EXACT = new Set(["/dashboard"]);
