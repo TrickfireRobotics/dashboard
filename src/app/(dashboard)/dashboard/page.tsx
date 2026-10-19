@@ -34,12 +34,6 @@ function getGreeting() {
 
 const quickLinks = [
     {
-        href: "/discord",
-        label: "Discord Bot",
-        description: "Monitor syncs, roles, and bot health.",
-        icon: Bot,
-    },
-    {
         href: "/orders",
         label: "Orders",
         description: "Submit and track parts requests.",
@@ -56,6 +50,12 @@ const quickLinks = [
         label: "Team",
         description: "Approvals and org access.",
         icon: UserCheck,
+    },
+    {
+        href: "/discord",
+        label: "Discord Bot",
+        description: "Monitor syncs, roles, and bot health.",
+        icon: Bot,
     },
     {
         href: "/api-keys",
