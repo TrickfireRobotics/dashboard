@@ -2,6 +2,7 @@ import { count, eq } from "drizzle-orm";
 import {
     CheckCircle2,
     ChevronRight,
+    Bot,
     DollarSign,
     Gamepad2,
     KeyRound,
@@ -33,6 +34,12 @@ function getGreeting() {
 
 const quickLinks = [
     {
+        href: "/discord",
+        label: "Discord Bot",
+        description: "Monitor syncs, roles, and bot health.",
+        icon: Bot,
+    },
+    {
         href: "/orders",
         label: "Orders",
         description: "Submit and track parts requests.",
@@ -61,12 +68,6 @@ const quickLinks = [
         label: "Network",
         description: "Tailscale network for server maintnance.",
         icon: Network,
-    },
-    {
-        href: "/minecraft",
-        label: "Minecraft",
-        description: "Server status and whitelist.",
-        icon: Gamepad2,
     },
 ];
 
