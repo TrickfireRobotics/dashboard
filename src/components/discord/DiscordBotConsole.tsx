@@ -2,12 +2,20 @@
 
 import {
     Activity,
-    CheckCircle2,
+    BadgeAlert,
+    Check,
+    ChevronRight,
+    CircleAlert,
+    Clock3,
     HeartPulse,
+    MessagesSquare,
     Radio,
     ScrollText,
+    ShieldCheck,
     TriangleAlert,
     Users,
+    Wifi,
+    Zap,
 } from "lucide-react";
 import { useCallback, useState } from "react";
 
@@ -26,7 +34,7 @@ type Snapshot = {
 
 const initialSnapshot: Snapshot = { status: null, activity: [], logs: [], loaded: false };
 
-function formatTime(value: string | null | undefined, options?: Intl.DateTimeFormatOptions) {
+function formatTime(value: string | null | undefined) {
     if (!value) return "Never";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "Unknown";
@@ -35,7 +43,6 @@ function formatTime(value: string | null | undefined, options?: Intl.DateTimeFor
         day: "numeric",
         hour: "numeric",
         minute: "2-digit",
-        ...options,
     }).format(date);
 }
 
@@ -48,32 +55,37 @@ function formatDuration(seconds: number) {
     return `${minutes}m`;
 }
 
-function ConnectionBadge({ connected }: { connected: boolean }) {
+function levelClass(level: string) {
+    if (level === "Error" || level === "Critical") return "text-destructive";
+    if (level === "Warning") return "text-amber-500";
+    return "text-primary";
+}
+
+function Signal({ good, label }: { good: boolean; label: string }) {
     return (
-        <Badge variant={connected ? "default" : "destructive"}>
+        <span className="flex items-center gap-2 text-xs font-medium">
             <span
                 className={
-                    connected
-                        ? "bg-primary-foreground size-1.5 rounded-full"
-                        : "bg-destructive size-1.5 rounded-full"
+                    good
+                        ? "size-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px] shadow-emerald-500/15"
+                        : "bg-destructive shadow-destructive/15 size-2 rounded-full shadow-[0_0_0_4px]"
                 }
             />
-            {connected ? "Connected" : "Disconnected"}
-        </Badge>
+            {label}
+        </span>
     );
 }
 
 function ConsoleSkeleton() {
     return (
         <div className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="flex items-center justify-between">
+                <Skeleton className="h-7 w-44" />
+                <Skeleton className="h-4 w-28" />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {[...Array(4)].map((_, index) => (
-                    <Card key={index}>
-                        <CardHeader className="gap-3">
-                            <Skeleton className="h-4 w-24" />
-                            <Skeleton className="h-7 w-32" />
-                        </CardHeader>
-                    </Card>
+                    <Skeleton key={index} className="h-32 rounded-xl" />
                 ))}
             </div>
             <div className="grid gap-6 xl:grid-cols-5">
@@ -82,6 +94,13 @@ function ConsoleSkeleton() {
             </div>
         </div>
     );
+}
+
+function ActivityIcon({ kind }: { kind: string }) {
+    if (kind === "error") return <BadgeAlert className="size-4" />;
+    if (kind === "roles_synced") return <ShieldCheck className="size-4" />;
+    if (kind === "feedback_received") return <MessagesSquare className="size-4" />;
+    return <Activity className="size-4" />;
 }
 
 export function DiscordBotConsole() {
@@ -102,12 +121,7 @@ export function DiscordBotConsole() {
                 logsResult.json(),
             ])) as [BotStatus | null, BotActivityEntry[] | null, BotLogLine[] | null];
 
-            setSnapshot({
-                status,
-                activity: activity ?? [],
-                logs: logs ?? [],
-                loaded: true,
-            });
+            setSnapshot({ status, activity: activity ?? [], logs: logs ?? [], loaded: true });
         } catch {
             setSnapshot((current) => ({ ...current, loaded: true }));
         }
@@ -120,99 +134,162 @@ export function DiscordBotConsole() {
     const { status, activity, logs } = snapshot;
     if (!status) {
         return (
-            <Card className="border-destructive/30">
+            <Card className="border-destructive/30 bg-destructive/5">
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <TriangleAlert className="text-destructive size-5" />
-                        Bot API unavailable
+                        <TriangleAlert className="text-destructive size-5" /> Bot API unavailable
                     </CardTitle>
                     <CardDescription>
-                        The dashboard could not read the bot. Check that the bot is running and that
-                        DISCORD_BOT_URL and DISCORD_BOT_TOKEN are configured.
+                        The dashboard cannot reach the bot. Check the bot service and dashboard
+                        token.
                     </CardDescription>
                 </CardHeader>
             </Card>
         );
     }
 
-    const lastWebhook = status.health.lastNotionWebhookAt;
-    const lastSync = status.health.lastRoleSyncAt;
+    const syncReady = Boolean(status.health.lastRoleSyncAt);
 
     return (
         <div className="space-y-6">
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <Radio className="size-4" /> Gateway
-                        </CardDescription>
-                        <CardTitle className="flex items-center gap-3 text-2xl">
-                            <ConnectionBadge connected={status.connected} />
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-muted-foreground text-xs">
-                        up for {formatDuration(status.uptimeSeconds)}
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <Users className="size-4" /> {status.guild?.name ?? "Guild"}
-                        </CardDescription>
-                        <CardTitle className="text-2xl tabular-nums">
-                            {status.guild?.memberCount ?? "-"}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-muted-foreground text-xs">
-                        {status.guild
-                            ? `${status.guild.roleCount} roles available`
-                            : "Guild not loaded"}
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <CheckCircle2 className="size-4" /> Checked in
-                        </CardDescription>
-                        <CardTitle className="text-2xl tabular-nums">
-                            {status.checkedIn.length}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-muted-foreground text-xs">
-                        Members in the shop now
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                            <HeartPulse className="size-4" /> Last role sync
-                        </CardDescription>
-                        <CardTitle className="text-xl">{formatTime(lastSync)}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-muted-foreground text-xs">
-                        Notion webhook: {formatTime(lastWebhook)}
-                    </CardContent>
-                </Card>
-            </div>
-
             {status.health.lastError && (
-                <div className="border-destructive/30 bg-destructive/5 text-destructive rounded-xl border px-4 py-3 text-sm">
-                    <span className="font-medium">Latest bot error:</span> {status.health.lastError}
-                    {status.health.lastErrorAt && ` · ${formatTime(status.health.lastErrorAt)}`}
-                </div>
+                <section className="border-destructive/30 bg-destructive/8 overflow-hidden rounded-xl border">
+                    <div className="flex gap-3 px-4 py-3.5">
+                        <span className="bg-destructive/15 text-destructive flex size-9 shrink-0 items-center justify-center rounded-lg">
+                            <CircleAlert className="size-5" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-destructive text-sm font-semibold">
+                                Latest bot error
+                            </p>
+                            <p className="text-foreground mt-0.5 text-sm">
+                                {status.health.lastError}
+                            </p>
+                        </div>
+                        <time className="text-muted-foreground shrink-0 pt-0.5 text-xs">
+                            {formatTime(status.health.lastErrorAt)}
+                        </time>
+                    </div>
+                </section>
             )}
 
-            <div className="grid gap-6 xl:grid-cols-5">
+            <section className="border-border/70 from-card to-primary/5 relative overflow-hidden rounded-xl border bg-linear-to-br">
+                <div className="from-primary/20 pointer-events-none absolute -top-20 -right-20 size-64 rounded-full bg-radial to-transparent" />
+                <div className="relative flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <div className="text-primary mb-2 flex items-center gap-2 text-xs font-semibold tracking-[0.16em] uppercase">
+                            <Radio className="size-3.5" /> Live operations
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-2xl font-semibold tracking-tight">
+                                {status.connected
+                                    ? "All systems connected"
+                                    : "Gateway disconnected"}
+                            </h2>
+                            <Badge variant={status.connected ? "default" : "destructive"}>
+                                {status.connected ? "Live" : "Offline"}
+                            </Badge>
+                        </div>
+                        <p className="text-muted-foreground mt-1.5 text-sm">
+                            {status.guild?.name ?? "Discord guild"} · online for{" "}
+                            {formatDuration(status.uptimeSeconds)}
+                        </p>
+                    </div>
+                    <div className="border-border/70 bg-background/60 flex items-center gap-3 rounded-lg border px-3 py-2.5 backdrop-blur-sm">
+                        <Clock3 className="text-primary size-4" />
+                        <div>
+                            <p className="text-xs font-medium">Auto-refreshing</p>
+                            <p className="text-muted-foreground text-[11px]">Every 15 seconds</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <Card className="gap-3 border-emerald-500/20 bg-emerald-500/[0.035]">
+                    <CardHeader className="pb-0">
+                        <CardDescription className="flex items-center gap-2">
+                            <Wifi className="size-4" /> Gateway
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Signal
+                            good={status.connected}
+                            label={status.connected ? "Connected" : "Disconnected"}
+                        />
+                        <p className="text-muted-foreground mt-3 text-xs">
+                            Uptime {formatDuration(status.uptimeSeconds)}
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-0">
+                        <CardDescription className="flex items-center gap-2">
+                            <Zap className="size-4" /> Sync pipeline
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex items-center gap-2 text-xs font-medium">
+                            <span className="text-primary">Notion</span>
+                            <ChevronRight className="text-muted-foreground size-3" />
+                            <span className={syncReady ? "text-primary" : "text-muted-foreground"}>
+                                Roles
+                            </span>
+                        </div>
+                        <p className="text-muted-foreground mt-3 text-xs">
+                            {syncReady
+                                ? `Last synced ${formatTime(status.health.lastRoleSyncAt)}`
+                                : `Webhook ${formatTime(status.health.lastNotionWebhookAt)}`}
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-0">
+                        <CardDescription className="flex items-center gap-2">
+                            <Users className="size-4" /> Guild
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-3xl leading-none font-semibold tabular-nums">
+                            {status.guild?.memberCount ?? "-"}
+                        </p>
+                        <p className="text-muted-foreground mt-3 text-xs">
+                            {status.guild
+                                ? `${status.guild.roleCount} roles configured`
+                                : "Guild not loaded"}
+                        </p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-0">
+                        <CardDescription className="flex items-center gap-2">
+                            <HeartPulse className="size-4" /> Shop floor
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-3xl leading-none font-semibold tabular-nums">
+                            {status.checkedIn.length}
+                        </p>
+                        <p className="text-muted-foreground mt-3 text-xs">
+                            {status.checkedIn.length === 1
+                                ? "Member checked in"
+                                : "Members checked in"}
+                        </p>
+                    </CardContent>
+                </Card>
+            </section>
+
+            <section className="grid gap-6 xl:grid-cols-5">
                 <Card className="xl:col-span-3">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Activity className="text-primary size-5" /> Recent activity
+                            <Activity className="text-primary size-5" /> Activity feed
                         </CardTitle>
-                        <CardDescription>Recorded bot actions, newest first.</CardDescription>
+                        <CardDescription>Recent actions from Discord and Notion.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         {activity.length === 0 ? (
-                            <p className="text-muted-foreground py-8 text-center text-sm">
+                            <p className="text-muted-foreground py-10 text-center text-sm">
                                 No activity recorded yet.
                             </p>
                         ) : (
@@ -222,9 +299,15 @@ export function DiscordBotConsole() {
                                         key={`${entry.time}-${index}`}
                                         className="flex gap-3 py-3 first:pt-0 last:pb-0"
                                     >
-                                        <div className="bg-primary/10 text-primary mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
-                                            {entry.kind.slice(0, 1).toUpperCase()}
-                                        </div>
+                                        <span
+                                            className={
+                                                entry.kind === "error"
+                                                    ? "bg-destructive/10 text-destructive mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg"
+                                                    : "bg-primary/10 text-primary mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg"
+                                            }
+                                        >
+                                            <ActivityIcon kind={entry.kind} />
+                                        </span>
                                         <div className="min-w-0 flex-1">
                                             <p className="text-sm font-medium">{entry.summary}</p>
                                             {entry.detail && (
@@ -233,7 +316,7 @@ export function DiscordBotConsole() {
                                                 </p>
                                             )}
                                         </div>
-                                        <time className="text-muted-foreground shrink-0 pt-0.5 text-xs">
+                                        <time className="text-muted-foreground shrink-0 pt-1 text-xs">
                                             {formatTime(entry.time)}
                                         </time>
                                     </li>
@@ -242,29 +325,30 @@ export function DiscordBotConsole() {
                         )}
                     </CardContent>
                 </Card>
-
                 <Card className="xl:col-span-2">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Users className="text-primary size-5" /> In the shop
                         </CardTitle>
-                        <CardDescription>Currently checked-in members.</CardDescription>
+                        <CardDescription>
+                            Live attendance from the check-in message.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent>
                         {status.checkedIn.length === 0 ? (
-                            <p className="text-muted-foreground py-8 text-center text-sm">
-                                Nobody is checked in.
-                            </p>
+                            <div className="text-muted-foreground flex min-h-36 flex-col items-center justify-center gap-2 text-sm">
+                                <Check className="text-primary size-5" /> Nobody checked in
+                            </div>
                         ) : (
-                            <ul className="space-y-3">
+                            <ul className="space-y-2">
                                 {status.checkedIn.map((member) => (
                                     <li
                                         key={`${member.name}-${member.since}`}
-                                        className="flex items-center justify-between gap-3 text-sm"
+                                        className="bg-muted/50 flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm"
                                     >
                                         <span className="truncate font-medium">{member.name}</span>
                                         <span className="text-muted-foreground shrink-0 text-xs">
-                                            since {formatTime(member.since)}
+                                            {formatTime(member.since)}
                                         </span>
                                     </li>
                                 ))}
@@ -272,42 +356,30 @@ export function DiscordBotConsole() {
                         )}
                     </CardContent>
                 </Card>
-            </div>
+            </section>
 
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <ScrollText className="text-primary size-5" /> Bot log tail
+                        <ScrollText className="text-primary size-5" /> Log tail
                     </CardTitle>
                     <CardDescription>
-                        Latest {logs.length} messages, refreshed every 15 seconds.
+                        {logs.length} recent messages · refreshed every 15 seconds
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="bg-background max-h-96 overflow-auto rounded-lg border font-mono text-xs leading-6">
+                    <div className="max-h-96 overflow-auto rounded-lg border border-zinc-800 bg-zinc-950 font-mono text-xs leading-6 text-zinc-300 shadow-inner">
                         {logs.length === 0 ? (
-                            <p className="text-muted-foreground p-4">No logs captured yet.</p>
+                            <p className="p-4 text-zinc-500">No logs captured yet.</p>
                         ) : (
                             logs.map((line, index) => (
                                 <div
                                     key={`${line.time}-${index}`}
-                                    className="border-border/60 grid grid-cols-[auto_auto_1fr] gap-x-3 border-b px-3 py-1.5 last:border-b-0"
+                                    className="grid grid-cols-[auto_auto_1fr] gap-x-3 border-b border-zinc-800/80 px-3 py-1.5 last:border-b-0"
                                 >
-                                    <time className="text-muted-foreground">
-                                        {formatTime(line.time)}
-                                    </time>
-                                    <span
-                                        className={
-                                            line.level === "Error" || line.level === "Critical"
-                                                ? "text-destructive"
-                                                : line.level === "Warning"
-                                                  ? "text-amber-500"
-                                                  : "text-primary"
-                                        }
-                                    >
-                                        {line.level}
-                                    </span>
-                                    <span className="text-foreground/85 min-w-0 break-words">
+                                    <time className="text-zinc-500">{formatTime(line.time)}</time>
+                                    <span className={levelClass(line.level)}>{line.level}</span>
+                                    <span className="min-w-0 break-words text-zinc-300">
                                         {line.message}
                                     </span>
                                 </div>

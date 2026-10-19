@@ -15,6 +15,7 @@ const routeMeta: Record<string, RouteMeta> = {
     "/network": { label: "Network", description: "TrickFire private network" },
     "/members": { label: "Members", description: "Approvals, accounts, and org access" },
     "/finance": { label: "Finance", description: "Budgets, gift fund, and pricing" },
+    "/discord": { label: "Discord Bot", description: "Bot health, syncs, and activity" },
     "/settings": { label: "Account Settings", description: "Update your name and email address" },
 };
 

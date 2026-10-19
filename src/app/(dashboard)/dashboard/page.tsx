@@ -14,6 +14,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { LiveClock } from "@/components/dashboard/LiveClock";
+import { DiscordActivityFeed } from "@/components/dashboard/DiscordActivityFeed";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { db } from "@/lib/db";
@@ -160,6 +161,8 @@ export default async function DashboardHome() {
                     </div>
                 )}
             </section>
+
+            <DiscordActivityFeed />
 
             <section className="space-y-4">
                 <div>
