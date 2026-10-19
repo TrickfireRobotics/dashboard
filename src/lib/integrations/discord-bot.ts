@@ -61,6 +61,7 @@ export async function clearBotError(): Promise<boolean> {
         const res = await fetch(`${base}/api/errors/clear`, {
             method: "POST",
             headers: { "X-Dashboard-Token": token },
+            body: "{}",
             cache: "no-store",
             signal: AbortSignal.timeout(5000),
         });
