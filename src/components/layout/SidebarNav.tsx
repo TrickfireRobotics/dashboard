@@ -25,7 +25,7 @@ export const mainNav: NavItem[] = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/orders", label: "Orders", icon: Package },
     { href: "/finance", label: "Finance", icon: DollarSign },
-    { href: "/members", label: "Members", icon: Users },
+    { href: "/team", label: "Team", icon: Users },
     { href: "/discord", label: "Discord Bot", icon: Bot },
     { href: "/api-keys", label: "API Keys", icon: KeyRound },
     { href: "/network", label: "Network", icon: Network },

@@ -45,8 +45,8 @@ const quickLinks = [
         icon: DollarSign,
     },
     {
-        href: "/members",
-        label: "Members",
+        href: "/team",
+        label: "Team",
         description: "Approvals and org access.",
         icon: UserCheck,
     },
@@ -115,7 +115,7 @@ export default async function DashboardHome() {
         {
             count: pendingApprovals,
             label: "members are waiting for approval",
-            href: "/members",
+            href: "/team",
             icon: UserCheck,
         },
         {

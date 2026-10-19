@@ -13,7 +13,7 @@ const routeMeta: Record<string, RouteMeta> = {
     "/api-keys": { label: "API Keys", description: "Shared credentials vault" },
     "/minecraft": { label: "Minecraft", description: "Server status and whitelist" },
     "/network": { label: "Network", description: "TrickFire private network" },
-    "/members": { label: "Members", description: "Approvals, accounts, and org access" },
+    "/team": { label: "Team", description: "Approvals, accounts, and org access" },
     "/finance": { label: "Finance", description: "Budgets, gift fund, and pricing" },
     "/discord": { label: "Discord Bot", description: "Bot health, syncs, and activity" },
     "/settings": { label: "Account Settings", description: "Update your name and email address" },

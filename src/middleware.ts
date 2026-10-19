@@ -52,7 +52,7 @@ export const config = {
         "/api-keys/:path*",
         "/minecraft/:path*",
         "/network/:path*",
-        "/members/:path*",
+        "/team/:path*",
         "/finance/:path*",
     ],
 };
