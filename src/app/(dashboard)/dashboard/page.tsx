@@ -7,6 +7,7 @@ import {
     KeyRound,
     Network,
     Package,
+    Radio,
     ShoppingCart,
     UserCheck,
 } from "lucide-react";
@@ -14,12 +15,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { LiveClock } from "@/components/dashboard/LiveClock";
-import { DiscordActivityFeed } from "@/components/dashboard/DiscordActivityFeed";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { db } from "@/lib/db";
 import { minecraftWhitelist, order, user } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
+import { getBotStatus } from "@/lib/integrations/discord-bot";
 
 function getGreeting() {
     const hour = new Date().getHours();
@@ -90,6 +91,14 @@ export default async function DashboardHome() {
             .where(eq(minecraftWhitelist.status, "pending"))
             .get()?.value ?? 0;
 
+    const botStatus = await getBotStatus();
+    const missingRoleCount = botStatus?.missingRoles.length ?? 0;
+    const botNeedsAttention =
+        !botStatus ||
+        !botStatus.connected ||
+        Boolean(botStatus.health.lastError) ||
+        missingRoleCount > 0;
+
     const actionItems = [
         {
             count: pendingOrders,
@@ -114,6 +123,15 @@ export default async function DashboardHome() {
             label: "whitelist requests need review",
             href: "/minecraft",
             icon: Gamepad2,
+        },
+        {
+            count: botNeedsAttention ? 1 : 0,
+            label:
+                missingRoleCount > 0
+                    ? `bot requires attention, ${missingRoleCount} missing role${missingRoleCount === 1 ? "" : "s"}`
+                    : "bot requires attention",
+            href: "/discord",
+            icon: Radio,
         },
     ].filter((item) => item.count > 0);
 
@@ -161,8 +179,6 @@ export default async function DashboardHome() {
                     </div>
                 )}
             </section>
-
-            <DiscordActivityFeed />
 
             <section className="space-y-4">
                 <div>

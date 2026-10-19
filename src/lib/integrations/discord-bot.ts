@@ -18,6 +18,7 @@ export type BotStatus = {
     uptimeSeconds: number;
     guild: { name: string; memberCount: number; roleCount: number } | null;
     checkedIn: { name: string; since: string }[];
+    missingRoles: string[];
     health: {
         lastNotionWebhookAt: string | null;
         lastRoleSyncAt: string | null;

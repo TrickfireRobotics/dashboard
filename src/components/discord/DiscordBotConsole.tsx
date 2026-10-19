@@ -6,6 +6,7 @@ import {
     Check,
     ChevronRight,
     CircleAlert,
+    ChevronDown,
     HeartPulse,
     MessagesSquare,
     ScrollText,
@@ -19,7 +20,16 @@ import {
 import { useCallback, useState } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsIndicator, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { BotActivityEntry, BotLogLine, BotStatus } from "@/lib/integrations/discord-bot";
 import { usePoll } from "@/lib/use-poll";
 
@@ -95,7 +105,7 @@ function ConsoleSkeleton() {
 }
 
 function ActivityIcon({ kind }: { kind: string }) {
-    if (kind === "error") return <BadgeAlert className="size-4" />;
+    if (kind === "error" || kind === "missing_role") return <BadgeAlert className="size-4" />;
     if (kind === "roles_synced") return <ShieldCheck className="size-4" />;
     if (kind === "feedback_received") return <MessagesSquare className="size-4" />;
     return <Activity className="size-4" />;
@@ -109,7 +119,7 @@ export function DiscordBotConsole() {
         try {
             const [statusResult, activityResult, logsResult] = await Promise.all([
                 fetch("/api/discord-bot/status", { cache: "no-store" }),
-                fetch("/api/discord-bot/activity", { cache: "no-store" }),
+                fetch("/api/discord-bot/activity?limit=500", { cache: "no-store" }),
                 fetch("/api/discord-bot/logs", { cache: "no-store" }),
             ]);
             if (!statusResult.ok || !activityResult.ok || !logsResult.ok) return;
@@ -148,6 +158,7 @@ export function DiscordBotConsole() {
     }
 
     const syncReady = Boolean(status.health.lastRoleSyncAt);
+    const missingRoles = status.missingRoles;
     const health = !status.connected
         ? {
               label: "Discord offline",
@@ -155,12 +166,14 @@ export function DiscordBotConsole() {
               className: "border-destructive/30 bg-destructive/8 text-destructive",
               dotClassName: "bg-destructive shadow-destructive/25",
           }
-        : status.health.lastError || !syncReady
+        : status.health.lastError || missingRoles.length > 0 || !syncReady
           ? {
                 label: "Needs attention",
                 detail: status.health.lastError
                     ? "The bot is online, but a recent operation failed."
-                    : "Discord is online. Waiting for the first successful Notion role sync.",
+                    : missingRoles.length > 0
+                      ? `${missingRoles.length} Discord role${missingRoles.length === 1 ? " is" : "s are"} missing.`
+                      : "Discord is online. Waiting for the first successful Notion role sync.",
                 className: "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400",
                 dotClassName: "bg-amber-500 shadow-amber-500/25",
             }
@@ -195,6 +208,44 @@ export function DiscordBotConsole() {
         } finally {
             setClearingError(false);
         }
+    }
+
+    function activityRow(entry: BotActivityEntry, index: number) {
+        const isError = entry.kind === "error";
+        const isMissingRole = entry.kind === "missing_role";
+
+        return (
+            <li key={`${entry.time}-${index}`} className="flex gap-3 py-3 first:pt-0 last:pb-0">
+                <span
+                    className={
+                        isError
+                            ? "bg-destructive/10 text-destructive mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg"
+                            : isMissingRole
+                              ? "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              : "bg-primary/10 text-primary mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg"
+                    }
+                >
+                    <ActivityIcon kind={entry.kind} />
+                </span>
+                <div className="min-w-0 flex-1">
+                    <p
+                        className={
+                            isMissingRole
+                                ? "text-sm font-medium text-amber-700 dark:text-amber-300"
+                                : "text-sm font-medium"
+                        }
+                    >
+                        {entry.summary}
+                    </p>
+                    {entry.detail && (
+                        <p className="text-muted-foreground mt-0.5 text-xs">{entry.detail}</p>
+                    )}
+                </div>
+                <time className="text-muted-foreground shrink-0 pt-1 text-xs">
+                    {formatTime(entry.time)}
+                </time>
+            </li>
+        );
     }
 
     return (
@@ -330,67 +381,114 @@ export function DiscordBotConsole() {
                             </p>
                         ) : (
                             <ol className="divide-border divide-y">
-                                {activity.map((entry, index) => (
-                                    <li
-                                        key={`${entry.time}-${index}`}
-                                        className="flex gap-3 py-3 first:pt-0 last:pb-0"
-                                    >
-                                        <span
-                                            className={
-                                                entry.kind === "error"
-                                                    ? "bg-destructive/10 text-destructive mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg"
-                                                    : "bg-primary/10 text-primary mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg"
-                                            }
-                                        >
-                                            <ActivityIcon kind={entry.kind} />
-                                        </span>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-sm font-medium">{entry.summary}</p>
-                                            {entry.detail && (
-                                                <p className="text-muted-foreground mt-0.5 text-xs">
-                                                    {entry.detail}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <time className="text-muted-foreground shrink-0 pt-1 text-xs">
-                                            {formatTime(entry.time)}
-                                        </time>
-                                    </li>
-                                ))}
+                                {activity.slice(0, 15).map(activityRow)}
                             </ol>
+                        )}
+                        {activity.length > 15 && (
+                            <Dialog>
+                                <DialogTrigger
+                                    render={
+                                        <button
+                                            type="button"
+                                            className="text-primary hover:bg-primary/5 mt-4 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed py-2 text-sm font-medium transition-colors"
+                                        />
+                                    }
+                                >
+                                    View all {activity.length} activity entries
+                                    <ChevronDown className="size-4" />
+                                </DialogTrigger>
+                                <DialogContent
+                                    className="max-w-3xl p-0"
+                                    overlayClassName="bg-black/35 backdrop-blur-sm"
+                                >
+                                    <DialogHeader className="border-b px-6 py-5 pr-12">
+                                        <DialogTitle>Full bot activity</DialogTitle>
+                                        <DialogDescription>
+                                            Every recorded Discord and Notion action, newest first.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className="max-h-[70vh] overflow-y-auto px-6 py-2">
+                                        <ol className="divide-border divide-y">
+                                            {activity.map(activityRow)}
+                                        </ol>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
                         )}
                     </CardContent>
                 </Card>
                 <Card className="xl:col-span-2">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Users className="text-primary size-5" /> In the shop
-                        </CardTitle>
-                        <CardDescription>
-                            Live attendance from the check-in message.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {status.checkedIn.length === 0 ? (
-                            <div className="text-muted-foreground flex min-h-36 flex-col items-center justify-center gap-2 text-sm">
-                                <Check className="text-primary size-5" /> Nobody checked in
-                            </div>
-                        ) : (
-                            <ul className="space-y-2">
-                                {status.checkedIn.map((member) => (
-                                    <li
-                                        key={`${member.name}-${member.since}`}
-                                        className="bg-muted/50 flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm"
-                                    >
-                                        <span className="truncate font-medium">{member.name}</span>
-                                        <span className="text-muted-foreground shrink-0 text-xs">
-                                            {formatTime(member.since)}
+                        <Tabs defaultValue="shop">
+                            <TabsList className="bg-muted/60 h-9 w-full">
+                                <TabsIndicator className="bg-background shadow-sm" />
+                                <TabsTrigger value="shop">
+                                    <Users className="size-4" /> In the shop
+                                </TabsTrigger>
+                                <TabsTrigger value="roles" className="relative">
+                                    <ShieldCheck className="size-4" /> Missing roles
+                                    {missingRoles.length > 0 && (
+                                        <span className="ml-1 rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-amber-950 tabular-nums">
+                                            {missingRoles.length}
                                         </span>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </CardContent>
+                                    )}
+                                </TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="shop" className="pt-4">
+                                <CardDescription>
+                                    Live attendance from the check-in message.
+                                </CardDescription>
+                                <div className="pt-4">
+                                    {status.checkedIn.length === 0 ? (
+                                        <div className="text-muted-foreground flex min-h-36 flex-col items-center justify-center gap-2 text-sm">
+                                            <Check className="text-primary size-5" /> Nobody checked
+                                            in
+                                        </div>
+                                    ) : (
+                                        <ul className="space-y-2">
+                                            {status.checkedIn.map((member) => (
+                                                <li
+                                                    key={`${member.name}-${member.since}`}
+                                                    className="bg-muted/50 flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-sm"
+                                                >
+                                                    <span className="truncate font-medium">
+                                                        {member.name}
+                                                    </span>
+                                                    <span className="text-muted-foreground shrink-0 text-xs">
+                                                        {formatTime(member.since)}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            </TabsContent>
+                            <TabsContent value="roles" className="pt-4">
+                                <CardDescription>
+                                    Roles requested by Notion that Discord could not find.
+                                </CardDescription>
+                                {missingRoles.length === 0 ? (
+                                    <div className="text-muted-foreground flex min-h-36 flex-col items-center justify-center gap-2 text-sm">
+                                        <ShieldCheck className="text-primary size-5" /> All
+                                        requested roles exist
+                                    </div>
+                                ) : (
+                                    <ul className="mt-4 space-y-2">
+                                        {missingRoles.map((roleName) => (
+                                            <li
+                                                key={roleName}
+                                                className="rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2.5"
+                                            >
+                                                <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                                                    {roleName}
+                                                </p>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </TabsContent>
+                        </Tabs>
+                    </CardHeader>
                 </Card>
             </section>
 
