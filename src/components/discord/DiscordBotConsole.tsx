@@ -513,7 +513,7 @@ export function DiscordBotConsole() {
                                 >
                                     <time className="text-zinc-500">{formatTime(line.time)}</time>
                                     <span className={levelClass(line.level)}>{line.level}</span>
-                                    <span className="min-w-0 break-words text-zinc-300">
+                                    <span className="min-w-0 wrap-break-word text-zinc-300">
                                         {line.message}
                                     </span>
                                 </div>
