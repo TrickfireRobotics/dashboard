@@ -70,13 +70,13 @@ Called from two places: `src/lib/auth/auth.ts` (email verification codes, passwo
 
 `src/lib/sim/` is a separate subsystem that turns an OnShape assembly into a robot description file for our [Gazebo simulation](https://github.com/TrickFireRobotics/gazebo-simulations) tooling, fronted by `POST /api/sim/export` and `GET /api/sim/export/{jobId}`:
 
-1. **Auth** (`src/app/api/sim/export/route.ts`) - the caller sends a per-user key in `X-API-Key`. The route hashes it and looks up a matching, non-revoked row in the `apiKey` table (the same table and hashing scheme described in [Security](/tech-stack/security/#service-api-keys-srclibsecurityapi-keyts)) joined to an active user - it's the same mechanism as `/api/service/verify`, just re-checked inline rather than via a shared helper.
+1. **Auth** (`src/lib/sim/request-auth.ts`) - the caller sends the club's current 6-digit access code in `X-Access-Code`. There are no per-user keys and nothing is stored on the caller's machine: `src/lib/sim/access-code.ts` keeps one code in the `simAccessCode` table, rotates it automatically at 3am Pacific on the next read, and lets any dashboard user rotate it early from the API Keys page. Wrong codes burn a tight per-IP budget (10/hour); correct ones never do.
 2. **Cache check** (`src/lib/sim/cache.ts`) - the `simExportCache` table is keyed on `(documentId, workspaceId, elementId)` parsed out of the submitted OnShape URL. A hit younger than `SIM_CACHE_TTL_DAYS` (default 7) is streamed back immediately unless the caller passed `forceRefresh: true`.
 3. **Export** (`src/lib/sim/export.ts`) - on a miss, `runOnshapeExport()` shells out to the external `onshape-to-robot` CLI in a temp directory to convert the assembly to URDF, then `tar`s the result into `SIM_CACHE_DIR` (default `/var/cache/trickfire-sim` - see the [Server Integrations Setup guide](/guides/integrations/#onshape-simulation-export-proxy) for the directory permissions this requires in production).
 4. **Jobs** (`src/lib/sim/jobs.ts`) - because the export can take a few minutes, it doesn't block the request: the route creates an in-memory job, returns `202 { jobId }` immediately, and the caller polls `GET /api/sim/export/{jobId}` until it returns `done` (streams the archive) or `error`. Job state is a plain `Map`, so it doesn't survive a server restart - fine for a poll-until-done flow, since a restarted export just becomes a new job.
 5. **Eviction** (`src/lib/sim/cache.ts`'s `evictIfNeeded()`) - after every new export, the oldest cache rows past `SIM_CACHE_MAX_ENTRIES` (default 50) are deleted along with their archive files, keyed on `lastAccessedAt` so frequently-reused exports survive longer.
 
-Callers generate their own key from the dashboard's Settings page (`SimApiKeyPanel`, backed by `src/lib/sim/apikey-actions.ts`) - the raw key is shown once at creation time, same one-way-hash model as any other service API key.
+Leads read the current code off the dashboard's API Keys page (`SimAccessCodePanel`, backed by `src/lib/sim/access-code-actions.ts`), which also has a fullscreen view for sharing it at a meeting and a button to rotate it immediately.
 
 ## Tailscale (Network tab)
 

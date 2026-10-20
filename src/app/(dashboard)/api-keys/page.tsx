@@ -1,11 +1,13 @@
 import { asc, desc } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
+import { SimAccessCodePanel } from "@/components/sim/SimAccessCodePanel";
 import { VaultManager, type VaultMember } from "@/components/vault/VaultManager";
 import type { VaultEntryRow } from "@/components/vault/VaultEntryDialog";
 import { db } from "@/lib/db";
 import { user, vaultEntry, vaultEntryAccess } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
+import { formatRotationTime, getAccessCode } from "@/lib/sim/access-code";
 
 export default async function ApiKeysPage() {
     const sessionUser = await getSessionUser();
@@ -40,8 +42,15 @@ export default async function ApiKeysPage() {
         (grants[g.entryId] ??= []).push(g.userId);
     }
 
+    const accessCode = getAccessCode();
+
     return (
         <div className="space-y-6">
+            <SimAccessCodePanel
+                code={accessCode.code}
+                rotatesAt={accessCode.rotatesAt.toISOString()}
+                rotatesAtLabel={formatRotationTime(accessCode.rotatesAt)}
+            />
             <VaultManager entries={entries} members={members} grants={grants} />
         </div>
     );

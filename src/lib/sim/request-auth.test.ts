@@ -1,11 +1,12 @@
-import { describe, it, expect, beforeAll } from "vitest";
-import { NextResponse } from "next/server";
+import { describe, it, expect, beforeEach } from "vitest";
 
-import { currentAccessCode } from "./access-code";
+import { db } from "@/lib/db";
+import { simAccessCode } from "@/lib/db/schema";
+import { getAccessCode } from "./access-code";
 import { authenticateSimRequest } from "./request-auth";
 
-beforeAll(() => {
-    process.env.SIM_ACCESS_CODE_SECRET = "test-secret";
+beforeEach(() => {
+    db.delete(simAccessCode).run();
 });
 
 let ipCounter = 0;
@@ -16,56 +17,50 @@ function request(headers: Record<string, string>) {
     });
 }
 
-async function status(result: ReturnType<typeof authenticateSimRequest>) {
-    return result instanceof NextResponse ? result.status : 200;
+function status(req: Request): number {
+    return authenticateSimRequest(req)?.status ?? 200;
 }
 
 describe("authenticateSimRequest", () => {
-    it("rejects a request with no credentials", async () => {
-        expect(await status(authenticateSimRequest(request({})))).toBe(401);
+    it("rejects a request with no code", () => {
+        expect(status(request({}))).toBe(401);
     });
 
-    it("accepts today's access code", () => {
-        const result = authenticateSimRequest(request({ "x-access-code": currentAccessCode() }));
-        expect(result).toEqual({ via: "access-code" });
+    it("no longer accepts an api key", () => {
+        expect(status(request({ "x-api-key": "tf_anything" }))).toBe(401);
+    });
+
+    it("accepts the current code", () => {
+        expect(status(request({ "x-access-code": getAccessCode().code }))).toBe(200);
     });
 
     it("accepts a code with separators in it", () => {
-        const code = currentAccessCode();
-        const result = authenticateSimRequest(
-            request({ "x-access-code": `${code.slice(0, 3)}-${code.slice(3)}` })
+        const code = getAccessCode().code;
+        expect(status(request({ "x-access-code": `${code.slice(0, 3)}-${code.slice(3)}` }))).toBe(
+            200
         );
-        expect(result).toEqual({ via: "access-code" });
     });
 
-    it("rejects a wrong code", async () => {
-        const wrong = String((Number(currentAccessCode()) + 1) % 1_000_000).padStart(6, "0");
-        expect(await status(authenticateSimRequest(request({ "x-access-code": wrong })))).toBe(401);
+    it("rejects a wrong code", () => {
+        const wrong = String((Number(getAccessCode().code) + 1) % 1_000_000).padStart(6, "0");
+        expect(status(request({ "x-access-code": wrong }))).toBe(401);
     });
 
-    it("rejects an unknown api key", async () => {
-        expect(await status(authenticateSimRequest(request({ "x-api-key": "tf_nope" })))).toBe(401);
-    });
-
-    it("rate limits an IP after repeated wrong codes", async () => {
-        const ip = "10.1.1.1";
-        const wrong = { "x-forwarded-for": ip, "x-access-code": "000000" };
-        let lastStatus = 0;
+    it("rate limits an IP after repeated wrong codes", () => {
+        const wrong = String((Number(getAccessCode().code) + 1) % 1_000_000).padStart(6, "0");
+        const headers = { "x-forwarded-for": "10.1.1.1", "x-access-code": wrong };
+        let last = 0;
         for (let i = 0; i < 12; i++) {
-            lastStatus = await status(
-                authenticateSimRequest(new Request("http://localhost", { headers: wrong }))
-            );
+            last = status(new Request("http://localhost", { headers }));
         }
-        expect(lastStatus).toBe(429);
+        expect(last).toBe(429);
     });
 
-    it("does not spend the failure budget on correct codes", async () => {
-        const ip = "10.2.2.2";
-        const good = { "x-forwarded-for": ip, "x-access-code": currentAccessCode() };
+    it("does not spend the failure budget on correct codes", () => {
+        const headers = { "x-forwarded-for": "10.2.2.2", "x-access-code": getAccessCode().code };
         for (let i = 0; i < 50; i++) {
-            authenticateSimRequest(new Request("http://localhost", { headers: good }));
+            status(new Request("http://localhost", { headers }));
         }
-        const result = authenticateSimRequest(new Request("http://localhost", { headers: good }));
-        expect(result).toEqual({ via: "access-code" });
+        expect(status(new Request("http://localhost", { headers }))).toBe(200);
     });
 });

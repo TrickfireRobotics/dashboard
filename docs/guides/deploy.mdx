@@ -219,10 +219,9 @@ sudo systemctl enable --now cloudflared-trickfire-dashboard
 ```
 
 <Callout type="info" title="Note">
-    The service API endpoint (`POST /api/service/verify`, used by simulation scripts to check an API
-    key) is reachable through the same tunnel and is IP-rate-limited via `x-forwarded-for` /
-    `cf-connecting-ip` headers injected by Cloudflare. The `/api/sim/*` export endpoints reuse the
-    same API-key scheme - see [External
+    The `/api/sim/*` export endpoints (used by the simulation CLI) are reachable through the same
+    tunnel and are IP-rate-limited via `x-forwarded-for` / `cf-connecting-ip` headers injected by
+    Cloudflare. They authenticate with the rotating club access code - see [External
     Integrations](/tech-stack/external-integrations/#onshape-simulation-export-proxy).
 </Callout>
 

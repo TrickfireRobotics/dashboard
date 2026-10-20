@@ -5,11 +5,11 @@ description: The API key vault's AES-256-GCM encryption, service API key hashing
 
 Three distinct security mechanisms live under `src/lib/security/`, solving three different problems. It's worth not conflating them - they're often confused because they're all "keys":
 
-| Mechanism               | File              | Problem it solves                                                                                                |
-| ----------------------- | ----------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Vault encryption        | `vault-crypto.ts` | Store third-party credentials so an authorized human can read them back later                                    |
-| Service API key hashing | `api-key.ts`      | Let external scripts authenticate to this app's API, without this app ever storing the secret in a readable form |
-| Rate limiting           | `rate-limit.ts`   | Slow down abuse of unauthenticated/low-friction endpoints                                                        |
+| Mechanism        | File                 | Problem it solves                                                                                                                           |
+| ---------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vault encryption | `vault-crypto.ts`    | Store third-party credentials so an authorized human can read them back later                                                               |
+| Sim access code  | `sim/access-code.ts` | Let the simulation CLI authenticate to this app's API with one short club-wide code, no accounts and nothing stored on the caller's machine |
+| Rate limiting    | `rate-limit.ts`      | Slow down abuse of unauthenticated/low-friction endpoints                                                                                   |
 
 ## The API Key Vault
 
@@ -67,18 +67,23 @@ curl -s https://dashboard.trickfirerobotics.com/api/vault/12/key \
   -H "Cookie: better-auth.session_token=<your-session-cookie>"
 ```
 
-## Service API keys (`src/lib/security/api-key.ts`)
+## Sim access code (`src/lib/sim/access-code.ts`)
 
-Separate from the vault entirely - these authenticate _external scripts_ (e.g. simulation tooling) calling into this app's API, not humans logging into the dashboard. Unlike vault secrets, these are **never** stored in a form that could be decrypted back - only a one-way SHA-256 hash is kept:
+Separate from the vault entirely - this authenticates _external scripts_ (the simulation CLI) calling into this app's API, not humans logging into the dashboard. It is one 6-digit code shared by the whole club, held in the single-row `simAccessCode` table:
 
 ```ts
-export function generateApiKey(): { raw: string; hash: string; prefix: string } {
-    const raw = `tf_${randomBytes(32).toString("hex")}`;
-    return { raw, hash: hashApiKey(raw), prefix: raw.slice(0, 8) };
+export function getAccessCode(now: Date = new Date()): AccessCode {
+    const row = db.select().from(simAccessCode).where(eq(simAccessCode.id, ROW_ID)).get();
+    if (!row || row.rotatesAt.getTime() <= now.getTime()) {
+        return issue(now, null);
+    }
+    return { code: row.code, rotatesAt: row.rotatesAt };
 }
 ```
 
-The raw key (`tf_...`) is shown to the user exactly once at creation time and never persisted - only its hash and a short `prefix` (for identifying which key is which in a UI list, without revealing the whole thing) are stored in the `apiKey` table. A caller authenticates by sending the raw key; the server hashes what it received and compares against the stored hash.
+Rotation is lazy rather than scheduled: every read checks whether 3am Pacific has passed and issues a new code if so, which means no cron job and no way for a restart to leave a stale code in place. Any dashboard user can also rotate it immediately from the API Keys page, recorded in `rotatedBy`.
+
+The code is stored in plaintext on purpose - unlike a hashed API key, a lead has to be able to read it off the screen to share it. What limits the damage is its lifetime (a day at most) and the scope of what it unlocks (CAD exports the club already publishes doc IDs for). Guessing is handled by the rate limiter below: wrong codes spend from a 10-per-hour per-IP budget while correct ones never do.
 
 ## Rate limiting (`src/lib/security/rate-limit.ts`)
 

@@ -119,6 +119,17 @@ export const apiKey = sqliteTable("api_key", {
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
 });
 
+// Single-row table (id = 1) holding the current sim access code. The code is
+// what the sim CLI sends for OnShape exports; it rotates automatically at 3am
+// Pacific and can be rotated early from the API Keys page.
+export const simAccessCode = sqliteTable("sim_access_code", {
+    id: integer("id").primaryKey(),
+    code: text("code").notNull(),
+    rotatesAt: integer("rotates_at", { mode: "timestamp_ms" }).notNull(),
+    rotatedBy: text("rotated_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+});
+
 // Secret vault: shared club credentials stored encrypted at rest (see
 // vault-crypto.ts). Distinct from `api_key` above, which holds one-way hashes
 // for service-API auth and can never reveal a secret.
@@ -246,6 +257,10 @@ export const orderHistoryRelations = relations(orderHistory, ({ one }) => ({
 
 export const apiKeyRelations = relations(apiKey, ({ one }) => ({
     user: one(user, { fields: [apiKey.userId], references: [user.id] }),
+}));
+
+export const simAccessCodeRelations = relations(simAccessCode, ({ one }) => ({
+    rotatedByUser: one(user, { fields: [simAccessCode.rotatedBy], references: [user.id] }),
 }));
 
 export const vaultEntryRelations = relations(vaultEntry, ({ one, many }) => ({

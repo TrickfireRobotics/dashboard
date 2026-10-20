@@ -19,8 +19,8 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    const caller = authenticateSimRequest(req);
-    if (caller instanceof NextResponse) return caller;
+    const denied = authenticateSimRequest(req);
+    if (denied) return denied;
 
     if (!isOnshapeConfigured()) {
         return NextResponse.json(
