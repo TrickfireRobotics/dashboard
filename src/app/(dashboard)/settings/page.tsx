@@ -2,11 +2,13 @@ import { and, desc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 import { SettingsForm } from "@/components/settings/SettingsForm";
+import { SimAccessCodePanel } from "@/components/settings/SimAccessCodePanel";
 import { SimApiKeyPanel } from "@/components/settings/SimApiKeyPanel";
 import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { apiKey } from "@/lib/db/schema";
 import { NAME_CHANGE_COOLDOWN_MS } from "@/app/api/user/name/route";
+import { currentAccessCode, formatRotationTime, nextRotation } from "@/lib/sim/access-code";
 
 function nameCooldownProps(nameChangedAt: number | null) {
     const now = Date.now();
@@ -39,6 +41,8 @@ export default async function SettingsPage() {
         .orderBy(desc(apiKey.createdAt))
         .all();
 
+    const rotatesAt = nextRotation();
+
     return (
         <div className="space-y-6">
             <SettingsForm
@@ -46,6 +50,11 @@ export default async function SettingsPage() {
                 email={user.email}
                 onCooldown={onCooldown}
                 cooldownUntil={cooldownUntil}
+            />
+            <SimAccessCodePanel
+                code={currentAccessCode()}
+                rotatesAt={rotatesAt.toISOString()}
+                rotatesAtLabel={formatRotationTime(rotatesAt)}
             />
             <SimApiKeyPanel initialKeys={cliKeys} />
         </div>

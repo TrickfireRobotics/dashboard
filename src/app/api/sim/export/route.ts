@@ -1,33 +1,26 @@
-import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { db } from "@/lib/db";
-import { apiKey, user } from "@/lib/db/schema";
-import { hashApiKey } from "@/lib/security/api-key";
 import { getCacheEntry, touchCacheEntry, upsertCacheEntry, evictIfNeeded } from "@/lib/sim/cache";
 import { runOnshapeExport } from "@/lib/sim/export";
 import { isOnshapeConfigured } from "@/lib/integrations/onshape";
 import { createJob, startJob } from "@/lib/sim/jobs";
+import { authenticateSimRequest } from "@/lib/sim/request-auth";
+import { clientIp, rateLimit } from "@/lib/security/rate-limit";
 import { streamArchive } from "@/lib/sim/stream";
 
 const ONSHAPE_URL_RE = /documents\/([0-9a-f]+)\/[wv]\/([0-9a-f]+)\/e\/([0-9a-f]+)/i;
 
 export async function POST(req: NextRequest) {
-    const provided = req.headers.get("x-api-key");
-    if (!provided) {
-        return NextResponse.json({ error: "Missing X-API-Key" }, { status: 401 });
+    const limit = rateLimit(clientIp(req));
+    if (!limit.allowed) {
+        return NextResponse.json(
+            { error: "Too many requests" },
+            { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
+        );
     }
 
-    const row = db
-        .select({ userId: user.id, isActive: user.isActive })
-        .from(apiKey)
-        .innerJoin(user, eq(apiKey.userId, user.id))
-        .where(and(eq(apiKey.keyHash, hashApiKey(provided)), eq(apiKey.isRevoked, false)))
-        .get();
-
-    if (!row?.isActive) {
-        return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
-    }
+    const caller = authenticateSimRequest(req);
+    if (caller instanceof NextResponse) return caller;
 
     if (!isOnshapeConfigured()) {
         return NextResponse.json(

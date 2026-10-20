@@ -1,13 +1,11 @@
-import { and, eq } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { hashApiKey } from "@/lib/security/api-key";
-import { db } from "@/lib/db";
-import { apiKey, user } from "@/lib/db/schema";
+import { formatRotationTime, nextRotation } from "@/lib/sim/access-code";
+import { authenticateSimRequest } from "@/lib/sim/request-auth";
 import { clientIp, rateLimit } from "@/lib/security/rate-limit";
 
 // Public endpoint reachable via Cloudflare Tunnel - sim scripts authenticate
-// with an X-API-Key header. Rate limited per client IP.
+// with an X-API-Key or X-Access-Code header. Rate limited per client IP.
 export async function POST(req: NextRequest) {
     const limit = rateLimit(clientIp(req));
     if (!limit.allowed) {
@@ -17,28 +15,18 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    const provided = req.headers.get("x-api-key");
-    if (!provided) {
-        return NextResponse.json({ error: "Missing X-API-Key" }, { status: 401 });
+    const caller = authenticateSimRequest(req);
+    if (caller instanceof NextResponse) return caller;
+
+    if (caller.via === "access-code") {
+        const rotatesAt = nextRotation();
+        return NextResponse.json({
+            via: "access-code",
+            name: "today's access code",
+            expiresAt: rotatesAt.toISOString(),
+            expiresAtLabel: formatRotationTime(rotatesAt),
+        });
     }
 
-    const row = db
-        .select({
-            keyId: apiKey.id,
-            userId: user.id,
-            name: user.name,
-            isActive: user.isActive,
-        })
-        .from(apiKey)
-        .innerJoin(user, eq(apiKey.userId, user.id))
-        .where(and(eq(apiKey.keyHash, hashApiKey(provided)), eq(apiKey.isRevoked, false)))
-        .get();
-
-    if (!row || !row.isActive) {
-        return NextResponse.json({ error: "Invalid API key" }, { status: 401 });
-    }
-
-    db.update(apiKey).set({ lastUsedAt: new Date() }).where(eq(apiKey.id, row.keyId)).run();
-
-    return NextResponse.json({ userId: row.userId, name: row.name });
+    return NextResponse.json({ via: "api-key", userId: caller.userId, name: caller.name });
 }
