@@ -27,8 +27,7 @@ import { orderAssignSchema, orderBatchInputSchema } from "../src/lib/validation"
 import {
     formatApprovedGiftOrders,
     formatApprovedStfOrders,
-    formatStfOrderRow,
-    stfOrderCalculations,
+    formatOrderQueueRow,
 } from "../src/lib/finance/order-export";
 
 function assert(condition: boolean, message: string) {
@@ -37,7 +36,7 @@ function assert(condition: boolean, message: string) {
 
 // --- Excel export format (no DB writes) ---
 const stfExportOrder = {
-    itemName: "(Bucket Item) Fasteners",
+    itemName: "Fasteners bulk pack",
     fundType: "STF" as const,
     stfBucketName: "Mechanical",
     quantity: 1,
@@ -48,23 +47,18 @@ const stfExportOrder = {
     partNumber: "91290A115",
     createdAt: new Date("2025-09-15"),
     status: "approved" as const,
+    requesterName: "Brady",
+    requesterEmail: "brady@example.com",
 };
 
-const calc = stfOrderCalculations(stfExportOrder.quantity, stfExportOrder.unitCostCents);
-assert(calc.unitCost === 800, "STF unit cost should be $800");
-assert(calc.preTaxTotal === 960, "Pre-tax total should be Qt * unit cost * flux");
-assert(Math.abs(calc.tax - 105.6) < 0.01, "Tax should be 11% of pre-tax total");
-assert(Math.abs(calc.shipping - 192) < 0.01, "Shipping should be 20% of pre-tax total");
-
-const stfRow = formatStfOrderRow(stfExportOrder);
-assert(stfRow.includes("Mechanical"), "STF row should include subteam");
+const stfRow = formatOrderQueueRow(stfExportOrder);
+assert(stfRow.includes("(Bucket Item) Mechanical"), "STF row should include the bucket");
 assert(stfRow.includes("$800.00"), "STF row should include unit cost");
-assert(Math.abs(calc.total - 1257.6) < 0.01, "STF total should include tax and shipping");
 assert(stfRow.split("\t").length === 13, "STF row should have 13 columns");
 
 const bulkStf = formatApprovedStfOrders([stfExportOrder]);
-assert(!bulkStf.startsWith("Subteam\t"), "Bulk STF export should be data rows only");
-assert(bulkStf.includes("(Bucket Item) Fasteners"), "Bulk STF export should include order data");
+assert(!bulkStf.startsWith("Date Requested\t"), "Bulk STF export should be data rows only");
+assert(bulkStf.includes("Fasteners bulk pack"), "Bulk STF export should include order data");
 
 const giftExportOrder = {
     ...stfExportOrder,

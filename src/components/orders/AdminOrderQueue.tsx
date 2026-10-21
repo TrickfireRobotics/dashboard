@@ -342,7 +342,7 @@ export function AdminOrderQueue({
                         disabled={approvedGiftCount === 0}
                         onClick={() =>
                             copyText(
-                                formatApprovedGiftOrders(orders),
+                                formatApprovedGiftOrders(orders, pricingSettings),
                                 plural(approvedGiftCount, "approved Gift order")
                             )
                         }

@@ -86,9 +86,12 @@ const rows = db
         partNumber: order.partNumber,
         status: order.status,
         createdAt: order.createdAt,
+        requesterName: user.name,
+        requesterEmail: user.email,
     })
     .from(order)
     .leftJoin(stfBucket, eq(order.stfBucketId, stfBucket.id))
+    .leftJoin(user, eq(order.userId, user.id))
     .where(eq(order.id, stfId))
     .all();
 
@@ -112,9 +115,12 @@ const giftRows = db
         partNumber: order.partNumber,
         status: order.status,
         createdAt: order.createdAt,
+        requesterName: user.name,
+        requesterEmail: user.email,
     })
     .from(order)
     .leftJoin(stfBucket, eq(order.stfBucketId, stfBucket.id))
+    .leftJoin(user, eq(order.userId, user.id))
     .where(eq(order.id, giftId))
     .all();
 
@@ -137,9 +143,12 @@ const allOrders = db
         partNumber: order.partNumber,
         status: order.status,
         createdAt: order.createdAt,
+        requesterName: user.name,
+        requesterEmail: user.email,
     })
     .from(order)
     .leftJoin(stfBucket, eq(order.stfBucketId, stfBucket.id))
+    .leftJoin(user, eq(order.userId, user.id))
     .all()
     .filter((o) => o.id === stfId || o.id === giftId);
 
@@ -147,7 +156,7 @@ const bulkStf = formatApprovedStfOrders(allOrders);
 const bulkGift = formatApprovedGiftOrders(allOrders);
 assert(bulkStf.includes("Hex bolt"), "Bulk STF from DB should include test order");
 assert(bulkGift.includes("Gaff tape"), "Bulk Gift from DB should include test order");
-assert(!bulkStf.startsWith("Subteam\t"), "Bulk STF should be data rows only");
+assert(!bulkStf.startsWith("Date Requested\t"), "Bulk STF should be data rows only");
 assert(!bulkGift.startsWith("Date Requested\t"), "Bulk Gift should be data rows only");
 
 db.delete(order).where(eq(order.id, stfId)).run();

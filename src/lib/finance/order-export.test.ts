@@ -1,15 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
-    stfOrderCalculations,
-    formatStfOrderRow,
-    formatGiftOrderRow,
+    formatOrderQueueRow,
     formatOrderForExcel,
     formatApprovedStfOrders,
     formatApprovedGiftOrders,
-    STF_PRICE_FLUX,
     type OrderExportRow,
 } from "./order-export";
-import { DEFAULT_ORDER_PRICING } from "./order-pricing";
 
 const BASE_STF: OrderExportRow = {
     itemName: "Motor Controller",
@@ -23,6 +19,8 @@ const BASE_STF: OrderExportRow = {
     partNumber: "MT-001",
     createdAt: new Date("2024-06-15"),
     status: "approved",
+    requesterName: "Jamie",
+    requesterEmail: "jamie@example.com",
 };
 
 const BASE_GIFT: OrderExportRow = {
@@ -37,104 +35,60 @@ const BASE_GIFT: OrderExportRow = {
     partNumber: "HD-BOLT-M4",
     createdAt: new Date("2024-06-15"),
     status: "approved",
+    requesterName: null,
+    requesterEmail: "sam@example.com",
 };
 
-describe("stfOrderCalculations", () => {
-    it("applies flux, tax, and shipping multipliers correctly", () => {
-        const calc = stfOrderCalculations(2, 5000, DEFAULT_ORDER_PRICING);
-        expect(calc.unitCost).toBe(50);
-        expect(calc.unitCostFlux).toBeCloseTo(50 * STF_PRICE_FLUX);
-        expect(calc.preTaxTotal).toBeCloseTo(2 * 50 * STF_PRICE_FLUX);
-        expect(calc.tax).toBeCloseTo(calc.preTaxTotal * 0.11);
-        expect(calc.shipping).toBeCloseTo(calc.preTaxTotal * 0.2);
-        expect(calc.total).toBeCloseTo(calc.preTaxTotal + calc.tax + calc.shipping);
-    });
-
-    it("returns zero for all fields when quantity is 0", () => {
-        const calc = stfOrderCalculations(0, 5000);
-        expect(calc.preTaxTotal).toBe(0);
-        expect(calc.tax).toBe(0);
-        expect(calc.shipping).toBe(0);
-        expect(calc.total).toBe(0);
-    });
-
-    it("returns zero for all fields when unit cost is 0", () => {
-        const calc = stfOrderCalculations(5, 0);
-        expect(calc.unitCost).toBe(0);
-        expect(calc.total).toBe(0);
-    });
-
-    it("calculates total as preTaxTotal + tax + shipping", () => {
-        const calc = stfOrderCalculations(3, 1000);
-        expect(calc.total).toBeCloseTo(calc.preTaxTotal + calc.tax + calc.shipping, 10);
-    });
-
-    it("uses custom tax and shipping settings", () => {
-        const calc = stfOrderCalculations(2, 5000, {
-            taxPercentBps: 500,
-            shippingPercentBps: 1000,
-        });
-        expect(calc.tax).toBeCloseTo(calc.preTaxTotal * 0.05);
-        expect(calc.shipping).toBeCloseTo(calc.preTaxTotal * 0.1);
-    });
-});
-
-describe("formatStfOrderRow", () => {
-    it("produces a tab-separated row", () => {
-        const row = formatStfOrderRow(BASE_STF);
+describe("formatOrderQueueRow", () => {
+    it("produces a tab-separated row matching the Ordering_Sheet column order", () => {
+        const row = formatOrderQueueRow(BASE_STF);
         const cols = row.split("\t");
-        expect(cols.length).toBeGreaterThan(1);
+        // Date, Vendor, Link, Item Name, Part #, Quantity, Unit Cost, Total Cost,
+        // Total w/tax, Bucket/Gift, Notes, Requested By, Select Drop Down
+        expect(cols).toHaveLength(13);
+        expect(cols[1]).toBe("Amazon");
+        expect(cols[2]).toBe("https://example.com/motor");
+        expect(cols[3]).toBe("Motor Controller");
+        expect(cols[4]).toBe("MT-001");
+        expect(cols[5]).toBe("2");
     });
 
-    it("includes the vendor and item name", () => {
-        const row = formatStfOrderRow(BASE_STF);
-        expect(row).toContain("Amazon");
-        expect(row).toContain("Motor Controller");
+    it("prefixes the STF bucket name with '(Bucket Item)'", () => {
+        const row = formatOrderQueueRow(BASE_STF);
+        expect(row.split("\t")[9]).toBe("(Bucket Item) Drivetrain");
     });
 
-    it("includes the bucket name", () => {
-        const row = formatStfOrderRow(BASE_STF);
-        expect(row).toContain("Drivetrain");
+    it("uses 'Gift' for the Bucket/Gift column on Gift-fund orders", () => {
+        const row = formatOrderQueueRow(BASE_GIFT);
+        expect(row.split("\t")[9]).toBe("Gift");
     });
 
-    it("uses empty string when stfBucketName is null", () => {
-        const row = formatStfOrderRow({ ...BASE_STF, stfBucketName: null });
-        // First column should be empty, so row starts with a tab
-        expect(row.startsWith("\t")).toBe(true);
+    it("falls back to requester email when the name is missing", () => {
+        const row = formatOrderQueueRow(BASE_GIFT);
+        expect(row.split("\t")[11]).toBe("sam@example.com");
     });
 
-    it("prepends header row when includeHeader is true", () => {
-        const output = formatStfOrderRow(BASE_STF, true);
+    it("computes Total Cost and Total w/tax from quantity and unit cost, with no flux or shipping", () => {
+        const row = formatOrderQueueRow(BASE_STF, false, {
+            taxPercentBps: 1200,
+            shippingPercentBps: 2000,
+        });
+        const cols = row.split("\t");
+        expect(cols[7]).toBe("$100.00"); // 2 * $50, no flux
+        expect(cols[8]).toBe("$112.00"); // +12% tax, no shipping
+    });
+
+    it("sets the Select Drop Down column to 'New Request'", () => {
+        const row = formatOrderQueueRow(BASE_STF);
+        expect(row.split("\t")[12]).toBe("New Request");
+    });
+
+    it("prepends the Ordering_Sheet header row when includeHeader is true", () => {
+        const output = formatOrderQueueRow(BASE_STF, true);
         const [header] = output.split("\n");
-        expect(header).toContain("Vendor");
-        expect(header).toContain("TOTAL");
-    });
-});
-
-describe("formatGiftOrderRow", () => {
-    it("produces a tab-separated row", () => {
-        const row = formatGiftOrderRow(BASE_GIFT);
-        expect(row.split("\t").length).toBeGreaterThan(1);
-    });
-
-    it("includes the vendor, item name, and notes", () => {
-        const row = formatGiftOrderRow(BASE_GIFT);
-        expect(row).toContain("Home Depot");
-        expect(row).toContain("Bolts");
-        expect(row).toContain("M4 x 20mm");
-    });
-
-    it("uses empty string when notes is null", () => {
-        const row = formatGiftOrderRow({ ...BASE_GIFT, notes: null });
-        // The last column (notes) should be empty - row ends with a tab
-        expect(row.endsWith("\t")).toBe(true);
-    });
-
-    it("prepends header row when includeHeader is true", () => {
-        const output = formatGiftOrderRow(BASE_GIFT, true);
-        const [header] = output.split("\n");
-        expect(header).toContain("Vendor");
-        expect(header).toContain("Item Name");
+        expect(header).toBe(
+            "Date Requested\tVendor\tLink\tItem Name\tPart #\tQuantity\tUnit Cost\tTotal Cost\tTotal w/tax\tBucket/Gift\tNotes\tRequested By\tSelect Drop Down"
+        );
     });
 });
 
@@ -145,13 +99,13 @@ describe("formatOrderForExcel", () => {
         expect(formatOrderForExcel({ ...BASE_STF, status: "ordered" })).toBeNull();
     });
 
-    it("returns an STF row for an approved STF order", () => {
+    it("returns a row for an approved STF order", () => {
         const result = formatOrderForExcel(BASE_STF);
         expect(result).not.toBeNull();
         expect(result).toContain("Drivetrain");
     });
 
-    it("returns a Gift row for an approved Gift order", () => {
+    it("returns a row for an approved Gift order", () => {
         const result = formatOrderForExcel(BASE_GIFT);
         expect(result).not.toBeNull();
         expect(result).toContain("Home Depot");
