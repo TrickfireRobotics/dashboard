@@ -1,0 +1,1 @@
+ALTER TABLE `vendor_import` ADD `file_data` blob NOT NULL;

@@ -29,10 +29,15 @@ export type VendorUpload = {
     form: FormData;
     fileName: string;
     fileHash: string;
+    fileData: Buffer;
     records: VendorRecord[];
 };
 
-/** Reads and parses the multipart `file` field. Never written to disk. */
+/**
+ * Reads and parses the multipart `file` field. Not written to disk here, but
+ * the raw bytes are returned so an apply can archive them in vendor_import for
+ * later download.
+ */
 export async function readVendorUpload(req: NextRequest): Promise<VendorUpload | NextResponse> {
     const form = await req.formData().catch(() => null);
     const file = form?.get("file");
@@ -46,13 +51,14 @@ export async function readVendorUpload(req: NextRequest): Promise<VendorUpload |
         return NextResponse.json({ error: "File is larger than 20MB" }, { status: 413 });
     }
 
-    const data = new Uint8Array(await file.arrayBuffer());
+    const fileData = Buffer.from(await file.arrayBuffer());
     try {
         return {
             form,
             fileName: file.name,
-            fileHash: hashFile(data),
-            records: parseVendorWorkbook(data),
+            fileHash: hashFile(fileData),
+            fileData,
+            records: parseVendorWorkbook(fileData),
         };
     } catch (err) {
         if (err instanceof VendorImportError) {

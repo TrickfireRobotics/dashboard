@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { DataTableCard, DataTableCardHeader } from "@/components/ui/data-table-card";
 import {
     Dialog,
@@ -58,6 +58,25 @@ export function VendorImportCard({ initialLatest }: { initialLatest: VendorImpor
     const [latest, setLatest] = useState(initialLatest);
     const [preview, setPreview] = useState<Preview | null>(null);
     const [busy, setBusy] = useState<"preview" | "apply" | null>(null);
+    const [historyOpen, setHistoryOpen] = useState(false);
+    const [history, setHistory] = useState<VendorImportInfo[] | null>(null);
+    const [historyLoading, setHistoryLoading] = useState(false);
+
+    async function openHistory() {
+        setHistoryOpen(true);
+        setHistoryLoading(true);
+        try {
+            const res = await fetch("/api/admin/vendors/import/history");
+            const json = await res.json().catch(() => null);
+            if (!res.ok) throw new Error(json?.error ?? "Failed to load import history");
+            setHistory(json.imports);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Something went wrong");
+            setHistory(null);
+        } finally {
+            setHistoryLoading(false);
+        }
+    }
 
     async function previewFile(file: File) {
         setBusy("preview");
@@ -130,6 +149,9 @@ export function VendorImportCard({ initialLatest }: { initialLatest: VendorImpor
                                 if (file) void previewFile(file);
                             }}
                         />
+                        <Button variant="outline" onClick={() => void openHistory()}>
+                            History
+                        </Button>
                         <Button
                             variant="outline"
                             disabled={busy !== null}
@@ -156,7 +178,66 @@ export function VendorImportCard({ initialLatest }: { initialLatest: VendorImpor
                     ) : null}
                 </DialogContent>
             </Dialog>
+
+            <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+                <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-2xl">
+                    <ImportHistoryView loading={historyLoading} history={history} />
+                </DialogContent>
+            </Dialog>
         </DataTableCard>
+    );
+}
+
+function ImportHistoryView({
+    loading,
+    history,
+}: {
+    loading: boolean;
+    history: VendorImportInfo[] | null;
+}) {
+    return (
+        <>
+            <DialogHeader>
+                <DialogTitle>Import history</DialogTitle>
+                <DialogDescription>
+                    Every approved-vendor list upload, newest first. Download re-fetches the exact
+                    file that was applied.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+                {loading ? (
+                    <p className="text-muted-foreground py-6 text-center">Loading...</p>
+                ) : !history || history.length === 0 ? (
+                    <p className="text-muted-foreground py-6 text-center">No imports yet.</p>
+                ) : (
+                    <ul className="divide-border divide-y">
+                        {history.map((imp) => (
+                            <li
+                                key={imp.id}
+                                className="flex items-center justify-between gap-3 py-2.5"
+                            >
+                                <div className="min-w-0 space-y-0.5">
+                                    <p className="truncate text-sm font-medium">{imp.fileName}</p>
+                                    <p className="text-muted-foreground text-xs">
+                                        {formatDate(new Date(imp.importedAt))}
+                                        {imp.importedByName
+                                            ? ` · ${imp.importedByName}`
+                                            : ""} · {imp.totalCount.toLocaleString()} vendors (+
+                                        {imp.addedCount} -{imp.removedCount} ~{imp.changedCount})
+                                    </p>
+                                </div>
+                                <a
+                                    href={`/api/admin/vendors/import/${imp.id}/download`}
+                                    className={buttonVariants({ variant: "outline", size: "sm" })}
+                                >
+                                    Download
+                                </a>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+        </>
     );
 }
 

@@ -41,8 +41,9 @@ export default async function AdminFinancePage() {
                         shippingPercent: percentBpsToDisplay(pricing.shippingPercentBps),
                     },
                 }}
-            />
-            <VendorImportCard initialLatest={getLatestImport()} />
+            >
+                <VendorImportCard initialLatest={getLatestImport()} />
+            </FinanceManager>
         </div>
     );
 }

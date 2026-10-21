@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { blob, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export * from "./auth-schema";
 import { user } from "./auth-schema";
@@ -362,12 +362,15 @@ export const approvedVendor = sqliteTable(
 
 // One row per applied vendor-list import, so the Finance page can show when the
 // list was last refreshed and by whom. importedBy is null for CLI imports.
+// fileData keeps the raw upload so a past import can be re-downloaded later;
+// it rides the existing SQLite-file backup, unlike a path into local disk.
 export const vendorImport = sqliteTable("vendor_import", {
     id: integer("id").primaryKey({ autoIncrement: true }),
     importedAt: integer("imported_at", { mode: "timestamp_ms" }).default(now).notNull(),
     importedBy: text("imported_by").references(() => user.id, { onDelete: "set null" }),
     fileName: text("file_name").notNull(),
     fileHash: text("file_hash").notNull(),
+    fileData: blob("file_data", { mode: "buffer" }).notNull(),
     totalCount: integer("total_count").notNull(),
     approvedCount: integer("approved_count").notNull(),
     addedCount: integer("added_count").notNull(),

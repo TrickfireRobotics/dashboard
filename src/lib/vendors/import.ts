@@ -262,19 +262,21 @@ export function diffVendors(current: VendorRecord[], incoming: VendorRecord[]): 
     };
 }
 
+const importInfoColumns = {
+    id: vendorImport.id,
+    importedAt: vendorImport.importedAt,
+    importedByName: user.name,
+    fileName: vendorImport.fileName,
+    totalCount: vendorImport.totalCount,
+    approvedCount: vendorImport.approvedCount,
+    addedCount: vendorImport.addedCount,
+    removedCount: vendorImport.removedCount,
+    changedCount: vendorImport.changedCount,
+};
+
 export function getLatestImport(): VendorImportInfo | null {
     const row = db
-        .select({
-            id: vendorImport.id,
-            importedAt: vendorImport.importedAt,
-            importedByName: user.name,
-            fileName: vendorImport.fileName,
-            totalCount: vendorImport.totalCount,
-            approvedCount: vendorImport.approvedCount,
-            addedCount: vendorImport.addedCount,
-            removedCount: vendorImport.removedCount,
-            changedCount: vendorImport.changedCount,
-        })
+        .select(importInfoColumns)
         .from(vendorImport)
         .leftJoin(user, eq(vendorImport.importedBy, user.id))
         .orderBy(desc(vendorImport.id))
@@ -283,9 +285,31 @@ export function getLatestImport(): VendorImportInfo | null {
     return row ?? null;
 }
 
+/** Every past import, newest first, for the Finance-page history list. */
+export function getImportHistory(): VendorImportInfo[] {
+    return db
+        .select(importInfoColumns)
+        .from(vendorImport)
+        .leftJoin(user, eq(vendorImport.importedBy, user.id))
+        .orderBy(desc(vendorImport.id))
+        .all();
+}
+
+/** The archived file for a past import, for re-downloading it. */
+export function getImportFile(id: number): { fileName: string; fileData: Buffer } | null {
+    const row = db
+        .select({ fileName: vendorImport.fileName, fileData: vendorImport.fileData })
+        .from(vendorImport)
+        .where(eq(vendorImport.id, id))
+        .get();
+    return row ?? null;
+}
+
 export type ApplyVendorImportOptions = {
     fileName: string;
     fileHash: string;
+    // The raw upload, archived so a past import can be re-downloaded later.
+    fileData: Buffer;
     importedBy: string | null;
     // The latest import id the caller previewed against (null = none yet).
     // When given and no longer the latest, the apply is refused with
@@ -355,6 +379,7 @@ export function applyVendorImport(
                 importedBy: options.importedBy,
                 fileName: options.fileName,
                 fileHash: options.fileHash,
+                fileData: options.fileData,
                 totalCount: incoming.length,
                 approvedCount: incoming.filter((v) => isApproved(v.status)).length,
                 addedCount: diff.added.length,

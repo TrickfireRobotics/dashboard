@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
         const { diff, importInfo } = applyVendorImport(upload.records, {
             fileName: upload.fileName,
             fileHash: upload.fileHash,
+            fileData: upload.fileData,
             importedBy: user.id,
             expectedBaseImportId,
         });

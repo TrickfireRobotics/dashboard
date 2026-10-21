@@ -56,6 +56,7 @@ async function main() {
     const { importInfo } = applyVendorImport(records, {
         fileName: basename(path),
         fileHash: hashFile(data),
+        fileData: data,
         importedBy: null,
     });
     console.log(

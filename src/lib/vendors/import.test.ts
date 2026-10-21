@@ -73,7 +73,12 @@ function vendor(overrides: Partial<VendorRecord> & { supplierName: string }): Ve
     };
 }
 
-const meta = { fileName: "vendors.xlsx", fileHash: "hash", importedBy: null };
+const meta = {
+    fileName: "vendors.xlsx",
+    fileHash: "hash",
+    fileData: Buffer.from("test"),
+    importedBy: null,
+};
 
 describe("parseVendorWorkbook", () => {
     it("parses rows and collapses duplicates to the most-approved status", () => {
