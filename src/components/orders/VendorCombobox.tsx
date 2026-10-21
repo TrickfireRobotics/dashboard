@@ -1,10 +1,19 @@
 "use client";
 
-import { type KeyboardEvent, useEffect, useId, useRef, useState } from "react";
+import {
+    type AriaAttributes,
+    type KeyboardEvent,
+    type Ref,
+    useEffect,
+    useId,
+    useState,
+} from "react";
 
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import type { ApprovalStatus } from "@/lib/vendors/approval";
 import type { VendorHit } from "@/lib/vendors/lookup";
+import { useVendorLookup } from "@/lib/vendors/use-vendor-lookup";
 
 import { VendorApprovalBadge } from "./VendorApprovalBadge";
 
@@ -16,59 +25,50 @@ export function VendorCombobox({
     value,
     onChange,
     onBlur,
+    onApprovalStatusChange,
     name,
     placeholder,
     className,
+    ref,
+    id,
+    "aria-invalid": ariaInvalid,
+    "aria-describedby": ariaDescribedBy,
 }: {
     value: string;
     onChange: (value: string) => void;
     onBlur?: () => void;
+    // Reports the exact-match status for `value` as it resolves, so a sibling
+    // approval badge can show it without firing its own search request.
+    onApprovalStatusChange?: (status: ApprovalStatus | null) => void;
     name?: string;
     placeholder?: string;
     className?: string;
+    ref?: Ref<HTMLInputElement>;
+    id?: string;
+    "aria-invalid"?: AriaAttributes["aria-invalid"];
+    "aria-describedby"?: string;
 }) {
-    const [results, setResults] = useState<VendorHit[]>([]);
+    const { results, exactStatus } = useVendorLookup(value, 8);
     const [open, setOpen] = useState(false);
     const [activeIndex, setActiveIndex] = useState(-1);
     // Set when the user picks / commits a value, so we don't immediately
     // re-open the dropdown for that same string.
-    const justCommitted = useRef(false);
+    const [justCommitted, setJustCommitted] = useState(false);
     const listId = useId();
 
+    useEffect(() => setActiveIndex(-1), [results]);
+
     useEffect(() => {
-        const q = value.trim();
-        if (!q || justCommitted.current) {
-            setResults([]);
-            return;
-        }
-        const controller = new AbortController();
-        const timer = setTimeout(() => {
-            fetch(`/api/vendors/search?q=${encodeURIComponent(q)}&limit=8`, {
-                signal: controller.signal,
-            })
-                .then((res) => (res.ok ? res.json() : null))
-                .then((data: { results?: VendorHit[] } | null) => {
-                    setResults(data?.results ?? []);
-                    setActiveIndex(-1);
-                })
-                .catch(() => {
-                    /* aborted or offline; keep previous suggestions */
-                });
-        }, 250);
-        return () => {
-            clearTimeout(timer);
-            controller.abort();
-        };
-    }, [value]);
+        onApprovalStatusChange?.(exactStatus);
+    }, [exactStatus, onApprovalStatusChange]);
 
     function commit(hit: VendorHit) {
-        justCommitted.current = true;
+        setJustCommitted(true);
         onChange(hit.supplierName);
         setOpen(false);
-        setResults([]);
     }
 
-    const showList = open && results.length > 0;
+    const showList = open && !justCommitted && results.length > 0;
 
     function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
         if (!showList) return;
@@ -89,6 +89,10 @@ export function VendorCombobox({
     return (
         <div className="relative">
             <Input
+                ref={ref}
+                id={id}
+                aria-invalid={ariaInvalid}
+                aria-describedby={ariaDescribedBy}
                 name={name}
                 value={value}
                 placeholder={placeholder}
@@ -98,7 +102,7 @@ export function VendorCombobox({
                 aria-controls={listId}
                 className={className}
                 onChange={(e) => {
-                    justCommitted.current = false;
+                    setJustCommitted(false);
                     onChange(e.target.value);
                     setOpen(true);
                 }}

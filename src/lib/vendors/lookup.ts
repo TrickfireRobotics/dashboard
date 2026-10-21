@@ -44,8 +44,14 @@ function ftsAvailable(): boolean {
     return row !== undefined;
 }
 
-function searchWithLike(q: string, limit: number): VendorHit[] {
-    const namePattern = `%${normalizeVendorName(q)}%`;
+// `prefixOnly` drops the leading `%` so the pattern can use
+// approved_vendors_search_name_idx instead of a full table scan. Used for
+// queries too short for FTS trigrams, where prefix matching is also the more
+// sensible behavior. The FTS-unavailable fallback (table not built yet) keeps
+// substring matching since there's no index to preserve either way.
+function searchWithLike(q: string, limit: number, prefixOnly: boolean): VendorHit[] {
+    const normalized = normalizeVendorName(q);
+    const namePattern = prefixOnly ? `${normalized}%` : `%${normalized}%`;
     const rawPattern = `%${q.replace(/[\\%_]/g, "\\$&")}%`;
     const rows = sqlite
         .prepare(
@@ -72,8 +78,11 @@ export function searchVendors(query: string, limit = 10): VendorHit[] {
     // Match on the normalized key so punctuation/spacing differences
     // ("digikey" vs "Digi-Key") still hit.
     const normalized = normalizeVendorName(q);
-    if (normalized.length < MIN_TRIGRAM_LENGTH || !ftsAvailable()) {
-        return searchWithLike(q, limit);
+    if (normalized.length < MIN_TRIGRAM_LENGTH) {
+        return searchWithLike(q, limit, true);
+    }
+    if (!ftsAvailable()) {
+        return searchWithLike(q, limit, false);
     }
 
     // One FTS5 phrase over the normalized index; the value is already
@@ -100,7 +109,27 @@ export function searchVendors(query: string, limit = 10): VendorHit[] {
 export function getVendorByExactName(name: string): VendorHit | null {
     const n = name.trim();
     if (!n) return null;
-    const row = db
+
+    // supplier_name (not search_name) is what's actually unique, so try that
+    // first - two source rows can share a normalized key ("Digi-Key" vs
+    // "Digi Key") while having different approval status.
+    const exact = db
+        .select({
+            id: approvedVendor.id,
+            supplierName: approvedVendor.supplierName,
+            supplierId: approvedVendor.supplierId,
+            status: approvedVendor.status,
+            approved: approvedVendor.approved,
+        })
+        .from(approvedVendor)
+        .where(eq(approvedVendor.supplierName, n))
+        .get();
+    if (exact) return exact;
+
+    // Fall back to the normalized key for punctuation/spacing-insensitive
+    // matches ("digikey" -> "Digi-Key"). Prefer an approved row over an
+    // out-of-scope one when more than one normalizes the same way.
+    const rows = db
         .select({
             id: approvedVendor.id,
             supplierName: approvedVendor.supplierName,
@@ -110,6 +139,7 @@ export function getVendorByExactName(name: string): VendorHit | null {
         })
         .from(approvedVendor)
         .where(eq(approvedVendor.searchName, normalizeVendorName(n)))
-        .get();
-    return row ?? null;
+        .all();
+    if (rows.length === 0) return null;
+    return rows.find((r) => r.approved) ?? rows[0];
 }
