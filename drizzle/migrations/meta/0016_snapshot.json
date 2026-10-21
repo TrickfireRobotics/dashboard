@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "bd6fc202-93bf-442a-9758-92d12988e259",
-  "prevId": "781ddef2-ff65-4308-ad09-a42d2f22c120",
+  "id": "f1d0ebb2-bc20-4c93-ad84-f76742a98aa4",
+  "prevId": "28d91cbe-716e-4180-9fa4-620ea4b409ef",
   "tables": {
     "api_key": {
       "name": "api_key",
@@ -1020,6 +1020,66 @@
           "tableTo": "user",
           "columnsFrom": [
             "changed_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "sim_access_code": {
+      "name": "sim_access_code",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "rotates_at": {
+          "name": "rotates_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "rotated_by": {
+          "name": "rotated_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sim_access_code_rotated_by_user_id_fk": {
+          "name": "sim_access_code_rotated_by_user_id_fk",
+          "tableFrom": "sim_access_code",
+          "tableTo": "user",
+          "columnsFrom": [
+            "rotated_by"
           ],
           "columnsTo": [
             "id"
