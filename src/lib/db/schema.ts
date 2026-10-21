@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { blob, index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export * from "./auth-schema";
 import { user } from "./auth-schema";
@@ -14,6 +14,8 @@ export type JoinRequestStatus = "pending" | "approved" | "rejected";
 export type VaultEntryType = "login" | "api_key";
 export type FeedbackCategory = "bug" | "idea" | "other";
 export type FeedbackStatus = "open" | "resolved";
+// Source "Supplier Status" from the approved-vendor export; blank -> "Unknown".
+export type VendorStatus = "Active" | "Inactive" | "Hold" | "Unknown";
 
 export const team = sqliteTable("team", {
     id: integer("id").primaryKey({ autoIncrement: true }),
@@ -323,3 +325,59 @@ export const simExportCache = sqliteTable(
         index("sim_export_cache_accessed").on(table.lastAccessedAt),
     ]
 );
+
+// Approved-vendor list imported from the finance office's supplier export
+// (uploaded on the Finance page, or scripts/import-vendors.ts), one row per
+// distinct supplier. `approved` is a
+// stored mirror of `status === "Active"` so search results can filter/flag
+// without recomputing. Free-text search is served by an FTS5 virtual table
+// (approved_vendors_fts) that src/lib/vendors/import.ts builds via raw SQL,
+// since Drizzle can't express FTS5.
+export const approvedVendor = sqliteTable(
+    "approved_vendors",
+    {
+        id: integer("id").primaryKey({ autoIncrement: true }),
+        supplierName: text("supplier_name").notNull(),
+        // Punctuation/spacing-stripped, lowercased form of supplierName for
+        // formatting-insensitive lookup (see normalizeVendorName).
+        searchName: text("search_name").notNull().default(""),
+        supplierId: text("supplier_id"),
+        status: text("status").$type<VendorStatus>().notNull().default("Unknown"),
+        approved: integer("approved", { mode: "boolean" }).notNull().default(false),
+        category: text("category"),
+        group: text("group"),
+        uei: text("unique_entity_identifier"),
+        email: text("email"),
+        contact: text("contact"),
+        remitAddress: text("remit_address"),
+        useFor: text("use_for"),
+        importedAt: integer("imported_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    },
+    (table) => [
+        uniqueIndex("approved_vendors_name_key").on(table.supplierName),
+        index("approved_vendors_search_name_idx").on(table.searchName),
+        index("approved_vendors_approved_idx").on(table.approved),
+    ]
+);
+
+// One row per applied vendor-list import, so the Finance page can show when the
+// list was last refreshed and by whom. importedBy is null for CLI imports.
+// fileData keeps the raw upload so a past import can be re-downloaded later;
+// it rides the existing SQLite-file backup, unlike a path into local disk.
+export const vendorImport = sqliteTable("vendor_import", {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    importedAt: integer("imported_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    importedBy: text("imported_by").references(() => user.id, { onDelete: "set null" }),
+    fileName: text("file_name").notNull(),
+    fileHash: text("file_hash").notNull(),
+    fileData: blob("file_data", { mode: "buffer" }).notNull(),
+    totalCount: integer("total_count").notNull(),
+    approvedCount: integer("approved_count").notNull(),
+    addedCount: integer("added_count").notNull(),
+    removedCount: integer("removed_count").notNull(),
+    changedCount: integer("changed_count").notNull(),
+});
+
+export const vendorImportRelations = relations(vendorImport, ({ one }) => ({
+    importer: one(user, { fields: [vendorImport.importedBy], references: [user.id] }),
+}));

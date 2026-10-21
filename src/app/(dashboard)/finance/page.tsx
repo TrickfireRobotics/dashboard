@@ -1,6 +1,7 @@
 import { desc } from "drizzle-orm";
 
 import { FinanceManager } from "@/components/finance/FinanceManager";
+import { VendorImportCard } from "@/components/finance/VendorImportCard";
 import { db } from "@/lib/db";
 import {
     ensureFinanceSettingsRow,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/finance/finance";
 import { percentBpsToDisplay } from "@/lib/finance/order-pricing";
 import { giftFundLog, stfQuarter } from "@/lib/db/schema";
+import { getLatestImport } from "@/lib/vendors/import";
 
 export default async function AdminFinancePage() {
     ensureGiftFundRow();
@@ -39,7 +41,9 @@ export default async function AdminFinancePage() {
                         shippingPercent: percentBpsToDisplay(pricing.shippingPercentBps),
                     },
                 }}
-            />
+            >
+                <VendorImportCard initialLatest={getLatestImport()} />
+            </FinanceManager>
         </div>
     );
 }

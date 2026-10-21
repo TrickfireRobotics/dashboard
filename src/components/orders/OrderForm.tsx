@@ -24,8 +24,11 @@ import type { OrderStatus } from "@/lib/db/schema";
 import { computeOrderTotalCents, displayPercentToBps } from "@/lib/finance/order-pricing";
 import { MAX_ORDER_BATCH_ITEMS } from "@/lib/validation";
 import { cn, formatPriceCents } from "@/lib/utils";
+import type { ApprovalStatus } from "@/lib/vendors/approval";
 
 import { PasteItemsPanel, type ParsedItem } from "./PasteItemsPanel";
+import { VendorApprovalBadge } from "./VendorApprovalBadge";
+import { VendorCombobox } from "./VendorCombobox";
 
 type OrderPricing = { taxPercent: number; shippingPercent: number };
 
@@ -407,6 +410,20 @@ export function OrderForm({
     );
 }
 
+// Advisory approval flag under the vendor field. Resolves the typed/picked
+// vendor against the approved-vendor list; renders nothing until a vendor is
+// entered. Purely informational - it never blocks submitting an order.
+function VendorApprovalIndicator({
+    status,
+    iconOnly = false,
+}: {
+    status: ApprovalStatus | null;
+    iconOnly?: boolean;
+}) {
+    if (!status) return null;
+    return <VendorApprovalBadge status={status} iconOnly={iconOnly} />;
+}
+
 function ItemFields({
     form,
     index,
@@ -414,6 +431,7 @@ function ItemFields({
     form: ReturnType<typeof useForm<FormValues>>;
     index: number;
 }) {
+    const [vendorApproval, setVendorApproval] = useState<ApprovalStatus | null>(null);
     return (
         <div className="space-y-5">
             <FormField
@@ -423,8 +441,17 @@ function ItemFields({
                     <FormItem>
                         <FormLabel>Vendor</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g. McMaster-Carr" {...field} />
+                            <VendorCombobox
+                                ref={field.ref}
+                                name={field.name}
+                                value={field.value}
+                                onChange={field.onChange}
+                                onBlur={field.onBlur}
+                                onApprovalStatusChange={setVendorApproval}
+                                placeholder="e.g. McMaster-Carr"
+                            />
                         </FormControl>
+                        <VendorApprovalIndicator status={vendorApproval} />
                         <FormMessage />
                     </FormItem>
                 )}
@@ -550,10 +577,15 @@ function ItemRow({
     onRemove: () => void;
     onDuplicate: () => void;
 }) {
+    const [vendorApproval, setVendorApproval] = useState<ApprovalStatus | null>(null);
+
     function cell(
         name: "itemName" | "vendor" | "link" | "partNumber" | "quantity" | "unitCost" | "notes",
         label: string,
         input: (
+            field: ControllerRenderProps<FormValues, `items.${number}.${typeof name}`>
+        ) => ReactNode,
+        after?: (
             field: ControllerRenderProps<FormValues, `items.${number}.${typeof name}`>
         ) => ReactNode
     ) {
@@ -567,6 +599,7 @@ function ItemRow({
                             replaces it once the columns line up. */}
                         <FormLabel className="text-xs lg:sr-only">{label}</FormLabel>
                         <FormControl>{input(field)}</FormControl>
+                        {after ? after(field) : null}
                         <FormMessage className="text-xs" />
                     </FormItem>
                 )}
@@ -590,9 +623,25 @@ function ItemRow({
                 <Input className="h-9" placeholder="1/4-20 hex bolt" {...field} />
             ))}
 
-            {cell("vendor", "Vendor", (field) => (
-                <Input className="h-9" placeholder="McMaster-Carr" {...field} />
-            ))}
+            {cell(
+                "vendor",
+                "Vendor",
+                (field) => (
+                    <VendorCombobox
+                        ref={field.ref}
+                        name={field.name}
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        onApprovalStatusChange={setVendorApproval}
+                        placeholder="McMaster-Carr"
+                        className="h-9"
+                    />
+                ),
+                () => (
+                    <VendorApprovalIndicator status={vendorApproval} iconOnly />
+                )
+            )}
 
             {cell("link", "Link", (field) => (
                 <Input

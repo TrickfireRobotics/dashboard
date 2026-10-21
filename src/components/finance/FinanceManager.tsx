@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -63,7 +63,16 @@ export type FinanceData = {
     orderPricing: OrderPricing;
 };
 
-export function FinanceManager({ initial }: { initial: FinanceData }) {
+export function FinanceManager({
+    initial,
+    children,
+}: {
+    initial: FinanceData;
+    // Rendered between the main cards and the "Reset school year" danger
+    // zone, so a caller can slot in another card without it ending up below
+    // the reset button.
+    children?: ReactNode;
+}) {
     const router = useRouter();
     const [data, setData] = useState(initial);
     const [busy, setBusy] = useState<string | null>(null);
@@ -480,6 +489,8 @@ export function FinanceManager({ initial }: { initial: FinanceData }) {
                     </Table>
                 </DataTableCard>
             </section>
+
+            {children}
 
             {activeQuarter ? (
                 <div className="border-border bg-card flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4">
