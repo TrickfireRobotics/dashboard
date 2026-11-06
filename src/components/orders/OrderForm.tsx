@@ -34,7 +34,7 @@ type OrderPricing = { taxPercent: number; shippingPercent: number };
 
 const itemSchema = z.object({
     vendor: z.string().min(1, "Vendor is required").max(200),
-    link: z.string().url("Enter a valid URL").max(500),
+    link: z.string().url("Enter a valid URL").max(1000),
     itemName: z.string().min(1, "Item name is required").max(200),
     partNumber: z.string().max(100).optional(),
     quantity: z
