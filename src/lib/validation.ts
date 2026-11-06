@@ -10,7 +10,7 @@ const fundTypeSchema = z.enum(["STF", "Gift"]);
 // officers assign those during triage, so members never pick a bucket.
 export const orderItemSchema = z.object({
     vendor: z.string().trim().min(1, "Vendor is required").max(200),
-    link: z.string().trim().url("Enter a valid URL").max(500),
+    link: z.string().trim().url("Enter a valid URL").max(1000),
     itemName: z.string().trim().min(1, "Item name is required").max(200),
     partNumber: z.string().trim().max(100).optional(),
     quantity: z.coerce.number().int().min(1, "At least 1").max(9999),
