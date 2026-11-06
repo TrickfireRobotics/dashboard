@@ -54,8 +54,11 @@ describe("encryptSecret / decryptSecret", () => {
     it("throws when the ciphertext segment is tampered (auth tag mismatch)", () => {
         const payload = encryptSecret("sensitive");
         const [iv, tag, ct] = payload.split(".");
-        // Flip the first byte of the ciphertext
-        const tamperedCt = "ff" + ct!.slice(2);
+        // Flip one bit of the ciphertext's first byte (XOR, not a hardcoded
+        // value, so the tamper can never coincidentally match the original byte).
+        const firstByte = parseInt(ct!.slice(0, 2), 16);
+        const flipped = (firstByte ^ 0x01).toString(16).padStart(2, "0");
+        const tamperedCt = flipped + ct!.slice(2);
         expect(() => decryptSecret(`${iv}.${tag}.${tamperedCt}`)).toThrow();
     });
 });
