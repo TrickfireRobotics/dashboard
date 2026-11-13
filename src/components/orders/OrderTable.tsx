@@ -1,9 +1,9 @@
 "use client";
 
-import { Pencil, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,10 @@ export type MemberOrderRow = {
     stfBucketName: string | null;
     quantity: number;
     unitCostCents: number;
+    vendor: string;
+    link: string;
+    notes: string | null;
+    partNumber: string | null;
     status: OrderStatus;
     denialComment: string | null;
     createdAt: Date;
@@ -72,6 +76,7 @@ export function OrderTable({
     const [fundFilter, setFundFilter] = useState<FundFilter>("all");
     const [sortKey, setSortKey] = useState<SortKey>("newest");
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [expandedId, setExpandedId] = useState<number | null>(null);
     const pricingSettings = useMemo<OrderPricingSettings>(
         () => ({
             taxPercentBps: displayPercentToBps(orderPricing.taxPercent),
@@ -238,66 +243,158 @@ export function OrderTable({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {filteredOrders.map((o) => (
-                            <TableRow key={o.id}>
-                                <TableCell className="text-foreground font-medium">
-                                    {o.itemName}
-                                </TableCell>
-                                <TableCell className="hidden md:table-cell">
-                                    {o.fundType ? (
-                                        <>
-                                            {o.fundType}
-                                            {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
-                                        </>
-                                    ) : (
-                                        <span className="text-muted-foreground italic">
-                                            Not yet assigned
-                                        </span>
-                                    )}
-                                </TableCell>
-                                <TableCell className="hidden text-right whitespace-nowrap md:table-cell">
-                                    {formatPriceCents(totalCostCents(o, pricingSettings))}
-                                </TableCell>
-                                <TableCell>
-                                    <OrderStatusBadge status={o.status} />
-                                </TableCell>
-                                <TableCell className="text-muted-foreground whitespace-nowrap">
-                                    {formatDate(o.createdAt)}
-                                </TableCell>
-                                <TableCell className="text-muted-foreground hidden max-w-50 whitespace-normal md:table-cell">
-                                    {o.denialComment ?? "-"}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    {canModifyOrder(o.status) ? (
-                                        <div className="flex justify-end gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                nativeButton={false}
-                                                render={<Link href={`/orders/${o.id}/edit`} />}
-                                                aria-label={`Edit order for ${o.itemName}`}
-                                            >
-                                                <Pencil className="size-4" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                onClick={() => handleDelete(o)}
-                                                disabled={deletingId === o.id}
-                                                aria-label={`Delete order for ${o.itemName}`}
-                                            >
-                                                <Trash2 className="text-destructive size-4" />
-                                            </Button>
-                                        </div>
-                                    ) : (
-                                        <span className="text-muted-foreground">-</span>
-                                    )}
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                        {filteredOrders.map((o) => {
+                            const expanded = expandedId === o.id;
+
+                            return (
+                                <Fragment key={o.id}>
+                                    <TableRow>
+                                        <TableCell className="text-foreground font-medium">
+                                            {o.itemName}
+                                        </TableCell>
+                                        <TableCell className="hidden md:table-cell">
+                                            {o.fundType ? (
+                                                <>
+                                                    {o.fundType}
+                                                    {o.stfBucketName ? ` · ${o.stfBucketName}` : ""}
+                                                </>
+                                            ) : (
+                                                <span className="text-muted-foreground italic">
+                                                    Not yet assigned
+                                                </span>
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="hidden text-right whitespace-nowrap md:table-cell">
+                                            {formatPriceCents(totalCostCents(o, pricingSettings))}
+                                        </TableCell>
+                                        <TableCell>
+                                            <OrderStatusBadge status={o.status} />
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground whitespace-nowrap">
+                                            {formatDate(o.createdAt)}
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground hidden max-w-50 whitespace-normal md:table-cell">
+                                            {o.denialComment ?? "-"}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end gap-1">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon-sm"
+                                                    onClick={() =>
+                                                        setExpandedId((current) =>
+                                                            current === o.id ? null : o.id
+                                                        )
+                                                    }
+                                                    aria-label={`${expanded ? "Hide" : "Show"} details for ${o.itemName}`}
+                                                    aria-expanded={expanded}
+                                                >
+                                                    {expanded ? (
+                                                        <ChevronUp className="size-4" />
+                                                    ) : (
+                                                        <ChevronDown className="size-4" />
+                                                    )}
+                                                </Button>
+                                                {canModifyOrder(o.status) ? (
+                                                    <>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon-sm"
+                                                            nativeButton={false}
+                                                            render={
+                                                                <Link
+                                                                    href={`/orders/${o.id}/edit`}
+                                                                />
+                                                            }
+                                                            aria-label={`Edit order for ${o.itemName}`}
+                                                        >
+                                                            <Pencil className="size-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon-sm"
+                                                            onClick={() => handleDelete(o)}
+                                                            disabled={deletingId === o.id}
+                                                            aria-label={`Delete order for ${o.itemName}`}
+                                                        >
+                                                            <Trash2 className="text-destructive size-4" />
+                                                        </Button>
+                                                    </>
+                                                ) : null}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                    {expanded ? (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="bg-muted/30">
+                                                <OrderDetails
+                                                    order={o}
+                                                    pricingSettings={pricingSettings}
+                                                />
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : null}
+                                </Fragment>
+                            );
+                        })}
                     </TableBody>
                 </Table>
             )}
         </DataTableCard>
+    );
+}
+
+function OrderDetails({
+    order,
+    pricingSettings,
+}: {
+    order: MemberOrderRow;
+    pricingSettings: OrderPricingSettings;
+}) {
+    return (
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-2 py-2 text-sm">
+            <Detail label="Vendor" value={order.vendor} />
+            <Detail label="Quantity" value={String(order.quantity)} />
+            <Detail label="Unit cost" value={formatPriceCents(order.unitCostCents)} />
+            <Detail
+                label="Total cost"
+                value={formatPriceCents(totalCostCents(order, pricingSettings))}
+            />
+            <Detail label="Part number" value={order.partNumber ?? "-"} />
+            <div className="col-span-2">
+                <dt className="text-muted-foreground">Link</dt>
+                <dd>
+                    <a
+                        href={order.link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary underline-offset-4 hover:underline"
+                    >
+                        {order.link}
+                    </a>
+                </dd>
+            </div>
+            {order.notes ? (
+                <div className="col-span-2">
+                    <dt className="text-muted-foreground">Notes</dt>
+                    <dd className="whitespace-pre-wrap">{order.notes}</dd>
+                </div>
+            ) : null}
+            {order.denialComment ? (
+                <div className="col-span-2">
+                    <dt className="text-muted-foreground">Officer note</dt>
+                    <dd className="whitespace-pre-wrap">{order.denialComment}</dd>
+                </div>
+            ) : null}
+        </dl>
+    );
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+    return (
+        <div>
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="text-foreground">{value}</dd>
+        </div>
     );
 }

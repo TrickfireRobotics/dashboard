@@ -59,14 +59,14 @@ function joinRow(cells: (string | number)[]): string {
     return cells.map((cell) => escapeTsvCell(String(cell))).join("\t");
 }
 
-function bucketOrGiftLabel(order: OrderExportRow): string {
+export function bucketOrGiftLabel(order: OrderExportRow): string {
     if (order.fundType === "STF")
         return order.stfBucketName ? `(Bucket Item) ${order.stfBucketName}` : "";
     if (order.fundType === "Gift") return "Gift";
     return "";
 }
 
-function requestedByLabel(order: OrderExportRow): string {
+export function requestedByLabel(order: OrderExportRow): string {
     return order.requesterName ?? order.requesterEmail ?? "";
 }
 

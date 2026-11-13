@@ -1,12 +1,13 @@
 "use client";
 
-import { Copy, PackageCheck, Trash2 } from "lucide-react";
+import { Copy, Download, PackageCheck, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { Fragment, type ReactNode, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { isOverBudget, StfBucketSelectItemContent } from "@/components/BalanceAmount";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
     DataTableCard,
     DataTableCardHeader,
@@ -360,6 +361,14 @@ export function AdminOrderQueue({
                     </Button>
                 </div>
             )}
+
+            <Link
+                href="/api/orders/export"
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-fit")}
+            >
+                <Download className="size-4" />
+                Download Ordering Sheet (.xlsx)
+            </Link>
 
             {untriagedOrders.length > 0 ? (
                 <OrderSection
