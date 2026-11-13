@@ -61,7 +61,12 @@ export default async function OrdersPage() {
             requesterEmail: userTable.email,
             quantity: order.quantity,
             unitCostCents: order.unitCostCents,
+            vendor: order.vendor,
+            link: order.link,
+            notes: order.notes,
+            partNumber: order.partNumber,
             status: order.status,
+            denialComment: order.denialComment,
             createdAt: order.createdAt,
         })
         .from(order)
