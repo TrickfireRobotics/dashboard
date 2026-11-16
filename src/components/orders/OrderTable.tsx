@@ -67,9 +67,11 @@ function canModifyOrder(status: OrderStatus) {
 export function OrderTable({
     orders,
     orderPricing,
+    emptyMessage = "You have not submitted any orders yet.",
 }: {
     orders: MemberOrderRow[];
     orderPricing: { taxPercent: number; shippingPercent: number };
+    emptyMessage?: string;
 }) {
     const router = useRouter();
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -141,7 +143,7 @@ export function OrderTable({
     if (orders.length === 0) {
         return (
             <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
-                You have not submitted any orders yet.
+                {emptyMessage}
             </div>
         );
     }

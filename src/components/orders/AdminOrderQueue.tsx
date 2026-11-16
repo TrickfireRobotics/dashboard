@@ -103,13 +103,17 @@ function plural(count: number, noun: string) {
 }
 
 export function AdminOrderQueue({
+    view,
     orders,
     stfBuckets,
     orderPricing,
+    searching = false,
 }: {
+    view: "queue" | "archive";
     orders: AdminOrderRow[];
     stfBuckets: StfBucketOption[];
     orderPricing: OrderPricing;
+    searching?: boolean;
 }) {
     const router = useRouter();
     const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -298,10 +302,20 @@ export function AdminOrderQueue({
         }
     }
 
-    if (orders.length === 0) {
+    const sectionCount =
+        view === "queue"
+            ? untriagedOrders.length + reviewOrders.length + approvedOrders.length
+            : orderedOrders.length + deniedOrders.length;
+
+    if (sectionCount === 0) {
+        const message = searching
+            ? "No orders match this search."
+            : view === "queue"
+              ? "Nothing waiting on an officer. New requests show up here."
+              : "Nothing archived yet. Ordered and denied orders land here.";
         return (
             <div className="border-border text-muted-foreground rounded-lg border p-10 text-center">
-                No orders submitted yet.
+                {message}
             </div>
         );
     }
@@ -319,56 +333,109 @@ export function AdminOrderQueue({
         orderPricing,
     };
 
-    return (
-        <div className="space-y-8">
-            {approvedOrders.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={approvedStfCount === 0}
-                        onClick={() =>
-                            copyText(
-                                formatApprovedStfOrders(orders, pricingSettings),
-                                plural(approvedStfCount, "approved STF order")
-                            )
-                        }
-                    >
-                        <Copy className="size-4" />
-                        Copy all approved STF ({approvedStfCount})
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={approvedGiftCount === 0}
-                        onClick={() =>
-                            copyText(
-                                formatApprovedGiftOrders(orders, pricingSettings),
-                                plural(approvedGiftCount, "approved Gift order")
-                            )
-                        }
-                    >
-                        <Copy className="size-4" />
-                        Copy all approved Gift ({approvedGiftCount})
-                    </Button>
-                    <Button
-                        size="sm"
-                        disabled={markingOrdered}
-                        onClick={() => markApprovedAsOrdered()}
-                    >
-                        <PackageCheck className="size-4" />
-                        Mark all approved as ordered ({approvedOrders.length})
-                    </Button>
-                </div>
-            )}
+    if (view === "archive") {
+        return (
+            <div className="space-y-6">
+                {orderedOrders.length > 0 ? (
+                    <OrderSection
+                        {...sharedSectionProps}
+                        title="Ordered"
+                        description="Parts that have already been placed with vendors."
+                        orders={orderedOrders}
+                        showActions={false}
+                        onDelete={deleteOrder}
+                        deletingId={deletingId}
+                    />
+                ) : null}
 
-            <Link
-                href="/api/orders/export"
-                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-fit")}
-            >
-                <Download className="size-4" />
-                Download Ordering Sheet (.xlsx)
-            </Link>
+                {deniedOrders.length > 0 ? (
+                    <OrderSection
+                        {...sharedSectionProps}
+                        title="Denied"
+                        description="Requests an officer turned down."
+                        orders={deniedOrders}
+                        showActions={false}
+                        onDelete={deleteOrder}
+                        deletingId={deletingId}
+                    />
+                ) : null}
+            </div>
+        );
+    }
+
+    return (
+        <div className="space-y-6">
+            <section className="border-border bg-card rounded-xl border p-4 shadow-sm">
+                <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                    <div className="space-y-1">
+                        <h2 className="text-sm font-semibold tracking-wide">Order actions</h2>
+                        <p className="text-muted-foreground text-sm">
+                            Export the ordering sheet, then close out approved requests after
+                            placing them.
+                        </p>
+                    </div>
+                    <Link
+                        href="/api/orders/export"
+                        className={cn(
+                            buttonVariants({ variant: "outline", size: "lg" }),
+                            "h-10 w-full px-4 sm:w-auto"
+                        )}
+                    >
+                        <Download className="size-4" />
+                        Export ordering sheet
+                    </Link>
+                </div>
+
+                {approvedOrders.length > 0 ? (
+                    <div className="border-border mt-4 flex flex-wrap items-center justify-center gap-2 border-t pt-4">
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            className="h-10 px-4"
+                            disabled={approvedStfCount === 0}
+                            onClick={() =>
+                                copyText(
+                                    formatApprovedStfOrders(orders, pricingSettings),
+                                    plural(approvedStfCount, "approved STF order")
+                                )
+                            }
+                        >
+                            <Copy className="size-4" />
+                            Copy STF orders
+                            <span className="text-muted-foreground tabular-nums">
+                                {approvedStfCount}
+                            </span>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            className="h-10 px-4"
+                            disabled={approvedGiftCount === 0}
+                            onClick={() =>
+                                copyText(
+                                    formatApprovedGiftOrders(orders, pricingSettings),
+                                    plural(approvedGiftCount, "approved Gift order")
+                                )
+                            }
+                        >
+                            <Copy className="size-4" />
+                            Copy Gift orders
+                            <span className="text-muted-foreground tabular-nums">
+                                {approvedGiftCount}
+                            </span>
+                        </Button>
+                        <Button
+                            size="lg"
+                            className="h-10 px-4"
+                            disabled={markingOrdered}
+                            onClick={() => markApprovedAsOrdered()}
+                        >
+                            <PackageCheck className="size-4" />
+                            Mark {approvedOrders.length} as ordered
+                        </Button>
+                    </div>
+                ) : null}
+            </section>
 
             {untriagedOrders.length > 0 ? (
                 <OrderSection
@@ -394,32 +461,30 @@ export function AdminOrderQueue({
                 />
             ) : null}
 
-            <OrderSection
-                {...sharedSectionProps}
-                title="Ready to review"
-                description={
-                    reviewOrders.length > 0
-                        ? "Assigned to a fund and waiting on an approval decision."
-                        : undefined
-                }
-                orders={reviewOrders}
-                showActions
-                selection={makeSelection(reviewOrders)}
-                toolbar={
-                    <ReviewToolbar
-                        stfBuckets={stfBuckets}
-                        selectedCount={selectedIn(reviewOrders).length}
-                        busy={busy}
-                        onApprove={() => runBulkAction(selectedIn(reviewOrders), "approve")}
-                        onDeny={(comment) =>
-                            runBulkAction(selectedIn(reviewOrders), "deny", comment)
-                        }
-                        onReassign={(fundType, bucketId) =>
-                            assignOrders(selectedIn(reviewOrders), fundType, bucketId)
-                        }
-                    />
-                }
-            />
+            {reviewOrders.length > 0 ? (
+                <OrderSection
+                    {...sharedSectionProps}
+                    title="Ready to review"
+                    description="Assigned to a fund and waiting on an approval decision."
+                    orders={reviewOrders}
+                    showActions
+                    selection={makeSelection(reviewOrders)}
+                    toolbar={
+                        <ReviewToolbar
+                            stfBuckets={stfBuckets}
+                            selectedCount={selectedIn(reviewOrders).length}
+                            busy={busy}
+                            onApprove={() => runBulkAction(selectedIn(reviewOrders), "approve")}
+                            onDeny={(comment) =>
+                                runBulkAction(selectedIn(reviewOrders), "deny", comment)
+                            }
+                            onReassign={(fundType, bucketId) =>
+                                assignOrders(selectedIn(reviewOrders), fundType, bucketId)
+                            }
+                        />
+                    }
+                />
+            ) : null}
 
             {approvedOrders.length > 0 ? (
                 <OrderSection
@@ -441,29 +506,6 @@ export function AdminOrderQueue({
                             Move selected to ordered ({selectedIn(approvedOrders).length})
                         </Button>
                     }
-                />
-            ) : null}
-
-            {deniedOrders.length > 0 ? (
-                <OrderSection
-                    {...sharedSectionProps}
-                    title="Denied"
-                    orders={deniedOrders}
-                    showActions={false}
-                    onDelete={deleteOrder}
-                    deletingId={deletingId}
-                />
-            ) : null}
-
-            {orderedOrders.length > 0 ? (
-                <OrderSection
-                    {...sharedSectionProps}
-                    title="Ordered"
-                    description="Parts that have already been placed with vendors."
-                    orders={orderedOrders}
-                    showActions={false}
-                    onDelete={deleteOrder}
-                    deletingId={deletingId}
                 />
             ) : null}
         </div>
@@ -715,7 +757,9 @@ function OrderSection({
                 description={description}
                 action={headerAction}
             />
-            {toolbar}
+            {/* Sticks while scrolling a long section so the bulk actions stay
+                reachable from the bottom of the list. */}
+            {toolbar ? <div className="bg-card sticky -top-6 z-20 lg:-top-8">{toolbar}</div> : null}
             <Table>
                 <TableHeader>
                     <TableRow>

@@ -1,11 +1,9 @@
 import { asc, desc, eq, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
-import { AdminOrderQueue, type AdminOrderRow } from "@/components/orders/AdminOrderQueue";
 import { OrderBalancesSummary } from "@/components/orders/OrderBalancesSummary";
 import { OrderFormDialog } from "@/components/orders/OrderFormDialog";
-import { OrderTable, type MemberOrderRow } from "@/components/orders/OrderTable";
-import { TeamOrderTable, type TeamOrderRow } from "@/components/orders/TeamOrderTable";
+import { OrdersWorkspace, type WorkspaceOrderRow } from "@/components/orders/OrdersWorkspace";
 import { VendorSearchDialog } from "@/components/orders/VendorSearchDialog";
 import { db } from "@/lib/db";
 import { order, stfBucket, user as userTable } from "@/lib/db/schema";
@@ -29,55 +27,13 @@ export default async function OrdersPage() {
         shippingPercent: percentBpsToDisplay(pricing.shippingPercentBps),
     };
 
-    const myOrders: MemberOrderRow[] = db
+    // Every tab reads from this one list. Each order is fetched, sent and
+    // rendered exactly once, which is what keeps the page manageable once
+    // there are a few hundred of them.
+    const orders: WorkspaceOrderRow[] = db
         .select({
             id: order.id,
-            itemName: order.itemName,
-            fundType: order.fundType,
-            stfBucketName: stfBucket.name,
-            quantity: order.quantity,
-            unitCostCents: order.unitCostCents,
-            vendor: order.vendor,
-            link: order.link,
-            notes: order.notes,
-            partNumber: order.partNumber,
-            status: order.status,
-            denialComment: order.denialComment,
-            createdAt: order.createdAt,
-        })
-        .from(order)
-        .leftJoin(stfBucket, eq(order.stfBucketId, stfBucket.id))
-        .where(eq(order.userId, user.id))
-        .orderBy(desc(order.createdAt))
-        .all();
-
-    const teamOrders: TeamOrderRow[] = db
-        .select({
-            id: order.id,
-            itemName: order.itemName,
-            fundType: order.fundType,
-            stfBucketName: stfBucket.name,
-            requesterName: userTable.name,
-            requesterEmail: userTable.email,
-            quantity: order.quantity,
-            unitCostCents: order.unitCostCents,
-            vendor: order.vendor,
-            link: order.link,
-            notes: order.notes,
-            partNumber: order.partNumber,
-            status: order.status,
-            denialComment: order.denialComment,
-            createdAt: order.createdAt,
-        })
-        .from(order)
-        .leftJoin(stfBucket, eq(order.stfBucketId, stfBucket.id))
-        .leftJoin(userTable, eq(order.userId, userTable.id))
-        .orderBy(desc(order.createdAt))
-        .all();
-
-    const queueRows: AdminOrderRow[] = db
-        .select({
-            id: order.id,
+            userId: order.userId,
             itemName: order.itemName,
             fundType: order.fundType,
             stfBucketId: order.stfBucketId,
@@ -106,10 +62,9 @@ export default async function OrdersPage() {
 
     const giftBalanceCents = getGiftFundValueCents();
     const stfBuckets = getStfBucketsWithBalances();
-    const orderedParts = teamOrders.filter((o) => o.status === "ordered");
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
             <div className="flex items-center justify-between gap-4">
                 <p className="text-muted-foreground text-sm">
                     Submit a new purchase request or review orders below.
@@ -122,61 +77,12 @@ export default async function OrdersPage() {
 
             <OrderBalancesSummary giftBalanceCents={giftBalanceCents} stfBuckets={stfBuckets} />
 
-            <section className="space-y-5">
-                <div>
-                    <h2 className="text-lg font-semibold">Your orders</h2>
-                    <p className="text-muted-foreground text-sm">
-                        Every order you&apos;ve submitted, across all statuses.
-                    </p>
-                </div>
-                <OrderTable orders={myOrders} orderPricing={orderPricing} />
-            </section>
-
-            <section className="space-y-5">
-                <div>
-                    <h2 className="text-lg font-semibold">Team orders</h2>
-                    <p className="text-muted-foreground text-sm">
-                        Every order in the system, across all statuses. Officers review and act on
-                        these in the order queue.
-                    </p>
-                </div>
-                <TeamOrderTable orders={teamOrders} orderPricing={orderPricing} />
-            </section>
-
-            <section className="space-y-5">
-                <div>
-                    <h2 className="text-lg font-semibold">Ordered parts</h2>
-                    <p className="text-muted-foreground text-sm">
-                        Parts that officers have approved and placed with vendors.
-                    </p>
-                </div>
-                <TeamOrderTable
-                    orders={orderedParts}
-                    orderPricing={orderPricing}
-                    showFilters={false}
-                    emptyMessage="No parts have been ordered yet."
-                />
-            </section>
-
-            <div
-                aria-hidden
-                className="via-primary/50 h-0.5 w-full rounded-full bg-gradient-to-r from-transparent to-transparent"
+            <OrdersWorkspace
+                orders={orders}
+                currentUserId={user.id}
+                stfBuckets={stfBuckets}
+                orderPricing={orderPricing}
             />
-
-            <section className="space-y-5">
-                <div>
-                    <h2 className="text-lg font-semibold">Order queue</h2>
-                    <p className="text-muted-foreground text-sm">
-                        Review pending orders, manage approved batches, and browse ordered and
-                        denied archives.
-                    </p>
-                </div>
-                <AdminOrderQueue
-                    orders={queueRows}
-                    stfBuckets={stfBuckets}
-                    orderPricing={orderPricing}
-                />
-            </section>
         </div>
     );
 }

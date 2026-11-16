@@ -64,12 +64,10 @@ function requesterLabel(row: TeamOrderRow) {
 export function TeamOrderTable({
     orders,
     orderPricing,
-    showFilters = true,
     emptyMessage,
 }: {
     orders: TeamOrderRow[];
     orderPricing: { taxPercent: number; shippingPercent: number };
-    showFilters?: boolean;
     emptyMessage?: string;
 }) {
     const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -152,60 +150,58 @@ export function TeamOrderTable({
 
     return (
         <DataTableCard>
-            {showFilters ? (
-                <DataTableCardToolbar>
-                    <Select
-                        items={statusFilterItems}
-                        value={statusFilter}
-                        onValueChange={(value) => setStatusFilter(value as StatusFilter)}
-                    >
-                        <SelectTrigger className="w-full sm:w-44">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All statuses</SelectItem>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="approved">Approved</SelectItem>
-                            <SelectItem value="ordered">Ordered</SelectItem>
-                            <SelectItem value="denied">Denied</SelectItem>
-                        </SelectContent>
-                    </Select>
+            <DataTableCardToolbar>
+                <Select
+                    items={statusFilterItems}
+                    value={statusFilter}
+                    onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+                >
+                    <SelectTrigger className="w-full sm:w-44">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All statuses</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="ordered">Ordered</SelectItem>
+                        <SelectItem value="denied">Denied</SelectItem>
+                    </SelectContent>
+                </Select>
 
-                    <Select
-                        items={fundFilterItems}
-                        value={fundFilter}
-                        onValueChange={(value) => setFundFilter(value as FundFilter)}
-                    >
-                        <SelectTrigger className="w-full sm:w-36">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All funds</SelectItem>
-                            <SelectItem value="unassigned">Unassigned</SelectItem>
-                            <SelectItem value="STF">STF</SelectItem>
-                            <SelectItem value="Gift">Gift</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <Select
+                    items={fundFilterItems}
+                    value={fundFilter}
+                    onValueChange={(value) => setFundFilter(value as FundFilter)}
+                >
+                    <SelectTrigger className="w-full sm:w-36">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All funds</SelectItem>
+                        <SelectItem value="unassigned">Unassigned</SelectItem>
+                        <SelectItem value="STF">STF</SelectItem>
+                        <SelectItem value="Gift">Gift</SelectItem>
+                    </SelectContent>
+                </Select>
 
-                    <Select
-                        items={sortItems}
-                        value={sortKey}
-                        onValueChange={(value) => setSortKey(value as SortKey)}
-                    >
-                        <SelectTrigger className="w-full sm:w-44">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="newest">Newest first</SelectItem>
-                            <SelectItem value="oldest">Oldest first</SelectItem>
-                            <SelectItem value="item-asc">Item A–Z</SelectItem>
-                            <SelectItem value="item-desc">Item Z–A</SelectItem>
-                            <SelectItem value="total-desc">Highest total</SelectItem>
-                            <SelectItem value="total-asc">Lowest total</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </DataTableCardToolbar>
-            ) : null}
+                <Select
+                    items={sortItems}
+                    value={sortKey}
+                    onValueChange={(value) => setSortKey(value as SortKey)}
+                >
+                    <SelectTrigger className="w-full sm:w-44">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="newest">Newest first</SelectItem>
+                        <SelectItem value="oldest">Oldest first</SelectItem>
+                        <SelectItem value="item-asc">Item A–Z</SelectItem>
+                        <SelectItem value="item-desc">Item Z–A</SelectItem>
+                        <SelectItem value="total-desc">Highest total</SelectItem>
+                        <SelectItem value="total-asc">Lowest total</SelectItem>
+                    </SelectContent>
+                </Select>
+            </DataTableCardToolbar>
 
             {filteredOrders.length === 0 ? (
                 <div className="text-muted-foreground p-10 text-center">
