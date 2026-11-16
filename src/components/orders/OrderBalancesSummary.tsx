@@ -1,13 +1,19 @@
 "use client";
 
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { ChevronRight } from "lucide-react";
+import { useState } from "react";
 
 import { BalanceAmount } from "@/components/BalanceAmount";
-import { Button } from "@/components/ui/button";
-import { DataTableCard } from "@/components/ui/data-table-card";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import type { StfBucketBalance } from "@/lib/finance/finance";
-import { cn } from "@/lib/utils";
+import { cn, formatPriceCents } from "@/lib/utils";
 
 type OrderBalancesSummaryProps = {
     giftBalanceCents: number;
@@ -39,46 +45,57 @@ function FundRow({
 }
 
 export function OrderBalancesSummary({ giftBalanceCents, stfBuckets }: OrderBalancesSummaryProps) {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const [canScrollUp, setCanScrollUp] = useState(false);
-    const [canScrollDown, setCanScrollDown] = useState(false);
+    const [open, setOpen] = useState(false);
 
-    useEffect(() => {
-        const el = scrollRef.current;
-        if (!el) return;
-
-        function updateScrollState() {
-            if (!el) return;
-            setCanScrollUp(el.scrollTop > 1);
-            setCanScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 1);
-        }
-
-        updateScrollState();
-        el.addEventListener("scroll", updateScrollState);
-        return () => el.removeEventListener("scroll", updateScrollState);
-    }, [stfBuckets.length]);
-
-    function scrollByPage(direction: "up" | "down") {
-        const el = scrollRef.current;
-        if (!el) return;
-        const amount = el.clientHeight * 0.8;
-        el.scrollBy({ top: direction === "down" ? amount : -amount, behavior: "smooth" });
-    }
+    const bucketCount = stfBuckets.length;
+    const stfTotalCents = stfBuckets.reduce(
+        (total, bucket) => total + bucket.remainingBalanceCents,
+        0
+    );
+    const overBudget = stfTotalCents < 0;
+    const bucketLabel =
+        bucketCount === 0
+            ? "No active STF buckets"
+            : `Across ${bucketCount} STF ${bucketCount === 1 ? "bucket" : "buckets"}`;
 
     return (
-        <DataTableCard>
-            <div className="px-4 py-3">
-                <h2 className="text-lg font-semibold">Available funds</h2>
-                <p className="text-muted-foreground text-sm">
-                    Gift fund and {stfBuckets.length} STF{" "}
-                    {stfBuckets.length === 1 ? "bucket" : "buckets"}
-                </p>
-            </div>
-            <div className="relative">
-                <div
-                    ref={scrollRef}
-                    className="border-border divide-border max-h-72 divide-y overflow-y-auto border-t"
-                >
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger
+                render={<button type="button" />}
+                className="group border-border bg-card hover:bg-muted/40 hover:border-border/80 focus-visible:ring-ring/50 flex w-full cursor-pointer items-center justify-between gap-4 rounded-lg border px-4 py-3 text-left shadow-xs transition-colors focus-visible:ring-[3px] focus-visible:outline-none"
+            >
+                <div className="min-w-0">
+                    <h2 className="text-lg font-semibold">Available funds</h2>
+                    <p className="text-muted-foreground truncate text-sm">
+                        {bucketLabel} · Gift fund {formatPriceCents(giftBalanceCents)}
+                    </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                    <div className="text-right">
+                        <span
+                            className={cn(
+                                "text-lg font-semibold tabular-nums",
+                                overBudget ? "text-destructive" : "text-foreground"
+                            )}
+                        >
+                            {formatPriceCents(Math.abs(stfTotalCents))}
+                        </span>
+                        <p className="text-muted-foreground text-xs">
+                            {overBudget ? "over budget in buckets" : "unused in buckets"}
+                        </p>
+                    </div>
+                    <ChevronRight className="text-muted-foreground group-hover:text-foreground size-5 transition-all group-hover:translate-x-0.5" />
+                </div>
+            </DialogTrigger>
+
+            <DialogContent className="gap-0 p-0 sm:max-w-md">
+                <DialogHeader className="px-4 pt-4 pb-3">
+                    <DialogTitle>Available funds</DialogTitle>
+                    <DialogDescription>
+                        Gift fund and {bucketCount} STF {bucketCount === 1 ? "bucket" : "buckets"}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="border-border divide-border max-h-[60vh] divide-y overflow-y-auto border-t">
                     <FundRow label="Gift fund" cents={giftBalanceCents} mode="signed" highlighted />
                     {stfBuckets.map((bucket) => (
                         <FundRow
@@ -89,52 +106,12 @@ export function OrderBalancesSummary({ giftBalanceCents, stfBuckets }: OrderBala
                         />
                     ))}
                 </div>
-
-                <div
-                    aria-hidden
-                    className={cn(
-                        "from-card pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-40% to-transparent transition-opacity duration-200",
-                        canScrollUp ? "opacity-100" : "opacity-0"
-                    )}
-                />
-                <div
-                    aria-hidden
-                    className={cn(
-                        "from-card pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-40% to-transparent transition-opacity duration-200",
-                        canScrollDown ? "opacity-100" : "opacity-0"
-                    )}
-                />
-
-                {canScrollUp ? (
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="icon-sm"
-                        onClick={() => scrollByPage("up")}
-                        aria-label="Scroll up for more funds"
-                        className="bg-card hover:bg-muted absolute top-2 left-1/2 z-10 -translate-x-1/2 rounded-full shadow-md"
-                    >
-                        <ChevronUp className="size-4" />
-                    </Button>
+                {bucketCount === 0 ? (
+                    <p className="text-muted-foreground border-border border-t px-4 py-3 text-xs">
+                        No active STF buckets are configured for this school year.
+                    </p>
                 ) : null}
-                {canScrollDown ? (
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="icon-sm"
-                        onClick={() => scrollByPage("down")}
-                        aria-label="Scroll down for more funds"
-                        className="bg-card hover:bg-muted absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-full shadow-md"
-                    >
-                        <ChevronDown className="size-4" />
-                    </Button>
-                ) : null}
-            </div>
-            {stfBuckets.length === 0 ? (
-                <p className="text-muted-foreground border-border border-t px-4 py-3 text-xs">
-                    No active STF buckets are configured for this school year.
-                </p>
-            ) : null}
-        </DataTableCard>
+            </DialogContent>
+        </Dialog>
     );
 }
