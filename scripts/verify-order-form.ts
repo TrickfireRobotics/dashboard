@@ -125,7 +125,7 @@ const admin = db.select().from(user).limit(1).get();
 assert(admin != null, "Need a user in the database");
 
 const stfUnitCents = Math.round(stfData.unitCost * 100);
-const stfTotal = orderTotalCents(stfData.quantity, stfUnitCents, "STF");
+const stfTotal = orderTotalCents(stfData.quantity, stfUnitCents);
 
 const quarter = getActiveQuarter();
 assert(quarter != null, "Active school year required");
@@ -189,7 +189,7 @@ adjustGiftFund(50_000, admin!.id, "Test deposit");
 assert(getGiftFundValueCents() === 50_000, "Gift fund adjustment failed");
 
 const giftUnitCents = Math.round(giftData.unitCost * 100);
-const giftTotal = orderTotalCents(giftData.quantity, giftUnitCents, "Gift");
+const giftTotal = orderTotalCents(giftData.quantity, giftUnitCents);
 
 const giftOrder = db
     .insert(order)

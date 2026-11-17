@@ -51,24 +51,20 @@ afterEach(() => {
 });
 
 describe("orderTotalCents", () => {
-    it("includes default tax and shipping on the gift subtotal", () => {
-        expect(orderTotalCents(2, 5000, "Gift")).toBe(13_100);
-    });
-
-    it("includes flux, tax, and shipping on the STF subtotal", () => {
-        expect(orderTotalCents(2, 5000, "STF")).toBe(15_720);
+    it("includes default tax and shipping on the subtotal", () => {
+        expect(orderTotalCents(2, 5000)).toBe(13_100);
     });
 
     it("returns 0 when quantity is 0", () => {
-        expect(orderTotalCents(0, 5000, "Gift")).toBe(0);
+        expect(orderTotalCents(0, 5000)).toBe(0);
     });
 
     it("returns 0 when unit cost is 0", () => {
-        expect(orderTotalCents(5, 0, "STF")).toBe(0);
+        expect(orderTotalCents(5, 0)).toBe(0);
     });
 
     it("handles large quantities and costs without overflow", () => {
-        const result = orderTotalCents(9999, 999999, "Gift");
+        const result = orderTotalCents(9999, 999999);
         expect(Number.isFinite(result)).toBe(true);
         expect(result).toBe(
             computeExpectedTotal(
@@ -87,8 +83,7 @@ describe("updateOrderPricingSettings", () => {
         updateOrderPricingSettings({ taxPercentBps: 500, shippingPercentBps: 1000 });
 
         expect(getOrderPricingSettings()).toEqual({ taxPercentBps: 500, shippingPercentBps: 1000 });
-        expect(orderTotalCents(1, 10_000, "Gift")).toBe(11_500);
-        expect(orderTotalCents(1, 10_000, "STF")).toBe(13_800);
+        expect(orderTotalCents(1, 10_000)).toBe(11_500);
 
         updateOrderPricingSettings(previous);
         expect(getOrderPricingSettings()).toEqual(previous);
@@ -129,7 +124,7 @@ describe("getBucketApprovedSpendCents", () => {
             .get();
 
         const spendAfterApproved = getBucketApprovedSpendCents(bucketRecord.id, quarter.id);
-        expect(spendAfterApproved - spendBefore).toBe(orderTotalCents(1, 1000, "STF"));
+        expect(spendAfterApproved - spendBefore).toBe(orderTotalCents(1, 1000));
 
         db.update(order).set({ status: "ordered" }).where(eq(order.id, approved.id)).run();
         const spendAfterOrdered = getBucketApprovedSpendCents(bucketRecord.id, quarter.id);
@@ -163,7 +158,7 @@ describe("restoreGiftFundForDeletion", () => {
             .returning()
             .get();
 
-        const total = orderTotalCents(1, 5000, "Gift");
+        const total = orderTotalCents(1, 5000);
         deductGiftFundForApproval(giftOrder.id, total, requester.id);
 
         const afterDeduction = db
@@ -328,10 +323,10 @@ describe("batchTotalCents", () => {
             { quantity: 1, unitCostCents: 1000 },
         ];
         expect(batchTotalCents("Gift", items)).toBe(
-            orderTotalCents(2, 5000, "Gift") + orderTotalCents(1, 1000, "Gift")
+            orderTotalCents(2, 5000) + orderTotalCents(1, 1000)
         );
         expect(batchTotalCents("STF", items)).toBe(
-            orderTotalCents(2, 5000, "STF") + orderTotalCents(1, 1000, "STF")
+            orderTotalCents(2, 5000) + orderTotalCents(1, 1000)
         );
     });
 
@@ -356,7 +351,7 @@ describe("validateBatchBalance", () => {
     it("rejects a batch that individually fits but together overdraws", () => {
         const giftBefore = db.select().from(giftFund).where(eq(giftFund.id, GIFT_FUND_ID)).get();
         db.update(giftFund)
-            .set({ currentValueCents: orderTotalCents(1, 10_000, "Gift") })
+            .set({ currentValueCents: orderTotalCents(1, 10_000) })
             .where(eq(giftFund.id, GIFT_FUND_ID))
             .run();
 
@@ -483,7 +478,7 @@ describe("getBucketPendingSpendCents", () => {
             .get();
 
         expect(getBucketPendingSpendCents(bucketRecord.id, quarter.id)).toBe(
-            pendingBefore + orderTotalCents(1, 1000, "STF")
+            pendingBefore + orderTotalCents(1, 1000)
         );
         // Pending orders are claims, not spend.
         expect(getBucketRemainingCents(bucketRecord.id)).toBe(remainingBefore);

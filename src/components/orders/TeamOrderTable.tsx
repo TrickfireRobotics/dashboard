@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/table";
 import type { FundType, OrderStatus } from "@/lib/db/schema";
 import {
-    orderChargeCents,
+    computeOrderTotalCents,
     displayPercentToBps,
     type OrderPricingSettings,
 } from "@/lib/finance/order-pricing";
@@ -54,7 +54,7 @@ function totalCostCents(
     row: { fundType: FundType | null; quantity: number; unitCostCents: number },
     pricing: OrderPricingSettings
 ) {
-    return orderChargeCents(row.fundType, row.quantity, row.unitCostCents, pricing);
+    return computeOrderTotalCents(row.quantity, row.unitCostCents, pricing);
 }
 
 function requesterLabel(row: TeamOrderRow) {

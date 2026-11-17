@@ -45,11 +45,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     ensureFinanceSettingsRow();
     const newStatus = ORDER_ACTION_STATUS[parsed.data.action];
-    const totalCostCents = orderTotalCents(
-        existing.quantity,
-        existing.unitCostCents,
-        existing.fundType
-    );
+    const totalCostCents = orderTotalCents(existing.quantity, existing.unitCostCents);
 
     if (parsed.data.action === "approve") {
         const balanceCheck = validateOrderBalance(

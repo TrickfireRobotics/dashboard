@@ -98,7 +98,7 @@ export async function POST(req: NextRequest) {
         if (action === "approve" && target.fundType === "Gift") {
             deductGiftFundForApproval(
                 target.id,
-                orderTotalCents(target.quantity, target.unitCostCents, target.fundType),
+                orderTotalCents(target.quantity, target.unitCostCents),
                 sessionUser.id
             );
         }

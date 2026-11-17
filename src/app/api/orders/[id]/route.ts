@@ -112,11 +112,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     }
 
     if (isLockedOrderStatus(existing.status) && existing.fundType === "Gift") {
-        const totalCostCents = orderTotalCents(
-            existing.quantity,
-            existing.unitCostCents,
-            existing.fundType
-        );
+        const totalCostCents = orderTotalCents(existing.quantity, existing.unitCostCents);
         restoreGiftFundForDeletion(orderId, totalCostCents, user.id);
     }
 
