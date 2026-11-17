@@ -26,6 +26,7 @@ import {
 } from "@/lib/finance/order-pricing";
 import { formatDate, formatPriceCents } from "@/lib/utils";
 
+import { OrderCostBreakdown } from "./OrderCostBreakdown";
 import { OrderStatusBadge } from "./OrderStatusBadge";
 
 export type TeamOrderRow = {
@@ -293,11 +294,12 @@ function OrderDetails({
             <Detail label="Vendor" value={order.vendor} />
             <Detail label="Quantity" value={String(order.quantity)} />
             <Detail label="Unit cost" value={formatPriceCents(order.unitCostCents)} />
-            <Detail
-                label="Total cost"
-                value={formatPriceCents(totalCostCents(order, pricingSettings))}
-            />
             <Detail label="Part number" value={order.partNumber ?? "-"} />
+            <OrderCostBreakdown
+                quantity={order.quantity}
+                unitCostCents={order.unitCostCents}
+                pricingSettings={pricingSettings}
+            />
             <div className="col-span-2">
                 <dt className="text-muted-foreground">Link</dt>
                 <dd>

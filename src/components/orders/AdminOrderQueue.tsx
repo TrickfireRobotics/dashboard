@@ -36,13 +36,14 @@ import {
     formatOrderForExcel,
 } from "@/lib/finance/order-export";
 import {
-    computeOrderTotalCents,
+    computeOrderPricingBreakdown,
     displayPercentToBps,
     type OrderPricingSettings,
 } from "@/lib/finance/order-pricing";
 import { cn, formatDate, formatPriceCents } from "@/lib/utils";
 
 import { BucketCombobox } from "./BucketCombobox";
+import { OrderCostBreakdown } from "./OrderCostBreakdown";
 import { OrderStatusBadge } from "./OrderStatusBadge";
 
 export type AdminOrderRow = {
@@ -789,11 +790,11 @@ function OrderSection({
                                             <span className="text-muted-foreground">est. </span>
                                         )}
                                         {formatPriceCents(
-                                            computeOrderTotalCents(
+                                            computeOrderPricingBreakdown(
                                                 o.quantity,
                                                 o.unitCostCents,
                                                 pricingSettings
-                                            )
+                                            ).totalCents
                                         )}
                                     </TableCell>
                                     <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
@@ -852,7 +853,6 @@ function OrderDetail({
 }) {
     const pricingSettings = toPricingSettings(orderPricing);
     const excelRow = formatOrderForExcel(order, false, pricingSettings);
-    const total = computeOrderTotalCents(order.quantity, order.unitCostCents, pricingSettings);
 
     return (
         <div className="space-y-4 py-2">
@@ -860,11 +860,13 @@ function OrderDetail({
                 <Detail label="Vendor" value={order.vendor} />
                 <Detail label="Quantity" value={String(order.quantity)} />
                 <Detail label="Unit cost" value={formatPriceCents(order.unitCostCents)} />
-                <Detail
-                    label={order.fundType ? "Total cost" : "Estimated total"}
-                    value={formatPriceCents(total)}
-                />
                 <Detail label="Part number" value={order.partNumber ?? "-"} />
+                <OrderCostBreakdown
+                    quantity={order.quantity}
+                    unitCostCents={order.unitCostCents}
+                    pricingSettings={pricingSettings}
+                    totalLabel={order.fundType ? "Total cost" : "Estimated total"}
+                />
                 <div className="col-span-2">
                     <dt className="text-muted-foreground">Link</dt>
                     <dd>

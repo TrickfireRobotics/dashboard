@@ -23,13 +23,33 @@ export function orderSubtotalCents(quantity: number, unitCostCents: number): num
     return quantity * unitCostCents;
 }
 
+export type OrderPricingBreakdown = {
+    subtotalCents: number;
+    taxCents: number;
+    shippingCents: number;
+    totalCents: number;
+};
+
+export function computeOrderPricingBreakdown(
+    quantity: number,
+    unitCostCents: number,
+    settings: OrderPricingSettings = DEFAULT_ORDER_PRICING
+): OrderPricingBreakdown {
+    const subtotalCents = orderSubtotalCents(quantity, unitCostCents);
+    const taxCents = Math.round((subtotalCents * settings.taxPercentBps) / 10_000);
+    const shippingCents = Math.round((subtotalCents * settings.shippingPercentBps) / 10_000);
+    return {
+        subtotalCents,
+        taxCents,
+        shippingCents,
+        totalCents: subtotalCents + taxCents + shippingCents,
+    };
+}
+
 export function computeOrderTotalCents(
     quantity: number,
     unitCostCents: number,
     settings: OrderPricingSettings = DEFAULT_ORDER_PRICING
 ): number {
-    const subtotal = orderSubtotalCents(quantity, unitCostCents);
-    const tax = Math.round((subtotal * settings.taxPercentBps) / 10_000);
-    const shipping = Math.round((subtotal * settings.shippingPercentBps) / 10_000);
-    return subtotal + tax + shipping;
+    return computeOrderPricingBreakdown(quantity, unitCostCents, settings).totalCents;
 }
