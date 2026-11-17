@@ -5,6 +5,13 @@ compatibility_date = "2025-01-01"
 [triggers]
 crons = ["*/5 * * * *"]
 
+[vars]
+DISCORD_PUBLIC_KEY = "97e46477b3bec0c7780c9b4bd5f56b0c2d104afc439af65c1db1d86893fd8e98"
+
+[[kv_namespaces]]
+binding = "MONITOR_KV"
+id = "d1932025b09f4e7e86dba53ea2177c25"
+
 [observability.logs]
 enabled = true
 invocation_logs = true
