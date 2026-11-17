@@ -27,24 +27,21 @@ import { usePoll } from "@/lib/use-poll";
 import { formatDate } from "@/lib/utils";
 
 type Tab = "members" | "teams";
+type MemberRole = "member" | "admin" | "light" | "guest";
 
-function MemberTypeBadges({
-    admin,
-    guest,
-    light,
-}: {
-    admin: boolean;
-    guest: boolean;
-    light: boolean;
-}) {
-    if (!admin && !guest && !light) return <Badge variant="secondary">Member</Badge>;
-    return (
-        <div className="flex flex-wrap gap-1">
-            {admin && <Badge>Admin</Badge>}
-            {guest && <Badge variant="outline">Guest</Badge>}
-            {light && <Badge variant="outline">Light</Badge>}
-        </div>
-    );
+function roleOf(m: { admin: boolean; guest: boolean; light: boolean }): MemberRole {
+    if (m.admin) return "admin";
+    if (m.light) return "light";
+    if (m.guest) return "guest";
+    return "member";
+}
+
+function roleToFlags(role: MemberRole): { admin: boolean; guest: boolean; light: boolean } {
+    return {
+        admin: role === "admin",
+        guest: role === "guest",
+        light: role === "light",
+    };
 }
 
 function MembersTab() {
@@ -128,6 +125,31 @@ function MembersTab() {
         }
     }
 
+    async function changeRole(member: OnshapeMember, role: MemberRole) {
+        if (!member.userId || !member.email) {
+            toast.error("Cannot resolve this member's id or email");
+            return;
+        }
+        setBusy(member.userId);
+        try {
+            const res = await fetch(`/api/admin/onshape/members/${member.userId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: member.email, ...roleToFlags(role) }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                throw new Error(data?.error ?? "Failed to update role");
+            }
+            toast.success(`${member.name} is now ${role}`);
+            load();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update role");
+        } finally {
+            setBusy(null);
+        }
+    }
+
     return (
         <div className="space-y-6">
             <Card>
@@ -201,11 +223,19 @@ function MembersTab() {
                                 <TableRow key={m.userId ?? `${m.name}-${i}`}>
                                     <TableCell className="font-medium">{m.name}</TableCell>
                                     <TableCell>
-                                        <MemberTypeBadges
-                                            admin={m.admin}
-                                            guest={m.guest}
-                                            light={m.light}
-                                        />
+                                        <select
+                                            value={roleOf(m)}
+                                            disabled={!m.userId || !m.email || busy === m.userId}
+                                            onChange={(e) =>
+                                                changeRole(m, e.target.value as MemberRole)
+                                            }
+                                            className="border-input h-8 rounded-md border bg-transparent px-2 text-sm shadow-xs disabled:opacity-50"
+                                        >
+                                            <option value="member">Member</option>
+                                            <option value="admin">Admin</option>
+                                            <option value="light">Light user</option>
+                                            <option value="guest">Guest</option>
+                                        </select>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
                                         {m.dateAdded ? formatDate(new Date(m.dateAdded)) : "-"}
@@ -394,9 +424,10 @@ export function AdminOnshapeManager({ company }: { company: OnshapeCompany | nul
             )}
 
             <p className="text-muted-foreground text-xs">
-                Onshape&apos;s API exposes member type (admin/guest/light) and team membership, but
-                has no read endpoint for individual global-permission grants or Enterprise project
-                roles - manage those in the Onshape admin console.
+                Member type (Admin/Guest/Light) can be changed here at any time. Individual global
+                permissions, Enterprise project roles, and per-team admin status for existing team
+                members aren&apos;t exposed by Onshape&apos;s API - manage those in the Onshape
+                admin console.
             </p>
 
             <div className="flex flex-wrap gap-1 border-b pb-3">

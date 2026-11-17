@@ -15,6 +15,13 @@
  * GET, so we cannot read a member's current global-permission grants. The
  * API-visible "access" we can report is the company admin flag, guest/light
  * user type, team membership, and the per-team admin flag.
+ *
+ * Role-change limitation: an existing member's admin/guest/light flags can
+ * be changed via updateOnshapeMemberRole (see there). Individual global
+ * permissions cannot be granted/revoked through this API. Per-team admin
+ * status cannot be changed for an existing team member either - Onshape
+ * returns 405/403/409 on every method we tried against the team member
+ * endpoints with API-key auth; that still requires the Onshape UI.
  */
 
 export type OnshapeCompany = {
@@ -28,8 +35,10 @@ export type OnshapeCompany = {
 };
 
 export type OnshapeMember = {
-    /** The underlying Onshape user id - used when removing a member. */
+    /** The underlying Onshape user id - used when removing or updating a member. */
     userId: string | null;
+    /** Required alongside userId to change an existing member's role (see updateOnshapeMemberRole). */
+    email: string | null;
     name: string;
     admin: boolean;
     guest: boolean;
@@ -197,6 +206,7 @@ type RawCompanyUser = {
     admin?: boolean;
     guest?: boolean;
     light?: boolean;
+    email?: string;
     // Onshape's wire field is `dateAdded_` (trailing underscore), confirmed
     // against the OpenAPI spec / Go client `json` tags.
     dateAdded_?: string;
@@ -212,6 +222,7 @@ export async function getOnshapeMembers(): Promise<OnshapeMember[] | null> {
     if (!items) return null;
     return items.map((m) => ({
         userId: m.user?.id ?? null,
+        email: m.email ?? null,
         name: m.user?.name ?? m.name ?? "Unknown",
         admin: m.admin ?? false,
         guest: m.guest ?? false,
@@ -245,6 +256,36 @@ export async function removeOnshapeMember(userId: string): Promise<void> {
     if (!cid) throw new OnshapeError("No Onshape company available", 503);
     await onshapeFetch(`/companies/${cid}/users/${userId}`, {
         method: "DELETE",
+    });
+}
+
+/**
+ * Change an existing company member's role (Admin/Member, Full/Light,
+ * Member/Guest). Undocumented but confirmed working: Onshape's public API
+ * only documents POST (invite) and DELETE on /companies/{cid}/users, but the
+ * same POST verb against the per-user URL updates an existing member in
+ * place rather than erroring - it requires the member's email and companyId
+ * in the body alongside the new flags, even though the user id is already
+ * in the URL. Individual global permissions (the 25 granular Enterprise
+ * grants) cannot be set this way - Onshape silently ignores unknown fields -
+ * those still require the Onshape admin console.
+ */
+export async function updateOnshapeMemberRole(
+    userId: string,
+    email: string,
+    opts: { admin: boolean; guest: boolean; light: boolean }
+): Promise<void> {
+    const cid = await getOnshapeCompanyId();
+    if (!cid) throw new OnshapeError("No Onshape company available", 503);
+    await onshapeFetch(`/companies/${cid}/users/${userId}`, {
+        method: "POST",
+        body: JSON.stringify({
+            email,
+            companyId: cid,
+            admin: opts.admin,
+            guest: opts.guest,
+            light: opts.light,
+        }),
     });
 }
 
