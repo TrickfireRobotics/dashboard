@@ -6,7 +6,6 @@ import { Fragment, type ReactNode, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
-import { isOverBudget, StfBucketSelectItemContent } from "@/components/BalanceAmount";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
     DataTableCard,
@@ -43,6 +42,7 @@ import {
 } from "@/lib/finance/order-pricing";
 import { cn, formatDate, formatPriceCents } from "@/lib/utils";
 
+import { BucketCombobox } from "./BucketCombobox";
 import { OrderStatusBadge } from "./OrderStatusBadge";
 
 export type AdminOrderRow = {
@@ -512,44 +512,6 @@ export function AdminOrderQueue({
     );
 }
 
-function BucketSelect({
-    stfBuckets,
-    value,
-    onChange,
-}: {
-    stfBuckets: StfBucketOption[];
-    value: string;
-    onChange: (value: string) => void;
-}) {
-    return (
-        <Select
-            items={Object.fromEntries(stfBuckets.map((b) => [String(b.id), b.name]))}
-            value={value}
-            onValueChange={(v) => onChange(v ?? "")}
-        >
-            <SelectTrigger className="w-56">
-                <SelectValue placeholder="Select bucket" />
-            </SelectTrigger>
-            <SelectContent>
-                {stfBuckets.map((bucket) => (
-                    <SelectItem
-                        key={bucket.id}
-                        value={String(bucket.id)}
-                        className={cn(
-                            isOverBudget(bucket.remainingBalanceCents) && "text-destructive"
-                        )}
-                    >
-                        <StfBucketSelectItemContent
-                            name={bucket.name}
-                            cents={bucket.remainingBalanceCents}
-                        />
-                    </SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
-    );
-}
-
 function FundAssignControls({
     stfBuckets,
     selectedCount,
@@ -588,7 +550,7 @@ function FundAssignControls({
             </Select>
 
             {fundType === "STF" ? (
-                <BucketSelect stfBuckets={stfBuckets} value={bucketId} onChange={setBucketId} />
+                <BucketCombobox stfBuckets={stfBuckets} value={bucketId} onChange={setBucketId} />
             ) : null}
 
             <Button
