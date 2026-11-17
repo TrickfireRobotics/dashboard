@@ -44,6 +44,26 @@ function roleToFlags(role: MemberRole): { admin: boolean; guest: boolean; light:
     };
 }
 
+function roleSelectClassName(role: MemberRole): string {
+    switch (role) {
+        case "admin":
+            return "border-primary/30 bg-primary/10 text-primary font-medium";
+        case "guest":
+        case "light":
+            return "border-input bg-muted-foreground/10";
+        default:
+            return "border-input bg-transparent";
+    }
+}
+
+/** Admins first (alphabetically), then everyone else (alphabetically) - one table, two visual groups. */
+function sortMembers(members: OnshapeMember[]): OnshapeMember[] {
+    return [...members].sort((a, b) => {
+        if (a.admin !== b.admin) return a.admin ? -1 : 1;
+        return a.name.localeCompare(b.name);
+    });
+}
+
 function MembersTab() {
     const [members, setMembers] = useState<OnshapeMember[] | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -219,7 +239,7 @@ function MembersTab() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {members.map((m, i) => (
+                            {sortMembers(members).map((m, i) => (
                                 <TableRow key={m.userId ?? `${m.name}-${i}`}>
                                     <TableCell className="font-medium">{m.name}</TableCell>
                                     <TableCell>
@@ -229,7 +249,9 @@ function MembersTab() {
                                             onChange={(e) =>
                                                 changeRole(m, e.target.value as MemberRole)
                                             }
-                                            className="border-input h-8 rounded-md border bg-transparent px-2 text-sm shadow-xs disabled:opacity-50"
+                                            className={`h-8 rounded-md border px-2 text-sm shadow-xs disabled:opacity-50 ${roleSelectClassName(
+                                                roleOf(m)
+                                            )}`}
                                         >
                                             <option value="member">Member</option>
                                             <option value="admin">Admin</option>
