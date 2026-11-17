@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
     Table,
@@ -50,9 +57,9 @@ function roleSelectClassName(role: MemberRole): string {
             return "border-primary/30 bg-primary/10 text-primary font-medium";
         case "guest":
         case "light":
-            return "border-input bg-muted-foreground/10";
+            return "bg-muted-foreground/10";
         default:
-            return "border-input bg-transparent";
+            return "";
     }
 }
 
@@ -197,17 +204,17 @@ function MembersTab() {
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="onshape-role">Type</Label>
-                            <select
-                                id="onshape-role"
-                                value={role}
-                                onChange={(e) => setRole(e.target.value as typeof role)}
-                                className="border-input h-9 rounded-md border bg-transparent px-3 text-sm shadow-xs"
-                            >
-                                <option value="member">Member</option>
-                                <option value="admin">Admin</option>
-                                <option value="light">Light user</option>
-                                <option value="guest">Guest</option>
-                            </select>
+                            <Select value={role} onValueChange={(v) => setRole(v as MemberRole)}>
+                                <SelectTrigger id="onshape-role">
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="member">Member</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                    <SelectItem value="light">Light user</SelectItem>
+                                    <SelectItem value="guest">Guest</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
                         <Button onClick={addMember} disabled={adding}>
                             {adding ? "Inviting…" : "Invite"}
@@ -243,21 +250,24 @@ function MembersTab() {
                                 <TableRow key={m.userId ?? `${m.name}-${i}`}>
                                     <TableCell className="font-medium">{m.name}</TableCell>
                                     <TableCell>
-                                        <select
+                                        <Select
                                             value={roleOf(m)}
                                             disabled={!m.userId || !m.email || busy === m.userId}
-                                            onChange={(e) =>
-                                                changeRole(m, e.target.value as MemberRole)
-                                            }
-                                            className={`h-8 rounded-md border px-2 text-sm shadow-xs disabled:opacity-50 ${roleSelectClassName(
-                                                roleOf(m)
-                                            )}`}
+                                            onValueChange={(v) => changeRole(m, v as MemberRole)}
                                         >
-                                            <option value="member">Member</option>
-                                            <option value="admin">Admin</option>
-                                            <option value="light">Light user</option>
-                                            <option value="guest">Guest</option>
-                                        </select>
+                                            <SelectTrigger
+                                                size="sm"
+                                                className={roleSelectClassName(roleOf(m))}
+                                            >
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="member">Member</SelectItem>
+                                                <SelectItem value="admin">Admin</SelectItem>
+                                                <SelectItem value="light">Light user</SelectItem>
+                                                <SelectItem value="guest">Guest</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </TableCell>
                                     <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
                                         {m.dateAdded ? formatDate(new Date(m.dateAdded)) : "-"}
