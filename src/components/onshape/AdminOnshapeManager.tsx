@@ -257,7 +257,7 @@ function MembersTab() {
                                         >
                                             <SelectTrigger
                                                 size="sm"
-                                                className={roleSelectClassName(roleOf(m))}
+                                                className={`w-32 ${roleSelectClassName(roleOf(m))}`}
                                             >
                                                 <SelectValue />
                                             </SelectTrigger>
