@@ -21,6 +21,8 @@ export const metadata: Metadata = {
     description: "Internal club management portal for TrickFire Robotics.",
 };
 
+const isDevelopment = process.env.NODE_ENV === "development";
+
 export default function RootLayout({
     children,
 }: Readonly<{
@@ -30,6 +32,15 @@ export default function RootLayout({
         <html lang="en" className="dark">
             <body className={`${barlow.variable} ${overpass.variable} antialiased`}>
                 {children}
+                {isDevelopment && (
+                    <div
+                        className="dev-build-indicator"
+                        role="status"
+                        aria-label="Development build"
+                    >
+                        <span>Dev build</span>
+                    </div>
+                )}
                 <Toaster richColors position="top-right" />
             </body>
         </html>
