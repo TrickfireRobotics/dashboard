@@ -24,15 +24,3 @@ jobs:
               env:
                   CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
                   CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-            - uses: actions/setup-node@v4
-              with:
-                  node-version: 22
-
-            - name: Register slash commands
-              working-directory: health
-              run: node register-commands.mjs
-              env:
-                  DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-                  DISCORD_APPLICATION_ID: "1300909449367654412"
-                  DISCORD_GUILD_ID: "541737196915261462"
