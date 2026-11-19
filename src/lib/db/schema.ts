@@ -22,6 +22,76 @@ export const team = sqliteTable("team", {
     name: text("name").notNull().unique(),
 });
 
+// Links one subteam's Notion task database to one GitHub repo for two-way
+// task<->issue sync (see src/lib/integrations/notion-github-sync.ts). Property
+// names/types are auto-detected from the Notion database schema at sync time
+// (title, a `unique_id` task-key property, a `status` property, and a `url`
+// property for the issue-link writeback) rather than configured here, so a
+// link only needs to record *where* to sync, not *how*.
+export const githubNotionLink = sqliteTable(
+    "github_notion_link",
+    {
+        id: integer("id").primaryKey({ autoIncrement: true }),
+        teamId: integer("team_id")
+            .notNull()
+            .references(() => team.id, { onDelete: "cascade" }),
+        notionDatabaseId: text("notion_database_id").notNull(),
+        notionDatabaseName: text("notion_database_name"),
+        githubOwner: text("github_owner").notNull(),
+        githubRepo: text("github_repo").notNull(),
+        createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+        createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+        lastSyncedAt: integer("last_synced_at", { mode: "timestamp_ms" }),
+        lastSyncError: text("last_sync_error"),
+    },
+    (table) => [
+        uniqueIndex("github_notion_link_team_unique").on(table.teamId),
+        uniqueIndex("github_notion_link_notion_db_unique").on(table.notionDatabaseId),
+    ]
+);
+
+// One row per task synced through a link, matching a Notion page to a GitHub
+// issue so re-syncs update in place instead of creating duplicates. The
+// `lastNotionEditedTime`/`lastGithubUpdatedAt` snapshots are what the sync
+// engine diffs against to tell which side changed since the last pass.
+export const githubNotionTask = sqliteTable(
+    "github_notion_task",
+    {
+        id: integer("id").primaryKey({ autoIncrement: true }),
+        linkId: integer("link_id")
+            .notNull()
+            .references(() => githubNotionLink.id, { onDelete: "cascade" }),
+        notionPageId: text("notion_page_id").notNull(),
+        // The Notion-generated task key shown to users, e.g. "THT-123".
+        notionTaskKey: text("notion_task_key").notNull(),
+        githubIssueNumber: integer("github_issue_number").notNull(),
+        lastNotionEditedTime: text("last_notion_edited_time").notNull(),
+        lastGithubUpdatedAt: text("last_github_updated_at").notNull(),
+        lastSyncedAt: integer("last_synced_at", { mode: "timestamp_ms" }).default(now).notNull(),
+        createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    },
+    (table) => [
+        uniqueIndex("github_notion_task_link_page_unique").on(table.linkId, table.notionPageId),
+        uniqueIndex("github_notion_task_link_issue_unique").on(
+            table.linkId,
+            table.githubIssueNumber
+        ),
+    ]
+);
+
+export const githubNotionLinkRelations = relations(githubNotionLink, ({ one, many }) => ({
+    team: one(team, { fields: [githubNotionLink.teamId], references: [team.id] }),
+    creator: one(user, { fields: [githubNotionLink.createdBy], references: [user.id] }),
+    tasks: many(githubNotionTask),
+}));
+
+export const githubNotionTaskRelations = relations(githubNotionTask, ({ one }) => ({
+    link: one(githubNotionLink, {
+        fields: [githubNotionTask.linkId],
+        references: [githubNotionLink.id],
+    }),
+}));
+
 export const stfQuarter = sqliteTable("stf_quarter", {
     id: integer("id").primaryKey({ autoIncrement: true }),
     name: text("name").notNull().unique(),

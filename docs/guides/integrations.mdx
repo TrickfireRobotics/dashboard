@@ -210,3 +210,54 @@ Restart: `sudo systemctl restart trickfire-dashboard`
            its logs on the Minecraft server.
     </Accordion>
 </Accordions>
+
+## Task Sync (Notion ↔ GitHub)
+
+The Task Sync tab mirrors one subteam's Notion task database to one GitHub repo's issues,
+two-way: titles/descriptions are authored in Notion and flow to GitHub, while closing/reopening
+either side's completion state flows back the other way on the next sync. See
+[External Integrations](/tech-stack/external-integrations/) for how the sync engine itself
+decides what changed (`src/lib/integrations/notion-github-sync.ts`).
+
+### Notion integration token
+
+1. Create an internal integration at [notion.so/my-integrations](https://www.notion.so/my-integrations)
+   and copy its secret.
+2. Add to `.env.production`:
+
+```env
+NOTION_API_KEY=<paste here>
+```
+
+3. For every subteam database you plan to link, open it in Notion and **Share → Add
+   connection** with that integration - the dashboard can't see a database it hasn't been
+   invited to.
+
+<Callout type="info" title="No property mapping needed">
+    The dashboard detects which property to use by *type*, not by name: the database's one `title`
+    property, its one `unique_id` property (Notion's "ID" field - this is the `THT-123` style task
+    key), its one `status` property (for done/not-done), a `url` property to write the linked issue
+    back into, and optionally one `rich_text` property for the issue description. Creating a link
+    fails with a specific error if any required property is missing or ambiguous.
+</Callout>
+
+### GitHub token scope
+
+The Task Sync tab reuses `GITHUB_TOKEN`/`GITHUB_ORG` from the GitHub org-management setup, but
+issue sync additionally needs **Repository → Issues: Read and write** on every repo you link -
+the org-members scope alone isn't enough.
+
+### Troubleshooting
+
+<Accordions>
+    <Accordion title="Creating a link fails with a property error">
+        The error names exactly what's missing (e.g. "needs a unique ID property"). Add that
+        property type to the Notion database - the UI doesn't let you remap names, only type
+        matters.
+    </Accordion>
+    <Accordion title='A link shows a sync error instead of "Last synced"'>
+        Click **Sync now** to see if it was transient. Persistent errors are almost always either
+        the GitHub token missing repo Issues access, or the database no longer being shared with the
+        Notion integration.
+    </Accordion>
+</Accordions>

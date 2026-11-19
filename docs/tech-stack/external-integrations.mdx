@@ -43,6 +43,18 @@ Backs the GitHub tab on the `/members` page - lets members view org members, pen
 
 The file's own doc comment states the security intent clearly: the token should be a **fine-grained PAT scoped only to "Organization → Members: Read and write"** - enough to list/invite/remove members, deliberately _not_ enough to promote anyone to org owner. Invitations are always sent as `direct_member`, and there is intentionally no role-promotion call in this client. If `GITHUB_TOKEN`/`GITHUB_ORG` are unset, or the API call fails, the page renders a "not configured"/"unreachable" empty state rather than erroring.
 
+The same file's `getRepoIssues`/`createIssue`/`updateIssue` back the Task Sync tab below and need the token to additionally carry **Repository → Issues: Read and write** on each linked repo.
+
+## Task Sync: Notion ↔ GitHub (`src/lib/integrations/notion-github-sync.ts`)
+
+Backs the `/task-sync` page - two-way mirrors one subteam's Notion task database to one GitHub repo's issues, keyed by a `github_notion_link` row per subteam and a `github_notion_task` row per matched task/issue pair.
+
+`src/lib/integrations/notion.ts` is a thin fetch-based client for the Notion REST API (`NOTION_API_KEY`, same degrade-to-null-when-unconfigured pattern as the other clients here). Rather than asking an admin to hand-map Notion property names, `resolveLinkProperties()` in the sync file resolves a linked database's properties **by type**: the database's one `title` property, its one `unique_id` property (the task key, e.g. `THT-123`), its one `status` property (done/not-done - the group named "Complete"/"Done" wins, falling back to the last group), a `url` property for the issue-link writeback, and optionally one `rich_text` property for the description. Creating a link fails loudly with a specific error if any required property is missing or ambiguous.
+
+`decideSyncAction()` is the pure core of the sync: content (title/description) always flows Notion → GitHub, while completion state flows whichever direction last changed, comparing `last_edited_time`/`updated_at` against the previous sync's recorded snapshot on the mapping row. If both sides changed since the last sync, Notion wins the tie - it's the task's source of truth. A `<!-- notion-task-id: ... -->` marker embedded in every created issue's body lets a sync recover the mapping (instead of creating a duplicate) if the `github_notion_task` row is ever lost.
+
+There's no webhook listener - syncing happens via the "Sync now" button and whenever the tab auto-refreshes while open, matching every other integration page in this app rather than adding new deployment infrastructure (a public webhook endpoint, signature verification, etc.).
+
 ## Resend (transactional email)
 
 `src/lib/integrations/email.ts` is a thin wrapper:

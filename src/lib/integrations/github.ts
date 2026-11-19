@@ -3,12 +3,16 @@
  *
  * Auth: a token sent as `Authorization: Bearer <token>`. Use a fine-grained
  * personal access token (or GitHub App installation token) scoped to the single
- * TrickFire organization. The only permission required is
+ * TrickFire organization. Membership management below only needs
  * **Organization → Members: Read and write** - enough to list members, invite
  * people, and remove them. The token deliberately needs no org-administration
  * permission, and this client never grants org-owner ("admin") access:
  * invitations are always sent as `direct_member` and there is no role-promotion
  * call. Configure via GITHUB_TOKEN and GITHUB_ORG.
+ *
+ * The issue helpers at the bottom (used by the Task Sync tab to mirror Notion
+ * tasks) need the token to additionally carry **Repository → Issues: Read and
+ * write** on each linked repo.
  *
  * Like the Headscale/Onshape clients, helpers that back the admin page degrade
  * to `null` when the API key is absent or the org is unreachable, so the
@@ -57,6 +61,17 @@ export type GithubTeamMember = {
     id: number;
     login: string;
     avatarUrl: string;
+};
+
+export type GithubIssueState = "open" | "closed";
+
+export type GithubIssue = {
+    number: number;
+    title: string;
+    body: string | null;
+    state: GithubIssueState;
+    htmlUrl: string;
+    updatedAt: string;
 };
 
 export function isGithubConfigured(): boolean {
@@ -310,4 +325,81 @@ export async function getTeamMembers(slug: string): Promise<GithubTeamMember[] |
         login: u.login,
         avatarUrl: u.avatar_url,
     }));
+}
+
+type RawIssue = {
+    number: number;
+    title: string;
+    body: string | null;
+    state: GithubIssueState;
+    html_url: string;
+    updated_at: string;
+    // Present on issues that are actually pull requests; excluded below since
+    // PRs share the issues endpoint but aren't tasks we want to sync.
+    pull_request?: unknown;
+};
+
+function toIssue(raw: RawIssue): GithubIssue {
+    return {
+        number: raw.number,
+        title: raw.title,
+        body: raw.body,
+        state: raw.state,
+        htmlUrl: raw.html_url,
+        updatedAt: raw.updated_at,
+    };
+}
+
+/** Confirm a repo exists and is reachable with the configured token. */
+export async function getRepo(
+    owner: string,
+    repo: string
+): Promise<{ htmlUrl: string; hasIssuesEnabled: boolean } | null> {
+    if (!process.env.GITHUB_TOKEN) return null;
+    const data = await githubJson<{ html_url?: string; has_issues?: boolean }>(
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`
+    );
+    if (!data?.html_url) return null;
+    return { htmlUrl: data.html_url, hasIssuesEnabled: data.has_issues ?? true };
+}
+
+/** List every issue in a repo (open and closed), excluding pull requests. */
+export async function getRepoIssues(owner: string, repo: string): Promise<GithubIssue[] | null> {
+    if (!process.env.GITHUB_TOKEN) return null;
+    const items = await githubFetchAll<RawIssue>(
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues?state=all&per_page=100`
+    );
+    if (!items) return null;
+    return items.filter((i) => !i.pull_request).map(toIssue);
+}
+
+/** Create an issue in a repo. */
+export async function createIssue(
+    owner: string,
+    repo: string,
+    params: { title: string; body: string }
+): Promise<GithubIssue> {
+    if (!process.env.GITHUB_TOKEN) throw new GithubError("GitHub is not configured", 503);
+    const data = await githubJson<RawIssue>(
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues`,
+        { method: "POST", body: JSON.stringify(params) }
+    );
+    if (!data) throw new GithubError("GitHub is not configured", 503);
+    return toIssue(data);
+}
+
+/** Update an issue's title, body, and/or open/closed state. */
+export async function updateIssue(
+    owner: string,
+    repo: string,
+    issueNumber: number,
+    params: { title?: string; body?: string; state?: GithubIssueState }
+): Promise<GithubIssue> {
+    if (!process.env.GITHUB_TOKEN) throw new GithubError("GitHub is not configured", 503);
+    const data = await githubJson<RawIssue>(
+        `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues/${issueNumber}`,
+        { method: "PATCH", body: JSON.stringify(params) }
+    );
+    if (!data) throw new GithubError("GitHub is not configured", 503);
+    return toIssue(data);
 }
