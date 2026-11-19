@@ -51,7 +51,7 @@ const githubRepo = z
 
 const createLinkSchema = z.object({
     teamId: z.coerce.number().int().positive(),
-    notionDatabase: z.string().trim().min(1).max(500),
+    notionDatabaseId: z.string().trim().min(1).max(500),
     githubOwner,
     githubRepo,
 });
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
         );
     }
 
-    const databaseId = parseNotionDatabaseId(parsed.data.notionDatabase);
+    const databaseId = parseNotionDatabaseId(parsed.data.notionDatabaseId);
     if (!databaseId) {
         return NextResponse.json(
             { error: "Couldn't find a Notion database ID in that value" },

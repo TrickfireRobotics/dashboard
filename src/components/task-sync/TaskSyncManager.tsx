@@ -1,19 +1,19 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronDown, GitBranch, Plus, RefreshCw, Trash2 } from "lucide-react";
+import { ChevronDown, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
+import { NotionIcon } from "@/components/icons/brand-icons";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
@@ -47,6 +47,7 @@ import {
 import { formatDate } from "@/lib/utils";
 
 export type TaskSyncTeam = { id: number; name: string };
+export type TaskSyncNotionDatabase = { id: string; title: string };
 
 export type TaskSyncLink = {
     id: number;
@@ -69,22 +70,39 @@ type TaskSyncTask = {
 };
 
 const formSchema = z.object({
+    notionDatabaseId: z.string().min(1, "Choose a database"),
     teamId: z.string().min(1, "Choose a team"),
-    notionDatabase: z.string().trim().min(1, "Paste a Notion database URL or ID"),
     githubOwner: z.string().trim().min(1, "Required"),
     githubRepo: z.string().trim().min(1, "Required"),
 });
 type FormValues = z.infer<typeof formSchema>;
 
-function AddLinkDialog({ teams }: { teams: TaskSyncTeam[] }) {
+// Subteams usually have a database named after them ("Arm Tasks", "Science",
+// ...) - guess the team from the picked database so there's often nothing
+// left to fill in by hand.
+function guessTeamId(databaseTitle: string, teams: TaskSyncTeam[]): string | null {
+    const lower = databaseTitle.toLowerCase();
+    const match = teams.find(
+        (t) => lower.includes(t.name.toLowerCase()) || t.name.toLowerCase().includes(lower)
+    );
+    return match ? String(match.id) : null;
+}
+
+function AddLinkDialog({
+    teams,
+    notionDatabases,
+}: {
+    teams: TaskSyncTeam[];
+    notionDatabases: TaskSyncNotionDatabase[];
+}) {
     const router = useRouter();
     const [open, setOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const noTeamsLeft = teams.length === 0;
+    const disabled = teams.length === 0 || notionDatabases.length === 0;
 
     const form = useForm<FormValues>({
         resolver: zodResolver(formSchema),
-        defaultValues: { teamId: "", notionDatabase: "", githubOwner: "", githubRepo: "" },
+        defaultValues: { notionDatabaseId: "", teamId: "", githubOwner: "", githubRepo: "" },
     });
 
     async function onSubmit(values: FormValues) {
@@ -120,21 +138,54 @@ function AddLinkDialog({ teams }: { teams: TaskSyncTeam[] }) {
                 if (!next) form.reset();
             }}
         >
-            <DialogTrigger render={<Button disabled={noTeamsLeft} />}>
+            <DialogTrigger render={<Button disabled={disabled} />}>
                 <Plus className="size-4" />
                 Add link
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Link a Notion database to a repo</DialogTitle>
-                    <DialogDescription>
-                        The database needs a unique ID property for the task key, a Status property
-                        for done/not-done, and a URL property to hold the linked GitHub issue. Share
-                        the database with the dashboard&apos;s Notion integration first.
-                    </DialogDescription>
                 </DialogHeader>
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <FormField
+                            control={form.control}
+                            name="notionDatabaseId"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Notion database</FormLabel>
+                                    <Select
+                                        value={field.value}
+                                        onValueChange={(value) => {
+                                            field.onChange(value);
+                                            if (!form.getValues("teamId")) {
+                                                const db = notionDatabases.find(
+                                                    (d) => d.id === value
+                                                );
+                                                const guess = db
+                                                    ? guessTeamId(db.title, teams)
+                                                    : null;
+                                                if (guess) form.setValue("teamId", guess);
+                                            }
+                                        }}
+                                    >
+                                        <FormControl>
+                                            <SelectTrigger className="w-full">
+                                                <SelectValue placeholder="Choose a task database" />
+                                            </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {notionDatabases.map((d) => (
+                                                <SelectItem key={d.id} value={d.id}>
+                                                    {d.title}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
                         <FormField
                             control={form.control}
                             name="teamId"
@@ -155,22 +206,6 @@ function AddLinkDialog({ teams }: { teams: TaskSyncTeam[] }) {
                                             ))}
                                         </SelectContent>
                                     </Select>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                        <FormField
-                            control={form.control}
-                            name="notionDatabase"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Notion database</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            placeholder="Paste the database URL or ID"
-                                            {...field}
-                                        />
-                                    </FormControl>
                                     <FormMessage />
                                 </FormItem>
                             )}
@@ -377,28 +412,27 @@ function LinkRow({ link }: { link: TaskSyncLink }) {
 
 export function TaskSyncManager({
     teams,
+    notionDatabases,
     links,
 }: {
     teams: TaskSyncTeam[];
+    notionDatabases: TaskSyncNotionDatabase[];
     links: TaskSyncLink[];
 }) {
     const linkedTeamIds = new Set(links.map((l) => l.teamId));
+    const linkedDatabaseIds = new Set(links.map((l) => l.notionDatabaseId));
     const availableTeams = teams.filter((t) => !linkedTeamIds.has(t.id));
+    const availableDatabases = notionDatabases.filter((d) => !linkedDatabaseIds.has(d.id));
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-muted-foreground max-w-xl text-sm">
-                    Each link mirrors one subteam&apos;s Notion task database to one GitHub repo,
-                    two-way: titles and descriptions flow from Notion, and completion state syncs
-                    both ways.
-                </p>
-                <AddLinkDialog teams={availableTeams} />
+            <div className="flex justify-end">
+                <AddLinkDialog teams={availableTeams} notionDatabases={availableDatabases} />
             </div>
 
             {links.length === 0 ? (
                 <EmptyState
-                    icon={GitBranch}
+                    icon={NotionIcon}
                     title="No links yet"
                     description="Add a link to start mirroring a subteam's Notion tasks to GitHub issues."
                 />

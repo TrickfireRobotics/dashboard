@@ -4,7 +4,6 @@ import {
     DollarSign,
     Bot,
     Gamepad2,
-    GitBranch,
     KeyRound,
     LayoutDashboard,
     Network,
@@ -14,6 +13,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { NotionIcon } from "@/components/icons/brand-icons";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -27,7 +27,7 @@ export const mainNav: NavItem[] = [
     { href: "/orders", label: "Orders", icon: Package },
     { href: "/finance", label: "Finance", icon: DollarSign },
     { href: "/team", label: "Team", icon: Users },
-    { href: "/task-sync", label: "Task Sync", icon: GitBranch },
+    { href: "/task-sync", label: "Task Sync", icon: NotionIcon },
     { href: "/discord", label: "Discord Bot", icon: Bot },
     { href: "/api-keys", label: "API Keys", icon: KeyRound },
     { href: "/network", label: "Network", icon: Network },

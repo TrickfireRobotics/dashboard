@@ -8,7 +8,7 @@ import { getSessionUser } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { githubNotionLink, team } from "@/lib/db/schema";
 import { isGithubConfigured } from "@/lib/integrations/github";
-import { isNotionConfigured } from "@/lib/integrations/notion";
+import { isNotionConfigured, searchDatabases } from "@/lib/integrations/notion";
 
 export default async function TaskSyncPage() {
     const user = await getSessionUser();
@@ -17,6 +17,17 @@ export default async function TaskSyncPage() {
     const configured = isNotionConfigured() && isGithubConfigured();
 
     const teams = configured ? db.select().from(team).orderBy(team.name).all() : [];
+
+    // Degrade to an empty picker rather than crashing the page on a Notion
+    // outage/rate limit - the link list below still renders either way.
+    let notionDatabases: { id: string; title: string }[] = [];
+    if (configured) {
+        try {
+            notionDatabases = (await searchDatabases()) ?? [];
+        } catch {
+            notionDatabases = [];
+        }
+    }
 
     const linkRows = configured
         ? db
@@ -63,6 +74,7 @@ export default async function TaskSyncPage() {
             ) : (
                 <TaskSyncManager
                     teams={teams.map((t) => ({ id: t.id, name: t.name }))}
+                    notionDatabases={notionDatabases}
                     links={linkRows.map((l) => ({
                         ...l,
                         lastSyncedAt: l.lastSyncedAt ? l.lastSyncedAt.toISOString() : null,

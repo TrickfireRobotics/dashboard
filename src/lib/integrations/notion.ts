@@ -133,6 +133,43 @@ export async function getDatabase(databaseId: string): Promise<RawNotionDatabase
     return notionRequest<RawNotionDatabase>(`/databases/${databaseId}`);
 }
 
+export type NotionDatabaseSummary = { id: string; title: string };
+
+/**
+ * List every database shared with the integration, so the Task Sync "add
+ * link" form can offer a picker instead of asking someone to paste an ID.
+ */
+export async function searchDatabases(): Promise<NotionDatabaseSummary[] | null> {
+    if (!process.env.NOTION_API_KEY) return null;
+
+    const databases: NotionDatabaseSummary[] = [];
+    let cursor: string | undefined;
+    for (let page = 0; page < 1000; page++) {
+        const data = await notionRequest<{
+            results: { id: string; title?: RawRichText[] }[];
+            has_more: boolean;
+            next_cursor: string | null;
+        }>("/search", {
+            method: "POST",
+            body: JSON.stringify({
+                filter: { property: "object", value: "database" },
+                page_size: 100,
+                ...(cursor ? { start_cursor: cursor } : {}),
+            }),
+        });
+        if (!data) return null;
+        for (const r of data.results) {
+            databases.push({
+                id: r.id,
+                title: (r.title ?? []).map((t) => t.plain_text).join("") || "Untitled",
+            });
+        }
+        if (!data.has_more || !data.next_cursor) break;
+        cursor = data.next_cursor;
+    }
+    return databases.sort((a, b) => a.title.localeCompare(b.title));
+}
+
 /**
  * Fetch every page in a database, following `next_cursor` until exhausted.
  * Notion excludes archived/trashed pages from query results entirely, so a
