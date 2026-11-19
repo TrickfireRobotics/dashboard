@@ -134,6 +134,13 @@
       "when": 1795118850630,
       "tag": "0018_true_invaders",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1795124255480,
+      "tag": "0019_clumsy_vision",
+      "breakpoints": true
     }
   ]
 }

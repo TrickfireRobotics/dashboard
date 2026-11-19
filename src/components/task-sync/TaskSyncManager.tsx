@@ -77,17 +77,6 @@ const formSchema = z.object({
 });
 type FormValues = z.infer<typeof formSchema>;
 
-// Subteams usually have a database named after them ("Arm Tasks", "Science",
-// ...) - guess the team from the picked database so there's often nothing
-// left to fill in by hand.
-function guessTeamId(databaseTitle: string, teams: TaskSyncTeam[]): string | null {
-    const lower = databaseTitle.toLowerCase();
-    const match = teams.find(
-        (t) => lower.includes(t.name.toLowerCase()) || t.name.toLowerCase().includes(lower)
-    );
-    return match ? String(match.id) : null;
-}
-
 function AddLinkDialog({
     teams,
     notionDatabases,
@@ -154,21 +143,7 @@ function AddLinkDialog({
                             render={({ field }) => (
                                 <FormItem>
                                     <FormLabel>Notion database</FormLabel>
-                                    <Select
-                                        value={field.value}
-                                        onValueChange={(value) => {
-                                            field.onChange(value);
-                                            if (!form.getValues("teamId")) {
-                                                const db = notionDatabases.find(
-                                                    (d) => d.id === value
-                                                );
-                                                const guess = db
-                                                    ? guessTeamId(db.title, teams)
-                                                    : null;
-                                                if (guess) form.setValue("teamId", guess);
-                                            }
-                                        }}
-                                    >
+                                    <Select value={field.value} onValueChange={field.onChange}>
                                         <FormControl>
                                             <SelectTrigger className="w-full">
                                                 <SelectValue placeholder="Choose a task database" />
@@ -420,14 +395,12 @@ export function TaskSyncManager({
     links: TaskSyncLink[];
 }) {
     const linkedTeamIds = new Set(links.map((l) => l.teamId));
-    const linkedDatabaseIds = new Set(links.map((l) => l.notionDatabaseId));
     const availableTeams = teams.filter((t) => !linkedTeamIds.has(t.id));
-    const availableDatabases = notionDatabases.filter((d) => !linkedDatabaseIds.has(d.id));
 
     return (
         <div className="space-y-4">
             <div className="flex justify-end">
-                <AddLinkDialog teams={availableTeams} notionDatabases={availableDatabases} />
+                <AddLinkDialog teams={availableTeams} notionDatabases={notionDatabases} />
             </div>
 
             {links.length === 0 ? (

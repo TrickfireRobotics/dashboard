@@ -1,6 +1,9 @@
 /**
  * Two-way sync between a Notion task database and a GitHub repo's issues,
  * driven from the Task Sync tab (one `githubNotionLink` row per subteam).
+ * Several subteams can share one database (a single org-wide "Tasks"
+ * database is the common case) - each link filters it down to its own team's
+ * rows via the database's "Team" property (see resolveTeamFilterProperty).
  *
  * Content (title/description) is authored in Notion and always flows
  * Notion -> GitHub. Completion state flows both ways: closing/reopening the
@@ -21,7 +24,7 @@
 import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { githubNotionLink, githubNotionTask } from "@/lib/db/schema";
+import { githubNotionLink, githubNotionTask, team } from "@/lib/db/schema";
 import {
     createIssue,
     getRepoIssues,
@@ -30,6 +33,7 @@ import {
     type GithubIssueState,
 } from "./github";
 import {
+    findPageIdByTitle,
     getDatabase,
     getPage,
     queryAllDatabasePages,
@@ -122,6 +126,63 @@ export function resolveLinkProperties(
             issueUrlProp: issueUrlEntry[0],
         },
     };
+}
+
+export type TeamFilterProperty =
+    | { kind: "select"; name: string }
+    | { kind: "multi_select"; name: string }
+    | { kind: "relation"; name: string; relatedDatabaseId: string };
+
+/**
+ * Resolve the property literally named "Team" on a (possibly shared-by-
+ * every-subteam) database, used to filter it down to one team's rows. A
+ * Select or Multi-select filters by the team name directly; a Relation
+ * (pointing at a separate teams database) needs the team's page id, resolved
+ * per-sync in buildTeamFilter since it isn't known at schema-resolution time.
+ */
+export function resolveTeamFilterProperty(
+    database: Pick<RawNotionDatabase, "properties">
+): { ok: true; value: TeamFilterProperty } | { ok: false; error: string } {
+    const entry = Object.entries(database.properties).find(
+        ([name]) => name.trim().toLowerCase() === "team"
+    );
+    if (!entry) {
+        return { ok: false, error: `The database needs a property named "Team".` };
+    }
+    const [name, def] = entry;
+    if (def.type === "select" || def.type === "multi_select") {
+        return { ok: true, value: { kind: def.type, name } };
+    }
+    if (def.type === "relation") {
+        const relatedDatabaseId = def.relation?.database_id;
+        if (!relatedDatabaseId) {
+            return { ok: false, error: `The "Team" relation property has no related database.` };
+        }
+        return { ok: true, value: { kind: "relation", name, relatedDatabaseId } };
+    }
+    return {
+        ok: false,
+        error: `The "Team" property must be a Select, Multi-select, or Relation (found "${def.type}").`,
+    };
+}
+
+/**
+ * Build the Notion query filter that scopes a shared database down to one
+ * team's rows. Returns `null` only for a Relation property when no page
+ * matches `teamName` in the related database - the caller should treat that
+ * as a configuration error, not an empty result.
+ */
+export async function buildTeamFilter(
+    prop: TeamFilterProperty,
+    teamName: string
+): Promise<Record<string, unknown> | null> {
+    if (prop.kind === "select") return { property: prop.name, select: { equals: teamName } };
+    if (prop.kind === "multi_select") {
+        return { property: prop.name, multi_select: { contains: teamName } };
+    }
+    const pageId = await findPageIdByTitle(prop.relatedDatabaseId, teamName);
+    if (!pageId) return null;
+    return { property: prop.name, relation: { contains: pageId } };
 }
 
 export type NotionTaskSnapshot = {
@@ -330,12 +391,24 @@ export async function syncLink(linkId: number): Promise<SyncSummary> {
     const summary = emptySummary();
 
     try {
+        const teamRow = db.select().from(team).where(eq(team.id, link.teamId)).get();
+        if (!teamRow) throw new Error("Team not found");
+
         const database = await getDatabase(link.notionDatabaseId);
         if (!database) throw new Error("Notion is not configured");
         const resolved = resolveLinkProperties(database);
         if (!resolved.ok) throw new Error(resolved.error);
 
-        const rawPages = await queryAllDatabasePages(link.notionDatabaseId);
+        const teamProp = resolveTeamFilterProperty(database);
+        if (!teamProp.ok) throw new Error(teamProp.error);
+        const teamFilter = await buildTeamFilter(teamProp.value, teamRow.name);
+        if (!teamFilter) {
+            throw new Error(
+                `Could not find "${teamRow.name}" in the Team property - check the name matches exactly.`
+            );
+        }
+
+        const rawPages = await queryAllDatabasePages(link.notionDatabaseId, teamFilter);
         if (!rawPages) throw new Error("Notion is not configured");
         const issues = await getRepoIssues(link.githubOwner, link.githubRepo);
         if (!issues) throw new Error("GitHub is not configured");
@@ -380,7 +453,11 @@ export async function syncLink(linkId: number): Promise<SyncSummary> {
 
         // Pages mapped before but absent from this query are archived or
         // deleted in Notion (both are excluded from query results) - close
-        // their issue rather than leaving it open forever.
+        // their issue rather than leaving it open forever. A page reassigned
+        // to a different team's Team value also drops out of this query, but
+        // getPage() below won't report it as archived, so it's left alone
+        // rather than closed (that reassignment should be handled by whoever
+        // owns the task re-linking it, not auto-closed here).
         for (const mapping of mappings) {
             if (seenPageIds.has(mapping.notionPageId)) continue;
             try {

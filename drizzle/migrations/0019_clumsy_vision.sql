@@ -1,0 +1,1 @@
+DROP INDEX `github_notion_link_notion_db_unique`;

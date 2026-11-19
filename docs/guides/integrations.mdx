@@ -213,11 +213,12 @@ Restart: `sudo systemctl restart trickfire-dashboard`
 
 ## Task Sync (Notion ↔ GitHub)
 
-The Task Sync tab mirrors one subteam's Notion task database to one GitHub repo's issues,
-two-way: titles/descriptions are authored in Notion and flow to GitHub, while closing/reopening
-either side's completion state flows back the other way on the next sync. See
-[External Integrations](/tech-stack/external-integrations/) for how the sync engine itself
-decides what changed (`src/lib/integrations/notion-github-sync.ts`).
+The Task Sync tab mirrors a subteam's Notion tasks to one GitHub repo's issues, two-way:
+titles/descriptions are authored in Notion and flow to GitHub, while closing/reopening either
+side's completion state flows back the other way on the next sync. One link is "team + database +
+repo"; several teams commonly share the same big database (e.g. one org-wide "Tasks" database),
+each filtered down to its own rows. See [External Integrations](/tech-stack/external-integrations/)
+for how the sync engine itself decides what changed (`src/lib/integrations/notion-github-sync.ts`).
 
 ### Notion integration token
 
@@ -229,7 +230,7 @@ decides what changed (`src/lib/integrations/notion-github-sync.ts`).
 NOTION_API_KEY=<paste here>
 ```
 
-3. For every subteam database you plan to link, open it in Notion and **Share → Add
+3. For every database you plan to link (shared or per-team), open it in Notion and **Share → Add
    connection** with that integration - the dashboard can't see a database it hasn't been
    invited to.
 
@@ -237,8 +238,11 @@ NOTION_API_KEY=<paste here>
     The dashboard detects which property to use by *type*, not by name: the database's one `title`
     property, its one `unique_id` property (Notion's "ID" field - this is the `THT-123` style task
     key), its one `status` property (for done/not-done), a `url` property to write the linked issue
-    back into, and optionally one `rich_text` property for the issue description. Creating a link
-    fails with a specific error if any required property is missing or ambiguous.
+    back into, and optionally one `rich_text` property for the issue description. The one exception
+    is matched by name: a property literally called **Team** (Select, Multi-select, or Relation to a
+    teams database) is required and is how a link filters a shared database down to one subteam.
+    Creating a link fails with a specific error if any required property is missing, ambiguous, or
+    the chosen dashboard team's name has no matching value in it.
 </Callout>
 
 ### GitHub token scope
@@ -252,8 +256,12 @@ the org-members scope alone isn't enough.
 <Accordions>
     <Accordion title="Creating a link fails with a property error">
         The error names exactly what's missing (e.g. "needs a unique ID property"). Add that
-        property type to the Notion database - the UI doesn't let you remap names, only type
-        matters.
+        property type to the Notion database - the UI doesn't let you remap names, only type matters
+        (except the "Team" property, which is matched by name).
+    </Accordion>
+    <Accordion title='Creating a link fails with "Could not find ... in the Team property"'>
+        The dashboard team's name doesn't match any option/page in the database's Team property
+        exactly. Rename one side to match, or check for trailing spaces/different casing.
     </Accordion>
     <Accordion title='A link shows a sync error instead of "Last synced"'>
         Click **Sync now** to see if it was transient. Persistent errors are almost always either

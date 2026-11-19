@@ -7,7 +7,12 @@ import { db } from "@/lib/db";
 import { githubNotionLink, team } from "@/lib/db/schema";
 import { GithubError, getRepo } from "@/lib/integrations/github";
 import { NotionError, getDatabase, parseNotionDatabaseId } from "@/lib/integrations/notion";
-import { resolveLinkProperties, syncLink } from "@/lib/integrations/notion-github-sync";
+import {
+    buildTeamFilter,
+    resolveLinkProperties,
+    resolveTeamFilterProperty,
+    syncLink,
+} from "@/lib/integrations/notion-github-sync";
 
 export async function GET() {
     const user = await getSessionUser();
@@ -105,6 +110,20 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: resolved.error }, { status: 400 });
         }
 
+        const teamProp = resolveTeamFilterProperty(database);
+        if (!teamProp.ok) {
+            return NextResponse.json({ error: teamProp.error }, { status: 400 });
+        }
+        const teamFilter = await buildTeamFilter(teamProp.value, teamRow.name);
+        if (!teamFilter) {
+            return NextResponse.json(
+                {
+                    error: `Could not find "${teamRow.name}" in the Team property - check the name matches exactly.`,
+                },
+                { status: 400 }
+            );
+        }
+
         const created = db
             .insert(githubNotionLink)
             .values({
@@ -123,7 +142,7 @@ export async function POST(req: NextRequest) {
     } catch (err) {
         if (err instanceof Error && /UNIQUE constraint failed/.test(err.message)) {
             return NextResponse.json(
-                { error: "This team or Notion database is already linked to a repo" },
+                { error: "This team is already linked to a repo" },
                 { status: 409 }
             );
         }

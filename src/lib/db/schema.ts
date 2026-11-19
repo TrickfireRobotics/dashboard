@@ -22,12 +22,16 @@ export const team = sqliteTable("team", {
     name: text("name").notNull().unique(),
 });
 
-// Links one subteam's Notion task database to one GitHub repo for two-way
-// task<->issue sync (see src/lib/integrations/notion-github-sync.ts). Property
-// names/types are auto-detected from the Notion database schema at sync time
-// (title, a `unique_id` task-key property, a `status` property, and a `url`
-// property for the issue-link writeback) rather than configured here, so a
-// link only needs to record *where* to sync, not *how*.
+// Links one subteam to a GitHub repo for two-way task<->issue sync (see
+// src/lib/integrations/notion-github-sync.ts). `notionDatabaseId` isn't
+// unique across links: several subteams commonly share one big Notion
+// database (a single org-wide "Tasks" database), each link filtering it down
+// to its own team's rows via a property literally named "Team" (see
+// resolveTeamFilterProperty). Property names/types otherwise auto-detect from
+// the Notion database schema at sync time (title, a `unique_id` task-key
+// property, a `status` property, and a `url` property for the issue-link
+// writeback) rather than being configured here, so a link only needs to
+// record *where* to sync, not *how*.
 export const githubNotionLink = sqliteTable(
     "github_notion_link",
     {
@@ -44,10 +48,7 @@ export const githubNotionLink = sqliteTable(
         lastSyncedAt: integer("last_synced_at", { mode: "timestamp_ms" }),
         lastSyncError: text("last_sync_error"),
     },
-    (table) => [
-        uniqueIndex("github_notion_link_team_unique").on(table.teamId),
-        uniqueIndex("github_notion_link_notion_db_unique").on(table.notionDatabaseId),
-    ]
+    (table) => [uniqueIndex("github_notion_link_team_unique").on(table.teamId)]
 );
 
 // One row per task synced through a link, matching a Notion page to a GitHub

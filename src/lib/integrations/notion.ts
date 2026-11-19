@@ -16,6 +16,12 @@
  * property for done/not-done, at least one `url` property to write the
  * GitHub issue link back into, and optionally a `rich_text` property used as
  * the issue description.
+ *
+ * Multiple subteams can share one big database (common at TrickFire - one
+ * "Tasks" database for everyone) rather than needing one database per team:
+ * each link additionally resolves a property literally named "Team" (see
+ * resolveTeamFilterProperty in notion-github-sync.ts) and uses it to filter
+ * `queryAllDatabasePages` down to just that team's rows.
  */
 
 const API_BASE = "https://api.notion.com/v1";
@@ -120,6 +126,9 @@ export type RawPropertyDef = {
         options: { id: string; name: string }[];
         groups: { id: string; name: string; option_ids: string[] }[];
     };
+    select?: { options: { id: string; name: string }[] };
+    multi_select?: { options: { id: string; name: string }[] };
+    relation?: { database_id: string };
 };
 
 export type RawNotionDatabase = {
@@ -172,11 +181,17 @@ export async function searchDatabases(): Promise<NotionDatabaseSummary[] | null>
 
 /**
  * Fetch every page in a database, following `next_cursor` until exhausted.
- * Notion excludes archived/trashed pages from query results entirely, so a
- * page that disappears between syncs needs a direct `getPage` lookup (see
+ * An optional `filter` (Notion's query-filter object) scopes this to the
+ * rows for one team when several links share one big database - see
+ * resolveTeamFilterProperty in notion-github-sync.ts. Notion excludes
+ * archived/trashed pages from query results entirely, so a page that
+ * disappears between syncs needs a direct `getPage` lookup (see
  * notion-github-sync.ts) to tell "archived" apart from "never existed".
  */
-export async function queryAllDatabasePages(databaseId: string): Promise<RawNotionPage[] | null> {
+export async function queryAllDatabasePages(
+    databaseId: string,
+    filter?: Record<string, unknown>
+): Promise<RawNotionPage[] | null> {
     const token = process.env.NOTION_API_KEY;
     if (!token) return null;
 
@@ -189,9 +204,11 @@ export async function queryAllDatabasePages(databaseId: string): Promise<RawNoti
             next_cursor: string | null;
         }>(`/databases/${databaseId}/query`, {
             method: "POST",
-            body: JSON.stringify(
-                cursor ? { start_cursor: cursor, page_size: 100 } : { page_size: 100 }
-            ),
+            body: JSON.stringify({
+                page_size: 100,
+                ...(cursor ? { start_cursor: cursor } : {}),
+                ...(filter ? { filter } : {}),
+            }),
         });
         if (!data) return null;
         pages.push(...data.results);
@@ -199,6 +216,32 @@ export async function queryAllDatabasePages(databaseId: string): Promise<RawNoti
         cursor = data.next_cursor;
     }
     return pages;
+}
+
+/**
+ * Find a page in a database by its title property, used to resolve a team
+ * name to a page id when the "Team" property on a shared task database is a
+ * Relation (rather than a Select/Multi-select, which can filter by name
+ * directly). Returns `null` if the database isn't configured, has no title
+ * property, or no page matches.
+ */
+export async function findPageIdByTitle(databaseId: string, title: string): Promise<string | null> {
+    const database = await getDatabase(databaseId);
+    if (!database) return null;
+    const titleEntry = Object.entries(database.properties).find(([, p]) => p.type === "title");
+    if (!titleEntry) return null;
+
+    const data = await notionRequest<{ results: RawNotionPage[] }>(
+        `/databases/${databaseId}/query`,
+        {
+            method: "POST",
+            body: JSON.stringify({
+                filter: { property: titleEntry[0], title: { equals: title } },
+                page_size: 1,
+            }),
+        }
+    );
+    return data?.results[0]?.id ?? null;
 }
 
 /** Fetch a single page. Returns `null` only when Notion isn't configured. */

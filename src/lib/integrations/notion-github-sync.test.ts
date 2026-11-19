@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
     buildIssueBody,
+    buildTeamFilter,
     decideSyncAction,
     extractTaskSnapshot,
     findIssueByMarker,
     resolveLinkProperties,
+    resolveTeamFilterProperty,
 } from "./notion-github-sync";
 import type { GithubIssue } from "./github";
 import type { RawNotionDatabase, RawNotionPage } from "./notion";
@@ -226,6 +228,75 @@ describe("decideSyncAction", () => {
                 mapping
             )
         ).toEqual({ type: "update_from_notion" });
+    });
+});
+
+describe("resolveTeamFilterProperty", () => {
+    it("resolves a Select 'Team' property", () => {
+        const result = resolveTeamFilterProperty(
+            database({ ...baseProperties, Team: { id: "team-id", type: "select" } })
+        );
+        expect(result).toEqual({ ok: true, value: { kind: "select", name: "Team" } });
+    });
+
+    it("resolves a Multi-select 'Team' property", () => {
+        const result = resolveTeamFilterProperty(
+            database({ ...baseProperties, Team: { id: "team-id", type: "multi_select" } })
+        );
+        expect(result).toEqual({ ok: true, value: { kind: "multi_select", name: "Team" } });
+    });
+
+    it("resolves a Relation 'Team' property", () => {
+        const result = resolveTeamFilterProperty(
+            database({
+                ...baseProperties,
+                Team: { id: "team-id", type: "relation", relation: { database_id: "teams-db" } },
+            })
+        );
+        expect(result).toEqual({
+            ok: true,
+            value: { kind: "relation", name: "Team", relatedDatabaseId: "teams-db" },
+        });
+    });
+
+    it("matches the property name case-insensitively", () => {
+        const result = resolveTeamFilterProperty(
+            database({ ...baseProperties, team: { id: "team-id", type: "select" } })
+        );
+        expect(result.ok).toBe(true);
+    });
+
+    it("rejects a database with no Team property", () => {
+        const result = resolveTeamFilterProperty(database(baseProperties));
+        expect(result.ok).toBe(false);
+        if (!result.ok) expect(result.error).toMatch(/Team/);
+    });
+
+    it("rejects a Team property of an unsupported type", () => {
+        const result = resolveTeamFilterProperty(
+            database({ ...baseProperties, Team: { id: "team-id", type: "people" } })
+        );
+        expect(result.ok).toBe(false);
+    });
+});
+
+describe("buildTeamFilter", () => {
+    it("builds a select filter", async () => {
+        const filter = await buildTeamFilter({ kind: "select", name: "Team" }, "Arm");
+        expect(filter).toEqual({ property: "Team", select: { equals: "Arm" } });
+    });
+
+    it("builds a multi_select filter", async () => {
+        const filter = await buildTeamFilter({ kind: "multi_select", name: "Team" }, "Arm");
+        expect(filter).toEqual({ property: "Team", multi_select: { contains: "Arm" } });
+    });
+
+    it("returns null for a relation when the team page can't be resolved (no Notion config in tests)", async () => {
+        const filter = await buildTeamFilter(
+            { kind: "relation", name: "Team", relatedDatabaseId: "teams-db" },
+            "Arm"
+        );
+        expect(filter).toBeNull();
     });
 });
 
