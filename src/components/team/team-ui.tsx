@@ -1,9 +1,10 @@
 "use client";
 
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Search } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
     Select,
     SelectContent,
@@ -12,7 +13,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsIndicator, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TabsIndicator, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 /**
  * Shared furniture for the Team page. The dashboard, Onshape and GitHub panels
@@ -27,125 +28,133 @@ export function ProviderHeader({
     href,
     subtitle,
     stats,
-    note,
 }: {
     icon: React.ComponentType<{ className?: string }>;
     title: string;
     href?: string;
     subtitle?: ReactNode;
     stats?: { label: string; value: string }[];
-    note?: ReactNode;
 }) {
     return (
-        <div className="border-border bg-card overflow-hidden rounded-lg border">
-            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 px-5 py-4">
-                <div className="flex min-w-0 items-center gap-3">
-                    <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg">
-                        <Icon className="size-5" />
-                    </span>
-                    <div className="min-w-0">
-                        <p className="font-heading flex items-center gap-1.5 text-base font-medium">
-                            {href ? (
-                                <a
-                                    href={href}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="inline-flex items-center gap-1.5 hover:underline"
-                                >
-                                    {title}
-                                    <ExternalLink className="text-muted-foreground size-3.5" />
-                                </a>
-                            ) : (
-                                title
-                            )}
-                        </p>
-                        {subtitle ? (
-                            <p className="text-muted-foreground truncate text-sm">{subtitle}</p>
-                        ) : null}
-                    </div>
+        <div className="border-border bg-card flex flex-wrap items-center justify-between gap-x-6 gap-y-4 rounded-lg border px-5 py-4">
+            <div className="flex min-w-0 items-center gap-3">
+                <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg">
+                    <Icon className="size-5" />
+                </span>
+                <div className="min-w-0">
+                    <p className="text-lg leading-snug font-semibold">
+                        {href ? (
+                            <a
+                                href={href}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1.5 hover:underline"
+                            >
+                                {title}
+                                <ExternalLink className="text-muted-foreground size-3.5" />
+                            </a>
+                        ) : (
+                            title
+                        )}
+                    </p>
+                    {subtitle ? (
+                        <p className="text-muted-foreground truncate text-sm">{subtitle}</p>
+                    ) : null}
                 </div>
-
-                {stats && stats.length > 0 ? (
-                    <dl className="divide-border flex shrink-0 divide-x">
-                        {stats.map((stat) => (
-                            <div key={stat.label} className="px-4 first:pl-0 last:pr-0">
-                                <dt className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
-                                    {stat.label}
-                                </dt>
-                                <dd className="mt-0.5 text-xl leading-none font-semibold tabular-nums">
-                                    {stat.value}
-                                </dd>
-                            </div>
-                        ))}
-                    </dl>
-                ) : null}
             </div>
 
-            {note ? (
-                <p className="border-border bg-muted/20 text-muted-foreground border-t px-5 py-2.5 text-xs">
-                    {note}
-                </p>
+            {stats && stats.length > 0 ? (
+                <dl className="divide-border flex shrink-0 divide-x">
+                    {stats.map((stat) => (
+                        <div key={stat.label} className="px-4 first:pl-0 last:pr-0">
+                            <dt className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                                {stat.label}
+                            </dt>
+                            <dd className="mt-0.5 text-xl leading-none font-semibold tabular-nums">
+                                {stat.value}
+                            </dd>
+                        </div>
+                    ))}
+                </dl>
             ) : null}
         </div>
     );
 }
 
-/** The "add someone" strip that sits above every people table. */
-export function AddPersonBar({ children, hint }: { children: ReactNode; hint?: ReactNode }) {
+/**
+ * One table in a card, with a header holding whatever switcher or title the
+ * panel needs on the left and its search box on the right.
+ */
+export function TableCard({
+    left,
+    search,
+    onSearchChange,
+    searchPlaceholder = "Search",
+    children,
+}: {
+    left: ReactNode;
+    search: string;
+    onSearchChange: (value: string) => void;
+    searchPlaceholder?: string;
+    children: ReactNode;
+}) {
     return (
-        <div className="border-border bg-card space-y-2 rounded-lg border p-4">
-            <div className="flex flex-wrap items-end gap-3">{children}</div>
-            {hint ? <p className="text-muted-foreground text-xs">{hint}</p> : null}
+        <div className="border-border bg-card overflow-hidden rounded-lg border">
+            <div className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-3 py-2.5">
+                {left}
+                <div className="relative ml-auto">
+                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
+                    <Input
+                        value={search}
+                        onChange={(e) => onSearchChange(e.target.value)}
+                        placeholder={searchPlaceholder}
+                        aria-label={searchPlaceholder}
+                        className="h-9 w-40 pl-8 sm:w-56"
+                    />
+                </div>
+            </div>
+            {children}
         </div>
     );
 }
 
-/** Two-panel sub-navigation, identical across the three providers. */
-export function SubTabs({
-    value,
-    onValueChange,
-    tabs,
-    children,
-}: {
-    value: string;
-    onValueChange: (value: string) => void;
-    tabs: {
-        value: string;
-        label: string;
-        icon?: React.ComponentType<{ className?: string }>;
-        badge?: number;
-    }[];
-    children: ReactNode;
-}) {
+/** Title for a table card that has no switcher to show instead. */
+export function TableCardTitle({ title, count }: { title: string; count?: number }) {
     return (
-        <Tabs value={value} onValueChange={(next) => onValueChange(next as string)}>
-            <TabsList className="bg-muted/60 h-9 w-full sm:w-fit">
-                <TabsIndicator className="bg-background shadow-sm" />
-                {tabs.map((tab) => {
-                    const Icon = tab.icon;
-                    return (
-                        <TabsTrigger key={tab.value} value={tab.value} className="sm:px-4">
-                            {Icon ? <Icon className="size-4" /> : null}
-                            {tab.label}
-                            {tab.badge ? (
-                                <span className="bg-primary/15 text-primary ml-1 rounded-full px-1.5 text-[10px] font-bold tabular-nums">
-                                    {tab.badge}
-                                </span>
-                            ) : null}
-                        </TabsTrigger>
-                    );
-                })}
-            </TabsList>
-            {children}
-        </Tabs>
+        <p className="flex items-center gap-2 pl-1 text-sm font-semibold">
+            {title}
+            {count === undefined ? null : (
+                <span className="bg-muted text-muted-foreground rounded-full px-2 py-0.5 text-xs font-medium tabular-nums">
+                    {count}
+                </span>
+            )}
+        </p>
     );
 }
 
-export function SubTabPanel({ value, children }: { value: string; children: ReactNode }) {
+/**
+ * People / Teams switcher. Lives inside a {@link TableCard} header, so it is
+ * rendered on its own - the surrounding `Tabs` root owns the state.
+ */
+export function SubTabsList({ tabs }: { tabs: { value: string; label: string }[] }) {
     return (
-        <TabsContent value={value} className="space-y-4 pt-4">
+        <TabsList className="bg-muted/60 h-9">
+            <TabsIndicator className="bg-background shadow-sm" />
+            {tabs.map((tab) => (
+                <TabsTrigger key={tab.value} value={tab.value} className="px-4">
+                    {tab.label}
+                </TabsTrigger>
+            ))}
+        </TabsList>
+    );
+}
+
+/** The "add someone" strip at the top of a people table. */
+export function AddPersonBar({ children }: { children: ReactNode }) {
+    return (
+        <div className="border-border bg-muted/20 flex flex-wrap items-end gap-3 border-b px-4 py-3">
             {children}
-        </TabsContent>
+        </div>
     );
 }
 
@@ -213,7 +222,7 @@ export function LoadState({
 }) {
     if (loading) {
         return (
-            <div className="space-y-3">
+            <div className="space-y-3 p-4">
                 {[...Array(rows)].map((_, i) => (
                     <Skeleton key={i} className="h-10" />
                 ))}
@@ -221,15 +230,11 @@ export function LoadState({
         );
     }
     if (error) {
-        return (
-            <p className="border-destructive/30 bg-destructive/5 text-destructive rounded-lg border p-4 text-sm">
-                {error}
-            </p>
-        );
+        return <p className="text-destructive p-6 text-center text-sm">{error}</p>;
     }
     if (empty) {
         return (
-            <p className="border-border text-muted-foreground rounded-lg border p-10 text-center text-sm">
+            <p className="text-muted-foreground p-10 text-center text-sm">
                 {emptyLabel ?? "Nothing here yet."}
             </p>
         );
@@ -241,7 +246,6 @@ export type TeamGroup = {
     key: string;
     name: string;
     description?: string | null;
-    href?: string;
 };
 
 /**
@@ -273,8 +277,8 @@ export function TeamsBrowser({
             emptyLabel={emptyLabel}
             rows={2}
         >
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,20rem)_1fr]">
-                <ul className="border-border divide-border divide-y overflow-hidden rounded-lg border">
+            <div className="grid lg:grid-cols-[minmax(0,18rem)_1fr]">
+                <ul className="divide-border border-border divide-y lg:border-r">
                     {groups.map((group) => {
                         const active = group.key === selectedKey;
                         return (
@@ -300,7 +304,7 @@ export function TeamsBrowser({
                         );
                     })}
                 </ul>
-                <div className="border-border min-h-48 rounded-lg border">{detail}</div>
+                <div className="min-h-48">{detail}</div>
             </div>
         </LoadState>
     );

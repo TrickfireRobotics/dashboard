@@ -1,7 +1,7 @@
 "use client";
 
-import { Boxes, Users } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { Boxes } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -10,8 +10,8 @@ import {
     LoadState,
     ProviderHeader,
     RemoveButton,
-    SubTabPanel,
-    SubTabs,
+    SubTabsList,
+    TableCard,
     TeamsBrowser,
     TeamsBrowserHint,
     type TeamGroup,
@@ -35,6 +35,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import type {
     OnshapeCompany,
     OnshapeMember,
@@ -82,7 +83,13 @@ function sortMembers(members: OnshapeMember[]): OnshapeMember[] {
     });
 }
 
-function PeopleTab({ onCounts }: { onCounts: (counts: { members: number }) => void }) {
+function PeopleTab({
+    search,
+    onCounts,
+}: {
+    search: string;
+    onCounts: (counts: { members: number }) => void;
+}) {
     const [members, setMembers] = useState<OnshapeMember[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -184,9 +191,20 @@ function PeopleTab({ onCounts }: { onCounts: (counts: { members: number }) => vo
         }
     }
 
+    const needle = search.trim().toLowerCase();
+    const visible = useMemo(
+        () =>
+            sortMembers(members ?? []).filter(
+                (m) =>
+                    !needle ||
+                    [m.name, m.email].some((field) => field?.toLowerCase().includes(needle))
+            ),
+        [members, needle]
+    );
+
     return (
         <>
-            <AddPersonBar hint="Onshape emails the invitation. The access level can be changed at any time from the list below.">
+            <AddPersonBar>
                 <div className="min-w-56 flex-1 space-y-2">
                     <Label htmlFor="onshape-email">Email</Label>
                     <Input
@@ -227,65 +245,69 @@ function PeopleTab({ onCounts }: { onCounts: (counts: { members: number }) => vo
             <LoadState
                 loading={loading}
                 error={error}
-                empty={(members?.length ?? 0) === 0}
-                emptyLabel="No company members found."
+                empty={visible.length === 0}
+                emptyLabel={needle ? "Nobody matches that search." : "No company members found."}
             >
-                <div className="border-border rounded-lg border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Access level</TableHead>
-                                <TableHead className="hidden md:table-cell">Added</TableHead>
-                                <TableHead className="hidden md:table-cell">Last login</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Access level</TableHead>
+                            <TableHead className="hidden md:table-cell">Added</TableHead>
+                            <TableHead className="hidden md:table-cell">Last login</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {visible.map((m, i) => (
+                            <TableRow key={m.userId ?? `${m.name}-${i}`}>
+                                <TableCell className="font-medium">
+                                    {m.name}
+                                    {m.email ? (
+                                        <p className="text-muted-foreground text-xs font-normal">
+                                            {m.email}
+                                        </p>
+                                    ) : null}
+                                </TableCell>
+                                <TableCell>
+                                    <LevelSelect
+                                        value={roleOf(m)}
+                                        options={ROLE_OPTIONS}
+                                        disabled={!m.userId || !m.email || busy === m.userId}
+                                        tone={roleTone(roleOf(m))}
+                                        onChange={(next) => changeRole(m, next)}
+                                    />
+                                </TableCell>
+                                <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
+                                    {m.dateAdded ? formatDate(new Date(m.dateAdded)) : "-"}
+                                </TableCell>
+                                <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
+                                    {m.lastLoginTime
+                                        ? formatDate(new Date(m.lastLoginTime))
+                                        : "Never"}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <RemoveButton
+                                        disabled={!m.userId || busy === m.userId}
+                                        onClick={() => removeMember(m)}
+                                    />
+                                </TableCell>
                             </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {sortMembers(members ?? []).map((m, i) => (
-                                <TableRow key={m.userId ?? `${m.name}-${i}`}>
-                                    <TableCell className="font-medium">
-                                        {m.name}
-                                        {m.email ? (
-                                            <p className="text-muted-foreground text-xs font-normal">
-                                                {m.email}
-                                            </p>
-                                        ) : null}
-                                    </TableCell>
-                                    <TableCell>
-                                        <LevelSelect
-                                            value={roleOf(m)}
-                                            options={ROLE_OPTIONS}
-                                            disabled={!m.userId || !m.email || busy === m.userId}
-                                            tone={roleTone(roleOf(m))}
-                                            onChange={(next) => changeRole(m, next)}
-                                        />
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
-                                        {m.dateAdded ? formatDate(new Date(m.dateAdded)) : "-"}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
-                                        {m.lastLoginTime
-                                            ? formatDate(new Date(m.lastLoginTime))
-                                            : "Never"}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <RemoveButton
-                                            disabled={!m.userId || busy === m.userId}
-                                            onClick={() => removeMember(m)}
-                                        />
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                        ))}
+                    </TableBody>
+                </Table>
             </LoadState>
         </>
     );
 }
 
-function TeamsTab({ onCounts }: { onCounts: (counts: { teams: number }) => void }) {
+function TeamsTab({
+    search,
+    onCounts,
+}: {
+    search: string;
+    onCounts: (counts: { teams: number }) => void;
+}) {
     const [teams, setTeams] = useState<OnshapeTeam[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -331,11 +353,14 @@ function TeamsTab({ onCounts }: { onCounts: (counts: { teams: number }) => void 
         }
     }
 
-    const groups: TeamGroup[] = (teams ?? []).map((t) => ({
-        key: t.id,
-        name: t.name,
-        description: t.description,
-    }));
+    const needle = search.trim().toLowerCase();
+    const groups: TeamGroup[] = (teams ?? [])
+        .filter(
+            (t) =>
+                !needle ||
+                [t.name, t.description].some((field) => field?.toLowerCase().includes(needle))
+        )
+        .map((t) => ({ key: t.id, name: t.name, description: t.description }));
 
     return (
         <TeamsBrowser
@@ -347,6 +372,7 @@ function TeamsTab({ onCounts }: { onCounts: (counts: { teams: number }) => void 
                 const team = teams?.find((t) => t.id === group.key);
                 if (team) viewMembers(team);
             }}
+            emptyLabel={needle ? "No teams match that search." : "No teams found."}
             detail={
                 !selected ? (
                     <TeamsBrowserHint>Pick a team to see who is in it.</TeamsBrowserHint>
@@ -383,6 +409,7 @@ function TeamsTab({ onCounts }: { onCounts: (counts: { teams: number }) => void 
 
 export function AdminOnshapeManager({ company }: { company: OnshapeCompany | null }) {
     const [tab, setTab] = useState("people");
+    const [search, setSearch] = useState("");
     const [counts, setCounts] = useState<{ members?: number; teams?: number }>({});
 
     const onPeopleCounts = useCallback(
@@ -399,36 +426,40 @@ export function AdminOnshapeManager({ company }: { company: OnshapeCompany | nul
             <ProviderHeader
                 icon={Boxes}
                 title={company?.name ?? "Onshape company"}
-                subtitle={
-                    company ? (
-                        <>
-                            Company ID <span className="font-mono">{company.id}</span>
-                            {company.admin ? " · API key has admin access" : ""}
-                        </>
-                    ) : undefined
-                }
                 stats={[
                     { label: "Members", value: String(counts.members ?? "-") },
                     { label: "Teams", value: String(counts.teams ?? "-") },
                 ]}
-                note="Global permissions, Enterprise project roles, and per-team admin status aren't exposed by Onshape's API - manage those in the Onshape admin console."
             />
 
-            <SubTabs
+            <Tabs
                 value={tab}
-                onValueChange={setTab}
-                tabs={[
-                    { value: "people", label: "People", icon: Users },
-                    { value: "teams", label: "Teams", icon: Boxes },
-                ]}
+                onValueChange={(next) => {
+                    setTab(next as string);
+                    setSearch("");
+                }}
             >
-                <SubTabPanel value="people">
-                    <PeopleTab onCounts={onPeopleCounts} />
-                </SubTabPanel>
-                <SubTabPanel value="teams">
-                    <TeamsTab onCounts={onTeamCounts} />
-                </SubTabPanel>
-            </SubTabs>
+                <TableCard
+                    left={
+                        <SubTabsList
+                            tabs={[
+                                { value: "people", label: "People" },
+                                { value: "teams", label: "Teams" },
+                            ]}
+                        />
+                    }
+                    search={search}
+                    onSearchChange={setSearch}
+                    searchPlaceholder={tab === "people" ? "Search people" : "Search teams"}
+                >
+                    <TabsContent value="people">
+                        <PeopleTab search={search} onCounts={onPeopleCounts} />
+                    </TabsContent>
+                    <TabsContent value="teams">
+                        <TeamsTab search={search} onCounts={onTeamCounts} />
+                    </TabsContent>
+                </TableCard>
+            </Tabs>
         </div>
     );
 }

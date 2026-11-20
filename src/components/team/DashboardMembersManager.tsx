@@ -1,8 +1,8 @@
 "use client";
 
-import { ShieldCheck, UserCheck, Users } from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import {
@@ -10,8 +10,8 @@ import {
     LoadState,
     ProviderHeader,
     RemoveButton,
-    SubTabPanel,
-    SubTabs,
+    TableCard,
+    TableCardTitle,
 } from "@/components/team/team-ui";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,6 +53,11 @@ const LEVEL_OPTIONS: { value: MemberLevel; label: string }[] = [
     { value: "deactivated", label: "Deactivated" },
 ];
 
+function matches(needle: string, ...fields: (string | null | undefined)[]): boolean {
+    if (!needle) return true;
+    return fields.some((field) => field?.toLowerCase().includes(needle));
+}
+
 export function DashboardMembersManager({
     members,
     pending,
@@ -63,9 +68,10 @@ export function DashboardMembersManager({
     currentUserId: string;
 }) {
     const router = useRouter();
-    const [tab, setTab] = useState("people");
     const [busy, setBusy] = useState<string | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<DashboardMemberRow | null>(null);
+    const [memberSearch, setMemberSearch] = useState("");
+    const [pendingSearch, setPendingSearch] = useState("");
 
     async function patchUser(id: string, body: Record<string, unknown>, success: string) {
         setBusy(id);
@@ -106,178 +112,179 @@ export function DashboardMembersManager({
         }
     }
 
-    const activeCount = members.filter((m) => m.isActive).length;
+    const visibleMembers = useMemo(() => {
+        const needle = memberSearch.trim().toLowerCase();
+        return members.filter((m) => matches(needle, m.name, m.email));
+    }, [members, memberSearch]);
+
+    const visiblePending = useMemo(() => {
+        const needle = pendingSearch.trim().toLowerCase();
+        return pending.filter((u) => matches(needle, u.name, u.email));
+    }, [pending, pendingSearch]);
 
     return (
         <div className="space-y-4">
             <ProviderHeader
-                icon={ShieldCheck}
+                icon={LayoutDashboard}
                 title="TrickFire dashboard"
                 subtitle="Accounts that can sign in to this dashboard"
                 stats={[
-                    { label: "Active", value: String(activeCount) },
-                    { label: "Deactivated", value: String(members.length - activeCount) },
+                    { label: "Members", value: String(members.length) },
                     { label: "Pending", value: String(pending.length) },
                 ]}
-                note="A deactivated account keeps its data but can no longer sign in. Deleting is permanent."
             />
 
-            <SubTabs
-                value={tab}
-                onValueChange={setTab}
-                tabs={[
-                    { value: "people", label: "People", icon: Users },
-                    {
-                        value: "pending",
-                        label: "Pending",
-                        icon: UserCheck,
-                        badge: pending.length,
-                    },
-                ]}
-            >
-                <SubTabPanel value="people">
+            {/* Approvals come first: they are the only thing here that needs doing. */}
+            {pending.length > 0 ? (
+                <TableCard
+                    left={<TableCardTitle title="Waiting for approval" count={pending.length} />}
+                    search={pendingSearch}
+                    onSearchChange={setPendingSearch}
+                    searchPlaceholder="Search requests"
+                >
                     <LoadState
                         loading={false}
-                        empty={members.length === 0}
-                        emptyLabel="No approved members yet."
+                        empty={visiblePending.length === 0}
+                        emptyLabel="Nobody matches that search."
                     >
-                        <div className="border-border rounded-lg border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead>Access level</TableHead>
-                                        <TableHead className="hidden md:table-cell">
-                                            Joined
-                                        </TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead className="hidden md:table-cell">
+                                        Registered
+                                    </TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {visiblePending.map((u) => (
+                                    <TableRow key={u.id}>
+                                        <TableCell className="font-medium">
+                                            {u.name}
+                                            <p className="text-muted-foreground text-xs font-normal">
+                                                {u.email}
+                                            </p>
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
+                                            {formatDate(u.createdAt)}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <RemoveButton
+                                                    label="Reject"
+                                                    disabled={busy === u.id}
+                                                    onClick={() =>
+                                                        patchUser(
+                                                            u.id,
+                                                            { isActive: false },
+                                                            "User rejected"
+                                                        )
+                                                    }
+                                                />
+                                                <Button
+                                                    size="sm"
+                                                    disabled={busy === u.id}
+                                                    onClick={() =>
+                                                        patchUser(
+                                                            u.id,
+                                                            { approved: true },
+                                                            "User approved"
+                                                        )
+                                                    }
+                                                >
+                                                    Approve
+                                                </Button>
+                                            </div>
+                                        </TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {members.map((m) => {
-                                        const isSelf = m.id === currentUserId;
-                                        return (
-                                            <TableRow key={m.id}>
-                                                <TableCell className="font-medium">
-                                                    {m.name}
-                                                    {isSelf ? (
-                                                        <span className="text-muted-foreground ml-2 text-xs font-normal">
-                                                            (you)
-                                                        </span>
-                                                    ) : null}
-                                                    <p className="text-muted-foreground text-xs font-normal">
-                                                        {m.email}
-                                                    </p>
-                                                </TableCell>
-                                                <TableCell>
-                                                    <LevelSelect<MemberLevel>
-                                                        value={
-                                                            m.isActive ? "active" : "deactivated"
-                                                        }
-                                                        options={LEVEL_OPTIONS}
-                                                        disabled={isSelf || busy === m.id}
-                                                        tone={m.isActive ? "default" : "danger"}
-                                                        onChange={(level) =>
-                                                            patchUser(
-                                                                m.id,
-                                                                { isActive: level === "active" },
-                                                                level === "active"
-                                                                    ? `${m.name} reactivated`
-                                                                    : `${m.name} deactivated`
-                                                            )
-                                                        }
-                                                    />
-                                                </TableCell>
-                                                <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
-                                                    {formatDate(m.createdAt)}
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    {m.isActive ? (
-                                                        <span className="text-muted-foreground text-xs">
-                                                            -
-                                                        </span>
-                                                    ) : (
-                                                        <RemoveButton
-                                                            label="Delete"
-                                                            disabled={isSelf || busy === m.id}
-                                                            onClick={() => setDeleteTarget(m)}
-                                                        />
-                                                    )}
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </div>
+                                ))}
+                            </TableBody>
+                        </Table>
                     </LoadState>
-                </SubTabPanel>
+                </TableCard>
+            ) : null}
 
-                <SubTabPanel value="pending">
-                    <LoadState
-                        loading={false}
-                        empty={pending.length === 0}
-                        emptyLabel="Nobody is waiting for approval."
-                    >
-                        <div className="border-border rounded-lg border">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Name</TableHead>
-                                        <TableHead className="hidden md:table-cell">
-                                            Registered
-                                        </TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
+            <TableCard
+                left={<TableCardTitle title="Members" count={members.length} />}
+                search={memberSearch}
+                onSearchChange={setMemberSearch}
+                searchPlaceholder="Search members"
+            >
+                <LoadState
+                    loading={false}
+                    empty={visibleMembers.length === 0}
+                    emptyLabel={
+                        memberSearch.trim()
+                            ? "Nobody matches that search."
+                            : "No approved members yet."
+                    }
+                >
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Access level</TableHead>
+                                <TableHead className="hidden md:table-cell">Joined</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {visibleMembers.map((m) => {
+                                const isSelf = m.id === currentUserId;
+                                return (
+                                    <TableRow key={m.id}>
+                                        <TableCell className="font-medium">
+                                            {m.name}
+                                            {isSelf ? (
+                                                <span className="text-muted-foreground ml-2 text-xs font-normal">
+                                                    (you)
+                                                </span>
+                                            ) : null}
+                                            <p className="text-muted-foreground text-xs font-normal">
+                                                {m.email}
+                                            </p>
+                                        </TableCell>
+                                        <TableCell>
+                                            <LevelSelect<MemberLevel>
+                                                value={m.isActive ? "active" : "deactivated"}
+                                                options={LEVEL_OPTIONS}
+                                                disabled={isSelf || busy === m.id}
+                                                tone={m.isActive ? "default" : "danger"}
+                                                onChange={(level) =>
+                                                    patchUser(
+                                                        m.id,
+                                                        { isActive: level === "active" },
+                                                        level === "active"
+                                                            ? `${m.name} reactivated`
+                                                            : `${m.name} deactivated`
+                                                    )
+                                                }
+                                            />
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
+                                            {formatDate(m.createdAt)}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            {m.isActive ? (
+                                                <span className="text-muted-foreground text-xs">
+                                                    -
+                                                </span>
+                                            ) : (
+                                                <RemoveButton
+                                                    label="Delete"
+                                                    disabled={isSelf || busy === m.id}
+                                                    onClick={() => setDeleteTarget(m)}
+                                                />
+                                            )}
+                                        </TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {pending.map((u) => (
-                                        <TableRow key={u.id}>
-                                            <TableCell className="font-medium">
-                                                {u.name}
-                                                <p className="text-muted-foreground text-xs font-normal">
-                                                    {u.email}
-                                                </p>
-                                            </TableCell>
-                                            <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
-                                                {formatDate(u.createdAt)}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <RemoveButton
-                                                        label="Reject"
-                                                        disabled={busy === u.id}
-                                                        onClick={() =>
-                                                            patchUser(
-                                                                u.id,
-                                                                { isActive: false },
-                                                                "User rejected"
-                                                            )
-                                                        }
-                                                    />
-                                                    <Button
-                                                        size="sm"
-                                                        disabled={busy === u.id}
-                                                        onClick={() =>
-                                                            patchUser(
-                                                                u.id,
-                                                                { approved: true },
-                                                                "User approved"
-                                                            )
-                                                        }
-                                                    >
-                                                        Approve
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                    </LoadState>
-                </SubTabPanel>
-            </SubTabs>
+                                );
+                            })}
+                        </TableBody>
+                    </Table>
+                </LoadState>
+            </TableCard>
 
             <Dialog
                 open={deleteTarget !== null}

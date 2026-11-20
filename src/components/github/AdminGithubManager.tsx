@@ -1,17 +1,17 @@
 "use client";
 
-import { GitBranch, Users } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { GithubIcon } from "@/components/icons/brand-icons";
 import {
     AddPersonBar,
     LevelSelect,
     LoadState,
     ProviderHeader,
     RemoveButton,
-    SubTabPanel,
-    SubTabs,
+    SubTabsList,
+    TableCard,
     TeamsBrowser,
     TeamsBrowserHint,
     type TeamGroup,
@@ -28,6 +28,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import type {
     GithubInvitation,
     GithubMember,
@@ -52,7 +53,13 @@ function sortMembers(members: GithubMember[]): GithubMember[] {
     });
 }
 
-function PeopleTab({ onCounts }: { onCounts: (counts: { members: number }) => void }) {
+function PeopleTab({
+    search,
+    onCounts,
+}: {
+    search: string;
+    onCounts: (counts: { members: number }) => void;
+}) {
     const [members, setMembers] = useState<GithubMember[] | null>(null);
     const [invitations, setInvitations] = useState<GithubInvitation[]>([]);
     const [error, setError] = useState<string | null>(null);
@@ -180,9 +187,27 @@ function PeopleTab({ onCounts }: { onCounts: (counts: { members: number }) => vo
         }
     }
 
+    const needle = search.trim().toLowerCase();
+    const visibleMembers = useMemo(
+        () =>
+            sortMembers(members ?? []).filter(
+                (m) => !needle || m.login.toLowerCase().includes(needle)
+            ),
+        [members, needle]
+    );
+    const visibleInvitations = useMemo(
+        () =>
+            invitations.filter(
+                (i) =>
+                    !needle ||
+                    [i.login, i.email].some((field) => field?.toLowerCase().includes(needle))
+            ),
+        [invitations, needle]
+    );
+
     return (
         <>
-            <AddPersonBar hint="People join as regular members. Promote them to owner from the list below.">
+            <AddPersonBar>
                 <div className="min-w-56 flex-1 space-y-2">
                     <Label htmlFor="github-invitee">GitHub username or email</Label>
                     <Input
@@ -203,83 +228,88 @@ function PeopleTab({ onCounts }: { onCounts: (counts: { members: number }) => vo
             <LoadState
                 loading={loading}
                 error={error}
-                empty={(members?.length ?? 0) === 0 && invitations.length === 0}
-                emptyLabel="No organization members found."
+                empty={visibleMembers.length === 0 && visibleInvitations.length === 0}
+                emptyLabel={
+                    needle ? "Nobody matches that search." : "No organization members found."
+                }
             >
-                <div className="border-border rounded-lg border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Username</TableHead>
-                                <TableHead>Access level</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Username</TableHead>
+                            <TableHead>Access level</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {visibleMembers.map((m) => (
+                            <TableRow key={m.id}>
+                                <TableCell className="font-medium">
+                                    <a
+                                        href={m.htmlUrl}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="hover:underline"
+                                    >
+                                        {m.login}
+                                    </a>
+                                </TableCell>
+                                <TableCell>
+                                    <LevelSelect
+                                        value={m.role}
+                                        options={ROLE_OPTIONS}
+                                        disabled={busy === m.login}
+                                        tone={m.role === "admin" ? "elevated" : "default"}
+                                        onChange={(role) => changeRole(m, role)}
+                                    />
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <RemoveButton
+                                        disabled={busy === m.login}
+                                        onClick={() => removeMember(m)}
+                                    />
+                                </TableCell>
                             </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {sortMembers(members ?? []).map((m) => (
-                                <TableRow key={m.id}>
-                                    <TableCell className="font-medium">
-                                        <a
-                                            href={m.htmlUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="hover:underline"
-                                        >
-                                            {m.login}
-                                        </a>
-                                    </TableCell>
-                                    <TableCell>
-                                        <LevelSelect
-                                            value={m.role}
-                                            options={ROLE_OPTIONS}
-                                            disabled={busy === m.login}
-                                            tone={m.role === "admin" ? "elevated" : "default"}
-                                            onChange={(role) => changeRole(m, role)}
-                                        />
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <RemoveButton
-                                            disabled={busy === m.login}
-                                            onClick={() => removeMember(m)}
-                                        />
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                        ))}
 
-                            {invitations.map((i) => (
-                                <TableRow key={`invite-${i.id}`} className="bg-muted/20">
-                                    <TableCell className="font-medium">
-                                        <div className="flex items-center gap-2">
-                                            {i.login ?? i.email ?? "-"}
-                                            <Badge variant="outline">Pending invite</Badge>
-                                        </div>
-                                        <p className="text-muted-foreground text-xs font-normal">
-                                            Sent{" "}
-                                            {i.createdAt ? formatDate(new Date(i.createdAt)) : "-"}
-                                            {i.inviter ? ` by ${i.inviter}` : ""}
-                                        </p>
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground text-sm">
-                                        {i.role === "admin" ? "Owner" : "Member"}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <RemoveButton
-                                            label="Cancel"
-                                            disabled={busy === `invite-${i.id}`}
-                                            onClick={() => cancelInvitation(i)}
-                                        />
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                        {visibleInvitations.map((i) => (
+                            <TableRow key={`invite-${i.id}`} className="bg-muted/20">
+                                <TableCell className="font-medium">
+                                    <div className="flex items-center gap-2">
+                                        {i.login ?? i.email ?? "-"}
+                                        <Badge variant="outline">Pending invite</Badge>
+                                    </div>
+                                    <p className="text-muted-foreground text-xs font-normal">
+                                        Sent {i.createdAt ? formatDate(new Date(i.createdAt)) : "-"}
+                                        {i.inviter ? ` by ${i.inviter}` : ""}
+                                    </p>
+                                </TableCell>
+                                <TableCell className="text-muted-foreground text-sm">
+                                    {i.role === "admin" ? "Owner" : "Member"}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <RemoveButton
+                                        label="Cancel"
+                                        disabled={busy === `invite-${i.id}`}
+                                        onClick={() => cancelInvitation(i)}
+                                    />
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
             </LoadState>
         </>
     );
 }
 
-function TeamsTab({ onCounts }: { onCounts: (counts: { teams: number }) => void }) {
+function TeamsTab({
+    search,
+    onCounts,
+}: {
+    search: string;
+    onCounts: (counts: { teams: number }) => void;
+}) {
     const [teams, setTeams] = useState<GithubTeam[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -325,11 +355,14 @@ function TeamsTab({ onCounts }: { onCounts: (counts: { teams: number }) => void 
         }
     }
 
-    const groups: TeamGroup[] = (teams ?? []).map((t) => ({
-        key: t.slug,
-        name: t.name,
-        description: t.description,
-    }));
+    const needle = search.trim().toLowerCase();
+    const groups: TeamGroup[] = (teams ?? [])
+        .filter(
+            (t) =>
+                !needle ||
+                [t.name, t.description].some((field) => field?.toLowerCase().includes(needle))
+        )
+        .map((t) => ({ key: t.slug, name: t.name, description: t.description }));
 
     return (
         <TeamsBrowser
@@ -341,6 +374,7 @@ function TeamsTab({ onCounts }: { onCounts: (counts: { teams: number }) => void 
                 const team = teams?.find((t) => t.slug === group.key);
                 if (team) viewMembers(team);
             }}
+            emptyLabel={needle ? "No teams match that search." : "No teams found."}
             detail={
                 !selected ? (
                     <TeamsBrowserHint>Pick a team to see who is in it.</TeamsBrowserHint>
@@ -371,6 +405,7 @@ function TeamsTab({ onCounts }: { onCounts: (counts: { teams: number }) => void 
 
 export function AdminGithubManager({ org }: { org: GithubOrg | null }) {
     const [tab, setTab] = useState("people");
+    const [search, setSearch] = useState("");
     const [counts, setCounts] = useState<{ members?: number; teams?: number }>({});
 
     const onPeopleCounts = useCallback(
@@ -385,35 +420,43 @@ export function AdminGithubManager({ org }: { org: GithubOrg | null }) {
     return (
         <div className="space-y-4">
             <ProviderHeader
-                icon={GitBranch}
+                icon={GithubIcon}
                 title={org?.name ?? org?.login ?? "GitHub organization"}
                 href={org?.htmlUrl}
-                subtitle={org ? `@${org.login}` : undefined}
                 stats={[
-                    {
-                        label: "Members",
-                        value: String(counts.members ?? org?.memberCount ?? "-"),
-                    },
+                    { label: "Members", value: String(counts.members ?? org?.memberCount ?? "-") },
                     { label: "Teams", value: String(counts.teams ?? "-") },
                 ]}
-                note="Owners can do anything in the org, including deleting it. GitHub only accepts a role change if the dashboard's token belongs to an org owner."
             />
 
-            <SubTabs
+            <Tabs
                 value={tab}
-                onValueChange={setTab}
-                tabs={[
-                    { value: "people", label: "People", icon: Users },
-                    { value: "teams", label: "Teams", icon: GitBranch },
-                ]}
+                onValueChange={(next) => {
+                    setTab(next as string);
+                    setSearch("");
+                }}
             >
-                <SubTabPanel value="people">
-                    <PeopleTab onCounts={onPeopleCounts} />
-                </SubTabPanel>
-                <SubTabPanel value="teams">
-                    <TeamsTab onCounts={onTeamCounts} />
-                </SubTabPanel>
-            </SubTabs>
+                <TableCard
+                    left={
+                        <SubTabsList
+                            tabs={[
+                                { value: "people", label: "People" },
+                                { value: "teams", label: "Teams" },
+                            ]}
+                        />
+                    }
+                    search={search}
+                    onSearchChange={setSearch}
+                    searchPlaceholder={tab === "people" ? "Search people" : "Search teams"}
+                >
+                    <TabsContent value="people">
+                        <PeopleTab search={search} onCounts={onPeopleCounts} />
+                    </TabsContent>
+                    <TabsContent value="teams">
+                        <TeamsTab search={search} onCounts={onTeamCounts} />
+                    </TabsContent>
+                </TableCard>
+            </Tabs>
         </div>
     );
 }

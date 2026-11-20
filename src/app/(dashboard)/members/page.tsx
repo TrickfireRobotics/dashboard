@@ -1,7 +1,8 @@
-import { Boxes, GitBranch, ShieldCheck } from "lucide-react";
+import { Boxes, LayoutDashboard } from "lucide-react";
 import { asc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
+import { GithubIcon } from "@/components/icons/brand-icons";
 import {
     DashboardMembersManager,
     type DashboardMemberRow,
@@ -66,7 +67,7 @@ export default async function MembersPage() {
             >
                 <TabsIndicator className="border-primary rounded-none border-b-2" />
                 <TabsTrigger value="dashboard" className={sectionTrigger}>
-                    <ShieldCheck className="size-4" />
+                    <LayoutDashboard className="size-4" />
                     Dashboard
                 </TabsTrigger>
                 <TabsTrigger value="onshape" className={sectionTrigger}>
@@ -74,7 +75,7 @@ export default async function MembersPage() {
                     Onshape
                 </TabsTrigger>
                 <TabsTrigger value="github" className={sectionTrigger}>
-                    <GitBranch className="size-4" />
+                    <GithubIcon className="size-4" />
                     GitHub
                 </TabsTrigger>
             </TabsList>
@@ -120,7 +121,7 @@ export default async function MembersPage() {
             <TabsContent value="github" className="pt-6">
                 {!githubConfigured ? (
                     <EmptyState
-                        icon={GitBranch}
+                        icon={GithubIcon}
                         title="GitHub is not configured"
                         description={
                             <>
@@ -132,7 +133,7 @@ export default async function MembersPage() {
                     />
                 ) : !githubOrg ? (
                     <EmptyState
-                        icon={GitBranch}
+                        icon={GithubIcon}
                         title="Couldn't reach the GitHub organization"
                         description={
                             <>
