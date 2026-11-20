@@ -13,6 +13,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { StatColumns } from "@/components/ui/stat-columns";
 import { TabsIndicator, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 /**
@@ -58,20 +59,7 @@ export function ProviderHeader({
                 </div>
             </div>
 
-            {stats && stats.length > 0 ? (
-                <dl className="divide-border flex shrink-0 divide-x">
-                    {stats.map((stat) => (
-                        <div key={stat.label} className="px-4 first:pl-0 last:pr-0">
-                            <dt className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
-                                {stat.label}
-                            </dt>
-                            <dd className="mt-0.5 text-xl leading-none font-semibold tabular-nums">
-                                {stat.value}
-                            </dd>
-                        </div>
-                    ))}
-                </dl>
-            ) : null}
+            <StatColumns stats={stats ?? []} />
         </div>
     );
 }
