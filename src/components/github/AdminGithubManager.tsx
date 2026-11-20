@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 import { GithubIcon } from "@/components/icons/brand-icons";
 import {
-    AddPersonBar,
+    InviteCard,
     LevelSelect,
     LoadState,
     ProviderHeader,
@@ -53,48 +53,9 @@ function sortMembers(members: GithubMember[]): GithubMember[] {
     });
 }
 
-function PeopleTab({
-    search,
-    onCounts,
-}: {
-    search: string;
-    onCounts: (counts: { members: number }) => void;
-}) {
-    const [members, setMembers] = useState<GithubMember[] | null>(null);
-    const [invitations, setInvitations] = useState<GithubInvitation[]>([]);
-    const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [busy, setBusy] = useState<string | null>(null);
+function InviteForm({ onInvited }: { onInvited: () => void }) {
     const [invitee, setInvitee] = useState("");
     const [adding, setAdding] = useState(false);
-
-    const load = useCallback(async () => {
-        setError(null);
-        try {
-            // Pending invitations live in the same list as members: they are
-            // people on their way in, not a separate category.
-            const [membersRes, invitesRes] = await Promise.all([
-                fetch("/api/admin/github/members", { cache: "no-store" }),
-                fetch("/api/admin/github/invitations", { cache: "no-store" }),
-            ]);
-            const membersData = await membersRes.json().catch(() => null);
-            if (!membersRes.ok) {
-                setError(membersData?.error ?? "Failed to load members");
-                return;
-            }
-            setMembers(membersData?.members ?? []);
-            onCounts({ members: membersData?.members?.length ?? 0 });
-
-            const invitesData = await invitesRes.json().catch(() => null);
-            setInvitations(invitesRes.ok ? (invitesData?.invitations ?? []) : []);
-        } catch {
-            setError("Failed to load members");
-        } finally {
-            setLoading(false);
-        }
-    }, [onCounts]);
-
-    usePoll(load);
 
     async function invite() {
         const value = invitee.trim();
@@ -116,13 +77,51 @@ function PeopleTab({
             }
             toast.success("Invitation sent");
             setInvitee("");
-            load();
+            onInvited();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Something went wrong");
         } finally {
             setAdding(false);
         }
     }
+
+    return (
+        <InviteCard title="Invite to the organization">
+            <div className="min-w-56 flex-1 space-y-2">
+                <Label htmlFor="github-invitee">GitHub username or email</Label>
+                <Input
+                    id="github-invitee"
+                    value={invitee}
+                    onChange={(e) => setInvitee(e.target.value)}
+                    placeholder="octocat or member@example.com"
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter") invite();
+                    }}
+                />
+            </div>
+            <Button onClick={invite} disabled={adding}>
+                {adding ? "Inviting…" : "Invite"}
+            </Button>
+        </InviteCard>
+    );
+}
+
+function PeopleTable({
+    members,
+    invitations,
+    loading,
+    error,
+    search,
+    reload,
+}: {
+    members: GithubMember[];
+    invitations: GithubInvitation[];
+    loading: boolean;
+    error: string | null;
+    search: string;
+    reload: () => void;
+}) {
+    const [busy, setBusy] = useState<string | null>(null);
 
     async function changeRole(member: GithubMember, role: GithubRole) {
         if (role === "admin" && !confirm(`Make ${member.login} an owner of the organization?`)) {
@@ -140,7 +139,7 @@ function PeopleTab({
                 throw new Error(data?.error ?? "Failed to update role");
             }
             toast.success(`${member.login} is now ${role === "admin" ? "an owner" : "a member"}`);
-            load();
+            reload();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to update role");
         } finally {
@@ -160,7 +159,7 @@ function PeopleTab({
                 throw new Error(data?.error ?? "Failed to remove member");
             }
             toast.success("Member removed");
-            load();
+            reload();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to remove member");
         } finally {
@@ -179,7 +178,7 @@ function PeopleTab({
                 throw new Error(data?.error ?? "Failed to cancel invitation");
             }
             toast.success("Invitation cancelled");
-            load();
+            reload();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to cancel invitation");
         } finally {
@@ -189,10 +188,7 @@ function PeopleTab({
 
     const needle = search.trim().toLowerCase();
     const visibleMembers = useMemo(
-        () =>
-            sortMembers(members ?? []).filter(
-                (m) => !needle || m.login.toLowerCase().includes(needle)
-            ),
+        () => sortMembers(members).filter((m) => !needle || m.login.toLowerCase().includes(needle)),
         [members, needle]
     );
     const visibleInvitations = useMemo(
@@ -206,132 +202,96 @@ function PeopleTab({
     );
 
     return (
-        <>
-            <AddPersonBar>
-                <div className="min-w-56 flex-1 space-y-2">
-                    <Label htmlFor="github-invitee">GitHub username or email</Label>
-                    <Input
-                        id="github-invitee"
-                        value={invitee}
-                        onChange={(e) => setInvitee(e.target.value)}
-                        placeholder="octocat or member@example.com"
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") invite();
-                        }}
-                    />
-                </div>
-                <Button onClick={invite} disabled={adding}>
-                    {adding ? "Inviting…" : "Invite"}
-                </Button>
-            </AddPersonBar>
-
-            <LoadState
-                loading={loading}
-                error={error}
-                empty={visibleMembers.length === 0 && visibleInvitations.length === 0}
-                emptyLabel={
-                    needle ? "Nobody matches that search." : "No organization members found."
-                }
-            >
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Username</TableHead>
-                            <TableHead>Access level</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
+        <LoadState
+            loading={loading}
+            error={error}
+            empty={visibleMembers.length === 0 && visibleInvitations.length === 0}
+            emptyLabel={needle ? "Nobody matches that search." : "No organization members found."}
+        >
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Username</TableHead>
+                        <TableHead>Access level</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {visibleMembers.map((m) => (
+                        <TableRow key={m.id}>
+                            <TableCell className="font-medium">
+                                <a
+                                    href={m.htmlUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="hover:underline"
+                                >
+                                    {m.login}
+                                </a>
+                            </TableCell>
+                            <TableCell>
+                                <LevelSelect
+                                    value={m.role}
+                                    options={ROLE_OPTIONS}
+                                    disabled={busy === m.login}
+                                    tone={m.role === "admin" ? "elevated" : "default"}
+                                    onChange={(role) => changeRole(m, role)}
+                                />
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <RemoveButton
+                                    disabled={busy === m.login}
+                                    onClick={() => removeMember(m)}
+                                />
+                            </TableCell>
                         </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {visibleMembers.map((m) => (
-                            <TableRow key={m.id}>
-                                <TableCell className="font-medium">
-                                    <a
-                                        href={m.htmlUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="hover:underline"
-                                    >
-                                        {m.login}
-                                    </a>
-                                </TableCell>
-                                <TableCell>
-                                    <LevelSelect
-                                        value={m.role}
-                                        options={ROLE_OPTIONS}
-                                        disabled={busy === m.login}
-                                        tone={m.role === "admin" ? "elevated" : "default"}
-                                        onChange={(role) => changeRole(m, role)}
-                                    />
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <RemoveButton
-                                        disabled={busy === m.login}
-                                        onClick={() => removeMember(m)}
-                                    />
-                                </TableCell>
-                            </TableRow>
-                        ))}
+                    ))}
 
-                        {visibleInvitations.map((i) => (
-                            <TableRow key={`invite-${i.id}`} className="bg-muted/20">
-                                <TableCell className="font-medium">
-                                    <div className="flex items-center gap-2">
-                                        {i.login ?? i.email ?? "-"}
-                                        <Badge variant="outline">Pending invite</Badge>
-                                    </div>
-                                    <p className="text-muted-foreground text-xs font-normal">
-                                        Sent {i.createdAt ? formatDate(new Date(i.createdAt)) : "-"}
-                                        {i.inviter ? ` by ${i.inviter}` : ""}
-                                    </p>
-                                </TableCell>
-                                <TableCell className="text-muted-foreground text-sm">
-                                    {i.role === "admin" ? "Owner" : "Member"}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <RemoveButton
-                                        label="Cancel"
-                                        disabled={busy === `invite-${i.id}`}
-                                        onClick={() => cancelInvitation(i)}
-                                    />
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </LoadState>
-        </>
+                    {visibleInvitations.map((i) => (
+                        <TableRow key={`invite-${i.id}`} className="bg-muted/20">
+                            <TableCell className="font-medium">
+                                <div className="flex items-center gap-2">
+                                    {i.login ?? i.email ?? "-"}
+                                    <Badge variant="outline">Pending invite</Badge>
+                                </div>
+                                <p className="text-muted-foreground text-xs font-normal">
+                                    Sent {i.createdAt ? formatDate(new Date(i.createdAt)) : "-"}
+                                    {i.inviter ? ` by ${i.inviter}` : ""}
+                                </p>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground text-sm">
+                                {i.role === "admin" ? "Owner" : "Member"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <RemoveButton
+                                    label="Cancel"
+                                    disabled={busy === `invite-${i.id}`}
+                                    onClick={() => cancelInvitation(i)}
+                                />
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </LoadState>
     );
 }
 
-function TeamsTab({
+function TeamsPanel({
+    teams,
+    loading,
+    error,
     search,
-    onCounts,
 }: {
+    teams: GithubTeam[];
+    loading: boolean;
+    error: string | null;
     search: string;
-    onCounts: (counts: { teams: number }) => void;
 }) {
-    const [teams, setTeams] = useState<GithubTeam[] | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState<GithubTeam | null>(null);
     const [teamMembers, setTeamMembers] = useState<GithubTeamMember[] | null>(null);
     const [membersError, setMembersError] = useState<string | null>(null);
     const [membersLoading, setMembersLoading] = useState(false);
-
-    useEffect(() => {
-        fetch("/api/admin/github/teams", { cache: "no-store" })
-            .then(async (r) => {
-                const data = await r.json().catch(() => null);
-                if (!r.ok) {
-                    setError(data?.error ?? "Failed to load teams");
-                    return;
-                }
-                setTeams(data?.teams ?? []);
-                onCounts({ teams: data?.teams?.length ?? 0 });
-            })
-            .catch(() => setError("Failed to load teams"))
-            .finally(() => setLoading(false));
-    }, [onCounts]);
 
     async function viewMembers(team: GithubTeam) {
         setSelected(team);
@@ -356,7 +316,7 @@ function TeamsTab({
     }
 
     const needle = search.trim().toLowerCase();
-    const groups: TeamGroup[] = (teams ?? [])
+    const groups: TeamGroup[] = teams
         .filter(
             (t) =>
                 !needle ||
@@ -371,7 +331,7 @@ function TeamsTab({
             error={error}
             selectedKey={selected?.slug ?? null}
             onSelect={(group) => {
-                const team = teams?.find((t) => t.slug === group.key);
+                const team = teams.find((t) => t.slug === group.key);
                 if (team) viewMembers(team);
             }}
             emptyLabel={needle ? "No teams match that search." : "No teams found."}
@@ -406,16 +366,56 @@ function TeamsTab({
 export function AdminGithubManager({ org }: { org: GithubOrg | null }) {
     const [tab, setTab] = useState("people");
     const [search, setSearch] = useState("");
-    const [counts, setCounts] = useState<{ members?: number; teams?: number }>({});
 
-    const onPeopleCounts = useCallback(
-        (next: { members: number }) => setCounts((c) => ({ ...c, members: next.members })),
-        []
-    );
-    const onTeamCounts = useCallback(
-        (next: { teams: number }) => setCounts((c) => ({ ...c, teams: next.teams })),
-        []
-    );
+    const [members, setMembers] = useState<GithubMember[]>([]);
+    const [invitations, setInvitations] = useState<GithubInvitation[]>([]);
+    const [peopleLoading, setPeopleLoading] = useState(true);
+    const [peopleError, setPeopleError] = useState<string | null>(null);
+
+    const [teams, setTeams] = useState<GithubTeam[]>([]);
+    const [teamsLoading, setTeamsLoading] = useState(true);
+    const [teamsError, setTeamsError] = useState<string | null>(null);
+
+    const loadPeople = useCallback(async () => {
+        setPeopleError(null);
+        try {
+            // Pending invitations live in the same list as members: they are
+            // people on their way in, not a separate category.
+            const [membersRes, invitesRes] = await Promise.all([
+                fetch("/api/admin/github/members", { cache: "no-store" }),
+                fetch("/api/admin/github/invitations", { cache: "no-store" }),
+            ]);
+            const membersData = await membersRes.json().catch(() => null);
+            if (!membersRes.ok) {
+                setPeopleError(membersData?.error ?? "Failed to load members");
+                return;
+            }
+            setMembers(membersData?.members ?? []);
+
+            const invitesData = await invitesRes.json().catch(() => null);
+            setInvitations(invitesRes.ok ? (invitesData?.invitations ?? []) : []);
+        } catch {
+            setPeopleError("Failed to load members");
+        } finally {
+            setPeopleLoading(false);
+        }
+    }, []);
+
+    usePoll(loadPeople);
+
+    useEffect(() => {
+        fetch("/api/admin/github/teams", { cache: "no-store" })
+            .then(async (r) => {
+                const data = await r.json().catch(() => null);
+                if (!r.ok) {
+                    setTeamsError(data?.error ?? "Failed to load teams");
+                    return;
+                }
+                setTeams(data?.teams ?? []);
+            })
+            .catch(() => setTeamsError("Failed to load teams"))
+            .finally(() => setTeamsLoading(false));
+    }, []);
 
     return (
         <div className="space-y-4">
@@ -424,10 +424,15 @@ export function AdminGithubManager({ org }: { org: GithubOrg | null }) {
                 title={org?.name ?? org?.login ?? "GitHub organization"}
                 href={org?.htmlUrl}
                 stats={[
-                    { label: "Members", value: String(counts.members ?? org?.memberCount ?? "-") },
-                    { label: "Teams", value: String(counts.teams ?? "-") },
+                    {
+                        label: "Members",
+                        value: String(peopleLoading ? (org?.memberCount ?? "-") : members.length),
+                    },
+                    { label: "Teams", value: teamsLoading ? "-" : String(teams.length) },
                 ]}
             />
+
+            {tab === "people" ? <InviteForm onInvited={loadPeople} /> : null}
 
             <Tabs
                 value={tab}
@@ -450,10 +455,22 @@ export function AdminGithubManager({ org }: { org: GithubOrg | null }) {
                     searchPlaceholder={tab === "people" ? "Search people" : "Search teams"}
                 >
                     <TabsContent value="people">
-                        <PeopleTab search={search} onCounts={onPeopleCounts} />
+                        <PeopleTable
+                            members={members}
+                            invitations={invitations}
+                            loading={peopleLoading}
+                            error={peopleError}
+                            search={search}
+                            reload={loadPeople}
+                        />
                     </TabsContent>
                     <TabsContent value="teams">
-                        <TeamsTab search={search} onCounts={onTeamCounts} />
+                        <TeamsPanel
+                            teams={teams}
+                            loading={teamsLoading}
+                            error={teamsError}
+                            search={search}
+                        />
                     </TabsContent>
                 </TableCard>
             </Tabs>

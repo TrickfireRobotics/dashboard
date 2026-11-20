@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, Search } from "lucide-react";
+import { ExternalLink, Search, UserPlus } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -26,13 +26,11 @@ export function ProviderHeader({
     icon: Icon,
     title,
     href,
-    subtitle,
     stats,
 }: {
     icon: React.ComponentType<{ className?: string }>;
     title: string;
     href?: string;
-    subtitle?: ReactNode;
     stats?: { label: string; value: string }[];
 }) {
     return (
@@ -57,9 +55,6 @@ export function ProviderHeader({
                             title
                         )}
                     </p>
-                    {subtitle ? (
-                        <p className="text-muted-foreground truncate text-sm">{subtitle}</p>
-                    ) : null}
                 </div>
             </div>
 
@@ -149,11 +144,18 @@ export function SubTabsList({ tabs }: { tabs: { value: string; label: string }[]
     );
 }
 
-/** The "add someone" strip at the top of a people table. */
-export function AddPersonBar({ children }: { children: ReactNode }) {
+/**
+ * Adding someone is what people come to this page for, so it gets its own
+ * tinted card above the table rather than a strip tucked inside it.
+ */
+export function InviteCard({ title, children }: { title: string; children: ReactNode }) {
     return (
-        <div className="border-border bg-muted/20 flex flex-wrap items-end gap-3 border-b px-4 py-3">
-            {children}
+        <div className="border-primary/25 bg-primary/[0.04] rounded-lg border p-4">
+            <p className="flex items-center gap-2 text-sm font-semibold">
+                <UserPlus className="text-primary size-4" />
+                {title}
+            </p>
+            <div className="mt-3 flex flex-wrap items-end gap-3">{children}</div>
         </div>
     );
 }

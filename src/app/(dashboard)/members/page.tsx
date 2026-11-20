@@ -20,7 +20,8 @@ import { getOnshapeCompany, isOnshapeConfigured } from "@/lib/integrations/onsha
 
 // Page-level sections read as underlined tabs, so the segmented controls inside
 // each section are unmistakably one level down. after:hidden drops the line
-// variant's own underline in favour of the sliding indicator.
+// variant's own underline in favour of the sliding indicator, which is pinned
+// to the list's bottom edge so it sits on the divider rather than under it.
 const sectionTrigger =
     "h-11 flex-none gap-2 px-1 text-sm font-medium after:hidden data-active:text-foreground";
 
@@ -65,7 +66,7 @@ export default async function MembersPage() {
                 variant="line"
                 className="border-border h-auto w-full justify-start gap-6 rounded-none border-b p-0"
             >
-                <TabsIndicator className="border-primary rounded-none border-b-2" />
+                <TabsIndicator className="bg-primary top-auto! bottom-[-1px] h-0.5! rounded-none" />
                 <TabsTrigger value="dashboard" className={sectionTrigger}>
                     <LayoutDashboard className="size-4" />
                     Dashboard

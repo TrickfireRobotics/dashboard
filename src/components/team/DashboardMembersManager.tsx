@@ -127,7 +127,6 @@ export function DashboardMembersManager({
             <ProviderHeader
                 icon={LayoutDashboard}
                 title="TrickFire dashboard"
-                subtitle="Accounts that can sign in to this dashboard"
                 stats={[
                     { label: "Members", value: String(members.length) },
                     { label: "Pending", value: String(pending.length) },
