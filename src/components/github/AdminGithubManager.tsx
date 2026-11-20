@@ -1,14 +1,25 @@
 "use client";
 
+import { GitBranch, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import {
+    AddPersonBar,
+    LevelSelect,
+    LoadState,
+    ProviderHeader,
+    RemoveButton,
+    SubTabPanel,
+    SubTabs,
+    TeamsBrowser,
+    TeamsBrowserHint,
+    type TeamGroup,
+} from "@/components/team/team-ui";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
     Table,
     TableBody,
@@ -21,16 +32,29 @@ import type {
     GithubInvitation,
     GithubMember,
     GithubOrg,
+    GithubRole,
     GithubTeam,
     GithubTeamMember,
 } from "@/lib/integrations/github";
 import { usePoll } from "@/lib/use-poll";
 import { formatDate } from "@/lib/utils";
 
-type Tab = "members" | "invitations" | "teams";
+const ROLE_OPTIONS: { value: GithubRole; label: string }[] = [
+    { value: "member", label: "Member" },
+    { value: "admin", label: "Owner" },
+];
 
-function MembersTab() {
+/** Owners first (alphabetically), then everyone else - one table, two groups. */
+function sortMembers(members: GithubMember[]): GithubMember[] {
+    return [...members].sort((a, b) => {
+        if ((a.role === "admin") !== (b.role === "admin")) return a.role === "admin" ? -1 : 1;
+        return a.login.localeCompare(b.login);
+    });
+}
+
+function PeopleTab({ onCounts }: { onCounts: (counts: { members: number }) => void }) {
     const [members, setMembers] = useState<GithubMember[] | null>(null);
+    const [invitations, setInvitations] = useState<GithubInvitation[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState<string | null>(null);
@@ -40,23 +64,32 @@ function MembersTab() {
     const load = useCallback(async () => {
         setError(null);
         try {
-            const res = await fetch("/api/admin/github/members", { cache: "no-store" });
-            const data = await res.json().catch(() => null);
-            if (!res.ok) {
-                setError(data?.error ?? "Failed to load members");
+            // Pending invitations live in the same list as members: they are
+            // people on their way in, not a separate category.
+            const [membersRes, invitesRes] = await Promise.all([
+                fetch("/api/admin/github/members", { cache: "no-store" }),
+                fetch("/api/admin/github/invitations", { cache: "no-store" }),
+            ]);
+            const membersData = await membersRes.json().catch(() => null);
+            if (!membersRes.ok) {
+                setError(membersData?.error ?? "Failed to load members");
                 return;
             }
-            setMembers(data?.members ?? []);
+            setMembers(membersData?.members ?? []);
+            onCounts({ members: membersData?.members?.length ?? 0 });
+
+            const invitesData = await invitesRes.json().catch(() => null);
+            setInvitations(invitesRes.ok ? (invitesData?.invitations ?? []) : []);
         } catch {
             setError("Failed to load members");
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [onCounts]);
 
     usePoll(load);
 
-    async function addMember() {
+    async function invite() {
         const value = invitee.trim();
         if (!value) {
             toast.error("Enter a username or email");
@@ -84,6 +117,30 @@ function MembersTab() {
         }
     }
 
+    async function changeRole(member: GithubMember, role: GithubRole) {
+        if (role === "admin" && !confirm(`Make ${member.login} an owner of the organization?`)) {
+            return;
+        }
+        setBusy(member.login);
+        try {
+            const res = await fetch(`/api/admin/github/members/${member.login}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ role }),
+            });
+            if (!res.ok) {
+                const data = await res.json().catch(() => null);
+                throw new Error(data?.error ?? "Failed to update role");
+            }
+            toast.success(`${member.login} is now ${role === "admin" ? "an owner" : "a member"}`);
+            load();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update role");
+        } finally {
+            setBusy(null);
+        }
+    }
+
     async function removeMember(member: GithubMember) {
         if (!confirm(`Remove ${member.login} from the organization?`)) return;
         setBusy(member.login);
@@ -104,126 +161,12 @@ function MembersTab() {
         }
     }
 
-    return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Invite member</CardTitle>
-                    <CardDescription>
-                        Add a user to the organization by GitHub username or email. They&apos;ll
-                        receive an invitation and join as a regular member.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-wrap items-end gap-3">
-                        <div className="min-w-56 flex-1 space-y-2">
-                            <Label htmlFor="github-invitee">Username or email</Label>
-                            <Input
-                                id="github-invitee"
-                                value={invitee}
-                                onChange={(e) => setInvitee(e.target.value)}
-                                placeholder="octocat or member@example.com"
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") addMember();
-                                }}
-                            />
-                        </div>
-                        <Button onClick={addMember} disabled={adding}>
-                            {adding ? "Inviting…" : "Invite"}
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {loading ? (
-                <div className="space-y-3">
-                    <Skeleton className="h-10" />
-                    <Skeleton className="h-10" />
-                    <Skeleton className="h-10" />
-                </div>
-            ) : error ? (
-                <p className="text-destructive text-sm">{error}</p>
-            ) : !members || members.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No organization members found.</p>
-            ) : (
-                <div className="border-border rounded-lg border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Username</TableHead>
-                                <TableHead>Role</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {members.map((m) => (
-                                <TableRow key={m.id}>
-                                    <TableCell className="font-medium">
-                                        <a
-                                            href={m.htmlUrl}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="hover:underline"
-                                        >
-                                            {m.login}
-                                        </a>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge
-                                            variant={m.role === "admin" ? "default" : "secondary"}
-                                        >
-                                            {m.role === "admin" ? "Owner" : "Member"}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <Button
-                                            size="sm"
-                                            variant="destructive"
-                                            disabled={busy === m.login}
-                                            onClick={() => removeMember(m)}
-                                        >
-                                            Remove
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
-            )}
-        </div>
-    );
-}
-
-function InvitationsTab() {
-    const [invitations, setInvitations] = useState<GithubInvitation[] | null>(null);
-    const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [busy, setBusy] = useState<number | null>(null);
-
-    const load = useCallback(async () => {
-        setError(null);
+    async function cancelInvitation(invitation: GithubInvitation) {
+        setBusy(`invite-${invitation.id}`);
         try {
-            const res = await fetch("/api/admin/github/invitations", { cache: "no-store" });
-            const data = await res.json().catch(() => null);
-            if (!res.ok) {
-                setError(data?.error ?? "Failed to load invitations");
-                return;
-            }
-            setInvitations(data?.invitations ?? []);
-        } catch {
-            setError("Failed to load invitations");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    usePoll(load);
-
-    async function cancel(id: number) {
-        setBusy(id);
-        try {
-            const res = await fetch(`/api/admin/github/invitations/${id}`, { method: "DELETE" });
+            const res = await fetch(`/api/admin/github/invitations/${invitation.id}`, {
+                method: "DELETE",
+            });
             if (!res.ok) {
                 const data = await res.json().catch(() => null);
                 throw new Error(data?.error ?? "Failed to cancel invitation");
@@ -237,61 +180,106 @@ function InvitationsTab() {
         }
     }
 
-    if (loading)
-        return (
-            <div className="space-y-3">
-                <Skeleton className="h-10" />
-                <Skeleton className="h-10" />
-            </div>
-        );
-    if (error) return <p className="text-destructive text-sm">{error}</p>;
-    if (!invitations || invitations.length === 0)
-        return <p className="text-muted-foreground text-sm">No pending invitations.</p>;
-
     return (
-        <div className="border-border rounded-lg border">
-            <Table>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead>Invitee</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead className="hidden md:table-cell">Invited by</TableHead>
-                        <TableHead className="hidden md:table-cell">Sent</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {invitations.map((i) => (
-                        <TableRow key={i.id}>
-                            <TableCell className="font-medium">
-                                {i.login ?? i.email ?? "-"}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground">{i.role}</TableCell>
-                            <TableCell className="text-muted-foreground hidden md:table-cell">
-                                {i.inviter ?? "-"}
-                            </TableCell>
-                            <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
-                                {i.createdAt ? formatDate(new Date(i.createdAt)) : "-"}
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    disabled={busy === i.id}
-                                    onClick={() => cancel(i.id)}
-                                >
-                                    Cancel
-                                </Button>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </div>
+        <>
+            <AddPersonBar hint="People join as regular members. Promote them to owner from the list below.">
+                <div className="min-w-56 flex-1 space-y-2">
+                    <Label htmlFor="github-invitee">GitHub username or email</Label>
+                    <Input
+                        id="github-invitee"
+                        value={invitee}
+                        onChange={(e) => setInvitee(e.target.value)}
+                        placeholder="octocat or member@example.com"
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") invite();
+                        }}
+                    />
+                </div>
+                <Button onClick={invite} disabled={adding}>
+                    {adding ? "Inviting…" : "Invite"}
+                </Button>
+            </AddPersonBar>
+
+            <LoadState
+                loading={loading}
+                error={error}
+                empty={(members?.length ?? 0) === 0 && invitations.length === 0}
+                emptyLabel="No organization members found."
+            >
+                <div className="border-border rounded-lg border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Username</TableHead>
+                                <TableHead>Access level</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {sortMembers(members ?? []).map((m) => (
+                                <TableRow key={m.id}>
+                                    <TableCell className="font-medium">
+                                        <a
+                                            href={m.htmlUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="hover:underline"
+                                        >
+                                            {m.login}
+                                        </a>
+                                    </TableCell>
+                                    <TableCell>
+                                        <LevelSelect
+                                            value={m.role}
+                                            options={ROLE_OPTIONS}
+                                            disabled={busy === m.login}
+                                            tone={m.role === "admin" ? "elevated" : "default"}
+                                            onChange={(role) => changeRole(m, role)}
+                                        />
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <RemoveButton
+                                            disabled={busy === m.login}
+                                            onClick={() => removeMember(m)}
+                                        />
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+
+                            {invitations.map((i) => (
+                                <TableRow key={`invite-${i.id}`} className="bg-muted/20">
+                                    <TableCell className="font-medium">
+                                        <div className="flex items-center gap-2">
+                                            {i.login ?? i.email ?? "-"}
+                                            <Badge variant="outline">Pending invite</Badge>
+                                        </div>
+                                        <p className="text-muted-foreground text-xs font-normal">
+                                            Sent{" "}
+                                            {i.createdAt ? formatDate(new Date(i.createdAt)) : "-"}
+                                            {i.inviter ? ` by ${i.inviter}` : ""}
+                                        </p>
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground text-sm">
+                                        {i.role === "admin" ? "Owner" : "Member"}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <RemoveButton
+                                            label="Cancel"
+                                            disabled={busy === `invite-${i.id}`}
+                                            onClick={() => cancelInvitation(i)}
+                                        />
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </LoadState>
+        </>
     );
 }
 
-function TeamsTab() {
+function TeamsTab({ onCounts }: { onCounts: (counts: { teams: number }) => void }) {
     const [teams, setTeams] = useState<GithubTeam[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -309,10 +297,11 @@ function TeamsTab() {
                     return;
                 }
                 setTeams(data?.teams ?? []);
+                onCounts({ teams: data?.teams?.length ?? 0 });
             })
             .catch(() => setError("Failed to load teams"))
             .finally(() => setLoading(false));
-    }, []);
+    }, [onCounts]);
 
     async function viewMembers(team: GithubTeam) {
         setSelected(team);
@@ -336,165 +325,95 @@ function TeamsTab() {
         }
     }
 
-    if (loading)
-        return (
-            <div className="space-y-3">
-                <Skeleton className="h-10" />
-                <Skeleton className="h-10" />
-            </div>
-        );
-    if (error) return <p className="text-destructive text-sm">{error}</p>;
-    if (!teams || teams.length === 0)
-        return <p className="text-muted-foreground text-sm">No teams found.</p>;
+    const groups: TeamGroup[] = (teams ?? []).map((t) => ({
+        key: t.slug,
+        name: t.name,
+        description: t.description,
+    }));
 
     return (
-        <div className="grid gap-4 md:grid-cols-2">
-            <div className="border-border rounded-lg border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Team</TableHead>
-                            <TableHead className="text-right">Members</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {teams.map((t) => (
-                            <TableRow
-                                key={t.id}
-                                className={
-                                    selected?.id === t.id ? "bg-sidebar-accent/40" : undefined
-                                }
-                            >
-                                <TableCell>
-                                    <p className="font-medium">{t.name}</p>
-                                    {t.description && (
-                                        <p className="text-muted-foreground text-xs">
-                                            {t.description}
-                                        </p>
-                                    )}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => viewMembers(t)}
-                                    >
-                                        View
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </div>
-
-            <div className="border-border rounded-lg border p-4">
-                {!selected ? (
-                    <p className="text-muted-foreground text-sm">
-                        Select a team to view its members.
-                    </p>
-                ) : membersLoading ? (
-                    <div className="space-y-3">
-                        <Skeleton className="h-8" />
-                        <Skeleton className="h-8" />
-                    </div>
-                ) : membersError ? (
-                    <p className="text-destructive text-sm">{membersError}</p>
-                ) : !teamMembers || teamMembers.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">No members in {selected.name}.</p>
+        <TeamsBrowser
+            groups={groups}
+            loading={loading}
+            error={error}
+            selectedKey={selected?.slug ?? null}
+            onSelect={(group) => {
+                const team = teams?.find((t) => t.slug === group.key);
+                if (team) viewMembers(team);
+            }}
+            detail={
+                !selected ? (
+                    <TeamsBrowserHint>Pick a team to see who is in it.</TeamsBrowserHint>
                 ) : (
-                    <div className="space-y-3">
-                        <p className="text-sm font-medium">{selected.name}</p>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Username</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {teamMembers.map((m) => (
-                                    <TableRow key={m.id}>
-                                        <TableCell className="font-medium">{m.login}</TableCell>
-                                    </TableRow>
+                    <div className="p-4">
+                        <p className="mb-3 text-sm font-medium">{selected.name}</p>
+                        <LoadState
+                            loading={membersLoading}
+                            error={membersError}
+                            empty={(teamMembers?.length ?? 0) === 0}
+                            emptyLabel={`No members in ${selected.name}.`}
+                            rows={2}
+                        >
+                            <ul className="divide-border divide-y text-sm">
+                                {(teamMembers ?? []).map((m) => (
+                                    <li key={m.id} className="py-2 font-medium">
+                                        {m.login}
+                                    </li>
                                 ))}
-                            </TableBody>
-                        </Table>
+                            </ul>
+                        </LoadState>
                     </div>
-                )}
-            </div>
-        </div>
+                )
+            }
+        />
     );
 }
 
 export function AdminGithubManager({ org }: { org: GithubOrg | null }) {
-    const [tab, setTab] = useState<Tab>("members");
+    const [tab, setTab] = useState("people");
+    const [counts, setCounts] = useState<{ members?: number; teams?: number }>({});
+
+    const onPeopleCounts = useCallback(
+        (next: { members: number }) => setCounts((c) => ({ ...c, members: next.members })),
+        []
+    );
+    const onTeamCounts = useCallback(
+        (next: { teams: number }) => setCounts((c) => ({ ...c, teams: next.teams })),
+        []
+    );
 
     return (
         <div className="space-y-4">
-            {org && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>
-                            <a
-                                href={org.htmlUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="hover:underline"
-                            >
-                                {org.name ?? org.login}
-                            </a>
-                        </CardTitle>
-                        <CardDescription>
-                            <span className="font-mono">@{org.login}</span>
-                            {org.memberCount !== null ? ` · ${org.memberCount} members` : ""}
-                        </CardDescription>
-                    </CardHeader>
-                </Card>
-            )}
+            <ProviderHeader
+                icon={GitBranch}
+                title={org?.name ?? org?.login ?? "GitHub organization"}
+                href={org?.htmlUrl}
+                subtitle={org ? `@${org.login}` : undefined}
+                stats={[
+                    {
+                        label: "Members",
+                        value: String(counts.members ?? org?.memberCount ?? "-"),
+                    },
+                    { label: "Teams", value: String(counts.teams ?? "-") },
+                ]}
+                note="Owners can do anything in the org, including deleting it. GitHub only accepts a role change if the dashboard's token belongs to an org owner."
+            />
 
-            <p className="text-muted-foreground text-xs">
-                Invitations are sent as regular members only. Owner promotion and demotion are not
-                available here - manage owners in the GitHub organization settings.
-            </p>
-
-            <div className="flex flex-wrap gap-1 border-b pb-3">
-                <TabButton active={tab === "members"} onClick={() => setTab("members")}>
-                    Members
-                </TabButton>
-                <TabButton active={tab === "invitations"} onClick={() => setTab("invitations")}>
-                    Invitations
-                </TabButton>
-                <TabButton active={tab === "teams"} onClick={() => setTab("teams")}>
-                    Teams
-                </TabButton>
-            </div>
-
-            {tab === "members" && <MembersTab />}
-            {tab === "invitations" && <InvitationsTab />}
-            {tab === "teams" && <TeamsTab />}
+            <SubTabs
+                value={tab}
+                onValueChange={setTab}
+                tabs={[
+                    { value: "people", label: "People", icon: Users },
+                    { value: "teams", label: "Teams", icon: GitBranch },
+                ]}
+            >
+                <SubTabPanel value="people">
+                    <PeopleTab onCounts={onPeopleCounts} />
+                </SubTabPanel>
+                <SubTabPanel value="teams">
+                    <TeamsTab onCounts={onTeamCounts} />
+                </SubTabPanel>
+            </SubTabs>
         </div>
-    );
-}
-
-function TabButton({
-    active,
-    onClick,
-    children,
-}: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-}) {
-    return (
-        <button
-            onClick={onClick}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-            }`}
-        >
-            {children}
-        </button>
     );
 }

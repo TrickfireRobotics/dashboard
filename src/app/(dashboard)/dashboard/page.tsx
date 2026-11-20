@@ -4,8 +4,7 @@ import {
     ChevronRight,
     Bot,
     DollarSign,
-    Gamepad2,
-    KeyRound,
+    Lock,
     Network,
     Package,
     Radio,
@@ -19,7 +18,7 @@ import { LiveClock } from "@/components/dashboard/LiveClock";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { db } from "@/lib/db";
-import { minecraftWhitelist, order, user } from "@/lib/db/schema";
+import { order, user } from "@/lib/db/schema";
 import { getSessionUser } from "@/lib/auth/session";
 import { getBotStatus } from "@/lib/integrations/discord-bot";
 
@@ -58,10 +57,10 @@ const quickLinks = [
         icon: Bot,
     },
     {
-        href: "/api-keys",
-        label: "API Keys",
-        description: "Shared credentials vault.",
-        icon: KeyRound,
+        href: "/vault",
+        label: "Vault",
+        description: "Shared club secrets and the sim access code.",
+        icon: Lock,
     },
     {
         href: "/network",
@@ -85,13 +84,6 @@ export default async function DashboardHome() {
             ?.value ?? 0;
     const pendingApprovals =
         db.select({ value: count() }).from(user).where(eq(user.approved, false)).get()?.value ?? 0;
-    const openWhitelist =
-        db
-            .select({ value: count() })
-            .from(minecraftWhitelist)
-            .where(eq(minecraftWhitelist.status, "pending"))
-            .get()?.value ?? 0;
-
     const botStatus = await getBotStatus();
     const missingRoleCount = botStatus?.missingRoles.length ?? 0;
     const botNeedsAttention =
@@ -118,12 +110,6 @@ export default async function DashboardHome() {
             label: "members are waiting for approval",
             href: "/team",
             icon: UserCheck,
-        },
-        {
-            count: openWhitelist,
-            label: "whitelist requests need review",
-            href: "/minecraft",
-            icon: Gamepad2,
         },
         {
             count: botNeedsAttention ? 1 : 0,

@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useForm, useWatch } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -25,20 +25,11 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import type { VaultEntryType } from "@/lib/db/schema";
 
 export type VaultEntryRow = {
     id: number;
     name: string;
-    type: VaultEntryType;
     description: string | null;
     username: string | null;
     createdAt: Date;
@@ -47,7 +38,6 @@ export type VaultEntryRow = {
 function makeSchema(isEdit: boolean) {
     return z
         .object({
-            type: z.enum(["login", "api_key"]),
             name: z.string().trim().min(1, "Name is required").max(100),
             username: z.string().trim().max(200).optional(),
             // Optional when editing - leave blank to keep the existing secret.
@@ -55,13 +45,6 @@ function makeSchema(isEdit: boolean) {
             description: z.string().trim().max(1000).optional(),
         })
         .superRefine((v, ctx) => {
-            if (v.type === "login" && !v.username?.trim()) {
-                ctx.addIssue({
-                    code: "custom",
-                    path: ["username"],
-                    message: "Username is required",
-                });
-            }
             if (!isEdit && !v.secret?.trim()) {
                 ctx.addIssue({
                     code: "custom",
@@ -89,20 +72,13 @@ export function VaultEntryDialog({
 
     const form = useForm<FormValues>({
         resolver: zodResolver(makeSchema(isEdit)),
-        defaultValues: {
-            type: "login",
-            name: "",
-            username: "",
-            secret: "",
-            description: "",
-        },
+        defaultValues: { name: "", username: "", secret: "", description: "" },
     });
 
     // Reset the form whenever the dialog opens (with or without an entry).
     useEffect(() => {
         if (!open) return;
         form.reset({
-            type: entry?.type ?? "login",
             name: entry?.name ?? "",
             username: entry?.username ?? "",
             secret: "",
@@ -110,31 +86,24 @@ export function VaultEntryDialog({
         });
     }, [open, entry, form]);
 
-    const type = useWatch({ control: form.control, name: "type" });
-
     async function onSubmit(values: FormValues) {
         setSubmitting(true);
         try {
             const url = isEdit ? `/api/admin/vault/${entry.id}` : "/api/admin/vault";
-            const method = isEdit ? "PATCH" : "POST";
 
-            const body: Record<string, unknown> = isEdit
-                ? {
-                      name: values.name,
-                      description: values.description?.trim() || undefined,
-                      ...(values.type === "login" ? { username: values.username?.trim() } : {}),
-                      ...(values.secret?.trim() ? { secret: values.secret } : {}),
-                  }
-                : {
-                      type: values.type,
-                      name: values.name,
-                      description: values.description?.trim() || undefined,
-                      secret: values.secret,
-                      ...(values.type === "login" ? { username: values.username?.trim() } : {}),
-                  };
+            const body: Record<string, unknown> = {
+                name: values.name,
+                username: values.username?.trim() ?? "",
+                description: values.description?.trim() ?? "",
+                ...(isEdit
+                    ? values.secret?.trim()
+                        ? { secret: values.secret }
+                        : {}
+                    : { secret: values.secret }),
+            };
 
             const res = await fetch(url, {
-                method,
+                method: isEdit ? "PATCH" : "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),
             });
@@ -160,45 +129,12 @@ export function VaultEntryDialog({
                     <DialogDescription>
                         {isEdit
                             ? "Update this entry. Leave the secret blank to keep the current value."
-                            : "Choose what kind of credential to store."}
+                            : "Store a shared club credential. Everyone with a dashboard account can reveal it."}
                     </DialogDescription>
                 </DialogHeader>
 
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                        <FormField
-                            control={form.control}
-                            name="type"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Entry type</FormLabel>
-                                    <Select
-                                        value={field.value}
-                                        onValueChange={field.onChange}
-                                        disabled={isEdit}
-                                    >
-                                        <FormControl>
-                                            <SelectTrigger className="w-full">
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                        </FormControl>
-                                        <SelectContent>
-                                            <SelectItem value="login">
-                                                Login &amp; password
-                                            </SelectItem>
-                                            <SelectItem value="api_key">API key</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    {isEdit ? (
-                                        <FormDescription>
-                                            Type can&apos;t be changed after creation.
-                                        </FormDescription>
-                                    ) : null}
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
                         <FormField
                             control={form.control}
                             name="name"
@@ -213,34 +149,33 @@ export function VaultEntryDialog({
                             )}
                         />
 
-                        {type === "login" ? (
-                            <FormField
-                                control={form.control}
-                                name="username"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Username</FormLabel>
-                                        <FormControl>
-                                            <Input
-                                                placeholder="login@example.com"
-                                                autoComplete="off"
-                                                {...field}
-                                            />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        ) : null}
+                        <FormField
+                            control={form.control}
+                            name="username"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Username (optional)</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            placeholder="login@example.com"
+                                            autoComplete="off"
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                    <FormDescription>
+                                        Leave blank for a standalone secret like an API key.
+                                    </FormDescription>
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
 
                         <FormField
                             control={form.control}
                             name="secret"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>
-                                        {type === "login" ? "Password" : "API key"}
-                                    </FormLabel>
+                                    <FormLabel>Secret</FormLabel>
                                     <FormControl>
                                         <Input
                                             type="password"
@@ -255,14 +190,6 @@ export function VaultEntryDialog({
                                 </FormItem>
                             )}
                         />
-
-                        {type === "api_key" ? (
-                            <p className="text-muted-foreground text-sm">
-                                API keys are never shown in the dashboard. They&apos;re fetched from
-                                an authenticated endpoint; grant per-person access from the
-                                entry&apos;s &ldquo;Manage access&rdquo; action.
-                            </p>
-                        ) : null}
 
                         <FormField
                             control={form.control}

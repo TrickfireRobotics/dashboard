@@ -8,7 +8,7 @@ import {
     financeSettingsUpdateSchema,
     markOrderedSchema,
     vaultEntrySchema,
-    whitelistDirectAddSchema,
+    whitelistAddSchema,
     stfBucketInputSchema,
     updateUserSchema,
 } from "./validation";
@@ -200,79 +200,61 @@ describe("markOrderedSchema", () => {
     });
 });
 
-describe("vaultEntrySchema (discriminated union)", () => {
-    it("accepts a valid login entry", () => {
+describe("vaultEntrySchema", () => {
+    it("accepts an entry with a username", () => {
         expect(() =>
-            vaultEntrySchema.parse({
-                type: "login",
-                name: "GitHub",
-                username: "robot",
-                secret: "hunter2",
-            })
+            vaultEntrySchema.parse({ name: "GitHub", username: "robot", secret: "hunter2" })
         ).not.toThrow();
     });
 
-    it("accepts a valid api_key entry", () => {
+    it("accepts an entry without a username", () => {
         expect(() =>
-            vaultEntrySchema.parse({
-                type: "api_key",
-                name: "Stripe Key",
-                secret: "sk_live_abc",
-            })
+            vaultEntrySchema.parse({ name: "Stripe Key", secret: "sk_live_abc" })
         ).not.toThrow();
     });
 
-    it("rejects a login entry missing username", () => {
+    it("treats a blank username as absent", () => {
         const result = vaultEntrySchema.safeParse({
-            type: "login",
-            name: "GitHub",
-            secret: "hunter2",
+            name: "Stripe Key",
+            username: "",
+            secret: "sk_live_abc",
         });
-        expect(result.success).toBe(false);
+        expect(result.success).toBe(true);
+        expect(result.success && result.data.username).toBeUndefined();
     });
 
     it("rejects an entry missing secret", () => {
-        const result = vaultEntrySchema.safeParse({
-            type: "api_key",
-            name: "Stripe Key",
-            secret: "",
-        });
-        expect(result.success).toBe(false);
+        expect(vaultEntrySchema.safeParse({ name: "Stripe Key", secret: "" }).success).toBe(false);
     });
 
-    it("rejects an unknown type", () => {
-        const result = vaultEntrySchema.safeParse({
-            type: "ssh_key",
-            name: "Server",
-            secret: "pem-data",
-        });
-        expect(result.success).toBe(false);
+    it("rejects an entry missing a name", () => {
+        expect(vaultEntrySchema.safeParse({ name: "  ", secret: "pem-data" }).success).toBe(false);
     });
 });
 
-describe("whitelistDirectAddSchema", () => {
+describe("whitelistAddSchema", () => {
     it("accepts a valid Minecraft username", () => {
-        expect(() => whitelistDirectAddSchema.parse({ username: "Steve_123" })).not.toThrow();
+        expect(() => whitelistAddSchema.parse({ username: "Steve_123" })).not.toThrow();
     });
 
     it("rejects usernames shorter than 3 characters", () => {
-        const result = whitelistDirectAddSchema.safeParse({ username: "ab" });
+        const result = whitelistAddSchema.safeParse({ username: "ab" });
         expect(result.success).toBe(false);
     });
 
     it("rejects usernames longer than 16 characters", () => {
-        const result = whitelistDirectAddSchema.safeParse({ username: "a".repeat(17) });
+        const result = whitelistAddSchema.safeParse({ username: "a".repeat(17) });
         expect(result.success).toBe(false);
     });
 
     it("rejects usernames with spaces or special characters", () => {
-        expect(whitelistDirectAddSchema.safeParse({ username: "has space" }).success).toBe(false);
-        expect(whitelistDirectAddSchema.safeParse({ username: "has-dash" }).success).toBe(false);
-        expect(whitelistDirectAddSchema.safeParse({ username: "has.dot" }).success).toBe(false);
+        expect(whitelistAddSchema.safeParse({ username: "has space" }).success).toBe(false);
+        expect(whitelistAddSchema.safeParse({ username: "has-dash" }).success).toBe(false);
+        expect(whitelistAddSchema.safeParse({ username: "has.dot" }).success).toBe(false);
     });
 
     it("accepts underscores and mixed case", () => {
-        expect(() => whitelistDirectAddSchema.parse({ username: "Cool_Player" })).not.toThrow();
+        expect(() => whitelistAddSchema.parse({ username: "Cool_Player" })).not.toThrow();
     });
 });
 

@@ -9,9 +9,7 @@ const now = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
 export type OrderStatus = "pending" | "approved" | "denied" | "ordered";
 export type FundType = "STF" | "Gift";
 export type GiftFundChangeType = "order_approved" | "order_deleted" | "manual_adjustment";
-export type WhitelistStatus = "pending" | "approved" | "rejected";
 export type JoinRequestStatus = "pending" | "approved" | "rejected";
-export type VaultEntryType = "login" | "api_key";
 export type FeedbackCategory = "bug" | "idea" | "other";
 export type FeedbackStatus = "open" | "resolved";
 // Source "Supplier Status" from the approved-vendor export; blank -> "Unknown".
@@ -179,22 +177,9 @@ export const giftFundLog = sqliteTable("gift_fund_log", {
     note: text("note"),
 });
 
-export const apiKey = sqliteTable("api_key", {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    userId: text("user_id")
-        .notNull()
-        .references(() => user.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
-    keyHash: text("key_hash").notNull().unique(),
-    keyPrefix: text("key_prefix").notNull(),
-    lastUsedAt: integer("last_used_at", { mode: "timestamp_ms" }),
-    isRevoked: integer("is_revoked", { mode: "boolean" }).notNull().default(false),
-    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
-});
-
 // Single-row table (id = 1) holding the current sim access code. The code is
 // what the sim CLI sends for OnShape exports; it rotates automatically at 3am
-// Pacific and can be rotated early from the API Keys page.
+// Pacific and can be rotated early from the Vault page.
 export const simAccessCode = sqliteTable("sim_access_code", {
     id: integer("id").primaryKey(),
     code: text("code").notNull(),
@@ -204,16 +189,16 @@ export const simAccessCode = sqliteTable("sim_access_code", {
 });
 
 // Secret vault: shared club credentials stored encrypted at rest (see
-// vault-crypto.ts). Distinct from `api_key` above, which holds one-way hashes
-// for service-API auth and can never reveal a secret.
+// vault-crypto.ts). Every approved member can read any entry, but only after
+// re-entering their password (see vault-unlock.ts) - dashboard sessions are
+// long-lived, so the page load alone isn't proof of presence.
 export const vaultEntry = sqliteTable("vault_entry", {
     id: integer("id").primaryKey({ autoIncrement: true }),
     name: text("name").notNull(),
-    type: text("type").$type<VaultEntryType>().notNull(),
     description: text("description"),
-    // Login identifier for `login` entries; null for `api_key` entries.
+    // Optional login identifier that goes with the secret.
     username: text("username"),
-    // AES-256-GCM ciphertext ("iv.tag.ct") of the password / API key.
+    // AES-256-GCM ciphertext ("iv.tag.ct") of the secret.
     secret: text("secret").notNull(),
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
@@ -223,36 +208,12 @@ export const vaultEntry = sqliteTable("vault_entry", {
         .notNull(),
 });
 
-// Per-person read grants for `api_key` vault entries. An entry's secret is only
-// returned by GET /api/vault/[id]/key to admins or users with a row here.
-export const vaultEntryAccess = sqliteTable(
-    "vault_entry_access",
-    {
-        id: integer("id").primaryKey({ autoIncrement: true }),
-        entryId: integer("entry_id")
-            .notNull()
-            .references(() => vaultEntry.id, { onDelete: "cascade" }),
-        userId: text("user_id")
-            .notNull()
-            .references(() => user.id, { onDelete: "cascade" }),
-        grantedBy: text("granted_by").references(() => user.id, { onDelete: "set null" }),
-        createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
-    },
-    (table) => [uniqueIndex("vault_entry_access_entry_user").on(table.entryId, table.userId)]
-);
-
+// The Minecraft whitelist: one row per whitelisted username. `userId` is the
+// dashboard account that added it.
 export const minecraftWhitelist = sqliteTable("minecraft_whitelist", {
     id: integer("id").primaryKey({ autoIncrement: true }),
     userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
     username: text("username").notNull(),
-    status: text("status").$type<WhitelistStatus>().notNull().default("pending"),
-    requestNote: text("request_note"),
-    adminNote: text("admin_note"),
-    reviewedBy: text("reviewed_by").references(() => user.id, {
-        onDelete: "set null",
-    }),
-    addedDirectly: integer("added_directly", { mode: "boolean" }).notNull().default(false),
-    reviewedAt: integer("reviewed_at", { mode: "timestamp_ms" }),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
 });
 
@@ -328,25 +289,12 @@ export const orderHistoryRelations = relations(orderHistory, ({ one }) => ({
     changedBy: one(user, { fields: [orderHistory.changedBy], references: [user.id] }),
 }));
 
-export const apiKeyRelations = relations(apiKey, ({ one }) => ({
-    user: one(user, { fields: [apiKey.userId], references: [user.id] }),
-}));
-
 export const simAccessCodeRelations = relations(simAccessCode, ({ one }) => ({
     rotatedByUser: one(user, { fields: [simAccessCode.rotatedBy], references: [user.id] }),
 }));
 
-export const vaultEntryRelations = relations(vaultEntry, ({ one, many }) => ({
+export const vaultEntryRelations = relations(vaultEntry, ({ one }) => ({
     creator: one(user, { fields: [vaultEntry.createdBy], references: [user.id] }),
-    grants: many(vaultEntryAccess),
-}));
-
-export const vaultEntryAccessRelations = relations(vaultEntryAccess, ({ one }) => ({
-    entry: one(vaultEntry, {
-        fields: [vaultEntryAccess.entryId],
-        references: [vaultEntry.id],
-    }),
-    user: one(user, { fields: [vaultEntryAccess.userId], references: [user.id] }),
 }));
 
 export const minecraftWhitelistRelations = relations(minecraftWhitelist, ({ one }) => ({

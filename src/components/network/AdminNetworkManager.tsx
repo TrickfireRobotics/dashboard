@@ -1,10 +1,10 @@
 "use client";
 
-import { CircleHelp, Smartphone } from "lucide-react";
+import { CircleHelp } from "lucide-react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
-import { AppleIcon, LinuxIcon, WindowsIcon } from "@/components/icons/os-icons";
+import { OsIcon } from "@/components/network/OsIcon";
 import { Button } from "@/components/ui/button";
 import { DataTableCard, DataTableCardHeader } from "@/components/ui/data-table-card";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import type { NetworkNode } from "@/lib/integrations/network";
 import { usePoll } from "@/lib/use-poll";
+import { formatRelativeTime } from "@/lib/utils";
 
 function OnlineDot({ online }: { online: boolean }) {
     return (
@@ -26,29 +27,6 @@ function OnlineDot({ online }: { online: boolean }) {
             className={`inline-block size-2 rounded-full ${online ? "bg-primary" : "bg-muted-foreground/40"}`}
         />
     );
-}
-
-function OsIcon({ os }: { os: string }) {
-    const lower = os.toLowerCase();
-    const className = "text-foreground size-4 shrink-0";
-    if (lower.includes("mac") || lower.includes("darwin"))
-        return <AppleIcon className={className} />;
-    if (lower.includes("ios") || lower.includes("android"))
-        return <Smartphone className={className} />;
-    if (lower.includes("windows")) return <WindowsIcon className={className} />;
-    if (lower.includes("linux")) return <LinuxIcon className={className} />;
-    return <CircleHelp className="text-muted-foreground size-4 shrink-0" />;
-}
-
-function relativeTime(iso: string): string {
-    const ms = Date.now() - new Date(iso).getTime();
-    const s = Math.floor(ms / 1000);
-    if (s < 60) return "just now";
-    const m = Math.floor(s / 60);
-    if (m < 60) return `${m}m ago`;
-    const h = Math.floor(m / 60);
-    if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
 }
 
 export function AdminNetworkManager() {
@@ -130,7 +108,7 @@ export function AdminNetworkManager() {
                                     {node.ipAddresses?.join(", ") ?? "-"}
                                 </TableCell>
                                 <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
-                                    {relativeTime(node.lastSeen)}
+                                    {formatRelativeTime(node.lastSeen)}
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <Button

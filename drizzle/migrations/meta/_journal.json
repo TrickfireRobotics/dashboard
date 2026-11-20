@@ -141,6 +141,13 @@
       "when": 1795124255480,
       "tag": "0019_clumsy_vision",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "6",
+      "when": 1795126711097,
+      "tag": "0020_flaky_jackpot",
+      "breakpoints": true
     }
   ]
 }

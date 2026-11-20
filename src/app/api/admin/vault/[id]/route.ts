@@ -38,15 +38,13 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     const d = parsed.data;
-    // Username only applies to login entries; ignore it for api_key entries.
-    const allowUsername = existing.type === "login";
 
     const updated = db
         .update(vaultEntry)
         .set({
             ...(d.name !== undefined ? { name: d.name } : {}),
             ...(d.description !== undefined ? { description: d.description } : {}),
-            ...(allowUsername && d.username !== undefined ? { username: d.username } : {}),
+            ...(d.username !== undefined ? { username: d.username } : {}),
             ...(d.secret !== undefined ? { secret: encryptSecret(d.secret) } : {}),
         })
         .where(eq(vaultEntry.id, id))

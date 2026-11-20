@@ -61,7 +61,7 @@ Every push and PR runs ESLint, Prettier, a TypeScript check, and the Vitest suit
 | `SEED_ADMIN_EMAIL`            | No        | Email for the seeded account                                                                                                                                                                                                           |
 | `SEED_ADMIN_PASSWORD`         | No        | Password for the seeded account                                                                                                                                                                                                        |
 | `SEED_ADMIN_NAME`             | No        | Display name for the seeded account                                                                                                                                                                                                    |
-| `GITHUB_ORG`                  | No        | GitHub organization name (e.g. `trickfirerobotics`) - enables the GitHub tab on the Members page                                                                                                                                       |
+| `GITHUB_ORG`                  | No        | GitHub organization name (e.g. `trickfirerobotics`) - enables the GitHub tab on the Team page                                                                                                                                          |
 | `GITHUB_TOKEN`                | No        | Fine-grained PAT with **Organization → Members: Read and write** permission                                                                                                                                                            |
 
 <Callout type="error" title="Danger">
@@ -71,26 +71,26 @@ Every push and PR runs ESLint, Prettier, a TypeScript check, and the Vitest suit
     existing vault entry permanently unrecoverable - back it up.
 </Callout>
 
-## API Key Vault
+## Secret vault
 
-The **API Keys** page is a shared credential vault to store third-party API keys and service logins. Any logged-in member can open the page and see what entries exist - reading a specific secret is the gated part, via a per-person grant set from that entry's **Manage access** action. There's no global "vault access" toggle and no bypass for any particular user.
+The **Vault** page is a shared credential store for third-party API keys and service logins. Every approved member can open it, see what entries exist, and reveal any of them - there are no per-person grants.
 
-Each entry is either a `login` (username + password, revealed in the browser on demand) or an `api_key` (never shown in the UI - retrieved only via the API endpoint below).
+Revealing is gated on a fresh password check instead: sign-ins last for weeks, so the page starts locked and `POST /api/vault/unlock` (the member's own dashboard password) issues a signed, 10-minute `vault_unlock` cookie. The same page also holds the club's [sim access code](/tech-stack/security/#sim-access-code-srclibsimaccess-codets).
 
-### Fetching an API key - `GET /api/vault/{id}/key`
+### Reading a secret - `GET /api/vault/{id}/reveal`
 
-Authenticated by the caller's dashboard session cookie. Returns the key only if the user has been granted access to that entry.
+Authenticated by the caller's dashboard session cookie, and only answered while the vault is unlocked.
 
-| Status | Meaning                                                                            |
-| ------ | ---------------------------------------------------------------------------------- |
-| `200`  | `{ "name": "Resend", "key": "re_live_..." }`                                       |
-| `401`  | Not logged in                                                                      |
-| `403`  | Logged in but no access grant for this entry                                       |
-| `404`  | Entry doesn't exist, or it is a `login` (use `GET /api/vault/{id}/reveal` instead) |
+| Status | Meaning                                                                           |
+| ------ | --------------------------------------------------------------------------------- |
+| `200`  | `{ "username": "club@...", "secret": "re_live_...", "expiresAt": 1795140403313 }` |
+| `401`  | Not logged in                                                                     |
+| `403`  | Vault is locked (`{ "locked": true }`), or the account is deactivated             |
+| `404`  | Entry doesn't exist                                                               |
 
 ```bash
-curl -s https://dashboard.trickfirerobotics.com/api/vault/12/key \
-  -H "Cookie: better-auth.session_token=<your-session-cookie>"
+curl -s https://dashboard.trickfirerobotics.com/api/vault/12/reveal \
+  -H "Cookie: better-auth.session_token=<your-session-cookie>; vault_unlock=<unlock-cookie>"
 ```
 
 Secrets are encrypted at rest with AES-256-GCM using `VAULT_ENCRYPTION_KEY`. In local dev, if that variable is unset, a key is auto-generated and saved to `db/vault.key` (gitignored).

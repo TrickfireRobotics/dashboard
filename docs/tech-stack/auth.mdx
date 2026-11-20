@@ -46,10 +46,10 @@ Key points:
 
 ### What each additional field means
 
-| Field      | Default | Meaning                                                                                                                                                          |
-| ---------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isActive` | `true`  | Set `false` to deactivate an account without deleting it - `middleware.ts` immediately redirects deactivated users to `/login` and clears their session cookies. |
-| `approved` | `false` | New sign-ups aren't approved by default - unapproved users are redirected to `/pending` until an existing member approves them from the Members page.            |
+| Field      | Default | Meaning                                                                                                                                                                  |
+| ---------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `isActive` | `true`  | Set `false` to deactivate an account without deleting it - `middleware.ts` immediately redirects deactivated users to `/login` and clears their session cookies.         |
+| `approved` | `false` | New sign-ups aren't approved by default - unapproved users are redirected to `/pending` until an existing member approves them from the Team page (Dashboard → Pending). |
 
 ### Regenerating the schema
 
@@ -87,9 +87,6 @@ There is no shared `requireAuth()` helper for route handlers - the same-shaped c
 export async function getSessionUser() {
     /* wraps auth.api.getSession({ headers }) */
 }
-export function canReadVaultEntry(user, entryId): boolean {
-    /* true only if a matching vaultEntryAccess row exists - no bypass */
-}
 ```
 
-`canReadVaultEntry` is the one place authorization is still per-user rather than all-or-nothing - see [Security](/tech-stack/security/#the-api-key-vault) for how vault entry grants work.
+That's the whole module - authorization is all-or-nothing for every member. The one place something extra is asked for is the vault: `GET /api/vault/{id}/reveal` additionally wants a live unlock cookie from a password re-check, which is about _presence_ rather than permission. See [Security](/tech-stack/security/#the-secret-vault) for how that works.

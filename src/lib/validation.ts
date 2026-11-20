@@ -98,50 +98,35 @@ export const financeSettingsUpdateSchema = z.object({
     shippingPercent: z.coerce.number().min(0, "Shipping cannot be negative").max(100),
 });
 
-// API keys -----------------------------------------------------------------
-
-export const createApiKeySchema = z.object({
-    name: z.string().trim().min(1, "Name is required").max(100),
-});
-
-// API Key Vault ------------------------------------------------------------
+// Secret vault -------------------------------------------------------------
 
 const vaultName = z.string().trim().min(1, "Name is required").max(100);
 const vaultSecret = z.string().min(1, "Secret is required").max(5000);
-const vaultDescription = z.preprocess(emptyToUndefined, z.string().trim().max(1000)).optional();
+const vaultUsername = z.preprocess(emptyToUndefined, z.string().trim().max(200).optional());
+const vaultDescription = z.preprocess(emptyToUndefined, z.string().trim().max(1000).optional());
 
-export const vaultEntrySchema = z.discriminatedUnion("type", [
-    z.object({
-        type: z.literal("login"),
-        name: vaultName,
-        username: z.string().trim().min(1, "Username is required").max(200),
-        secret: vaultSecret,
-        description: vaultDescription,
-    }),
-    z.object({
-        type: z.literal("api_key"),
-        name: vaultName,
-        secret: vaultSecret,
-        description: vaultDescription,
-    }),
-]);
+export const vaultEntrySchema = z.object({
+    name: vaultName,
+    username: vaultUsername,
+    secret: vaultSecret,
+    description: vaultDescription,
+});
 
-// Metadata edits without re-entering the secret; secret/username optional.
+// Metadata edits without re-entering the secret. A blank username or note
+// arrives as null and clears the stored value; undefined leaves it alone.
+const clearable = (max: number) =>
+    z.preprocess((v) => (v === "" ? null : v), z.string().trim().max(max).nullable().optional());
+
 export const vaultEntryUpdateSchema = z
     .object({
         name: vaultName.optional(),
-        username: z.string().trim().min(1).max(200).optional(),
+        username: clearable(200),
         secret: vaultSecret.optional(),
-        description: vaultDescription,
+        description: clearable(1000),
     })
     .refine((v) => Object.values(v).some((x) => x !== undefined), {
         message: "Nothing to update",
     });
-
-// Grant / revoke per-person access to an api_key vault entry.
-export const vaultAccessSchema = z.object({
-    userId: z.string().trim().min(1, "User is required"),
-});
 
 // Minecraft whitelist ------------------------------------------------------
 
@@ -153,14 +138,8 @@ const minecraftUsername = z
     .max(16, "Username is too long")
     .regex(/^[A-Za-z0-9_]+$/, "Letters, numbers and underscore only");
 
-export const whitelistActionSchema = z.object({
-    action: z.enum(["approve", "reject"]),
-    adminNote: z.string().trim().max(500).optional(),
-});
-
-export const whitelistDirectAddSchema = z.object({
+export const whitelistAddSchema = z.object({
     username: minecraftUsername,
-    adminNote: z.string().trim().max(500).optional(),
 });
 
 // Network join requests ----------------------------------------------------

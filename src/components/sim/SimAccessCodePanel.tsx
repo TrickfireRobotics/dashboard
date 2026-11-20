@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Expand, RefreshCw } from "lucide-react";
+import { Check, Copy, Expand, RefreshCw } from "lucide-react";
 
 import {
     AlertDialog,
@@ -16,7 +16,14 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+    Card,
+    CardAction,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { rotateSimAccessCode } from "@/lib/sim/access-code-actions";
 
@@ -88,7 +95,7 @@ export function SimAccessCodePanel({
 
     return (
         <>
-            <Card>
+            <Card className="border-primary/20 bg-primary/[0.03] ring-primary/15">
                 <CardHeader>
                     <CardTitle>Sim access code</CardTitle>
                     <CardDescription>
@@ -98,23 +105,18 @@ export function SimAccessCodePanel({
                         </code>
                         . One code for the whole club, no dashboard account needed.
                     </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex flex-wrap items-center gap-4">
-                        <button
-                            type="button"
-                            onClick={handleCopy}
-                            title="Click to copy"
-                            className="bg-muted hover:bg-muted/70 cursor-pointer rounded-lg px-6 py-4 font-mono text-5xl font-bold tracking-[0.2em] tabular-nums transition-colors"
-                        >
-                            {grouped(code)}
-                        </button>
-                        <div className="flex flex-col gap-2">
+                    <CardAction>
+                        <div className="flex flex-wrap justify-end gap-2">
                             <Button variant="outline" size="sm" onClick={handleCopy}>
+                                {copied ? (
+                                    <Check className="size-4" />
+                                ) : (
+                                    <Copy className="size-4" />
+                                )}
                                 {copied ? "Copied!" : "Copy"}
                             </Button>
                             <Button variant="outline" size="sm" onClick={() => setPresenting(true)}>
-                                <Expand /> Present
+                                <Expand className="size-4" /> Present
                             </Button>
                             <Button
                                 variant="outline"
@@ -122,15 +124,35 @@ export function SimAccessCodePanel({
                                 disabled={isRotating}
                                 onClick={() => setConfirming(true)}
                             >
-                                <RefreshCw /> {isRotating ? "Rotating…" : "Refresh now"}
+                                <RefreshCw className="size-4" />
+                                {isRotating ? "Rotating…" : "Refresh now"}
                             </Button>
                         </div>
+                    </CardAction>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid gap-3 lg:grid-cols-[1fr_auto]">
+                        <button
+                            type="button"
+                            onClick={handleCopy}
+                            title="Click to copy"
+                            className="bg-muted hover:bg-muted/70 flex cursor-pointer items-center justify-center rounded-lg px-6 py-6 font-mono text-5xl font-bold tracking-[0.2em] tabular-nums transition-colors sm:text-6xl"
+                        >
+                            {grouped(code)}
+                        </button>
+                        <div className="border-border flex flex-col justify-center gap-1 rounded-lg border px-5 py-4 lg:w-64">
+                            <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                                Rotates in
+                            </p>
+                            <p className="text-2xl leading-none font-semibold tabular-nums">
+                                {remaining}
+                            </p>
+                            <p className="text-muted-foreground mt-1 text-xs">
+                                Automatically, at {rotatesAtLabel}. Anyone with the code can export
+                                CAD until then, so keep it in club channels.
+                            </p>
+                        </div>
                     </div>
-                    <p className="text-muted-foreground text-xs">
-                        Rotates on its own in {remaining}, at {rotatesAtLabel}. Anyone with the code
-                        can export CAD through the dashboard until then, so keep it in club
-                        channels.
-                    </p>
                 </CardContent>
             </Card>
 

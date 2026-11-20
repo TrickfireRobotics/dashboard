@@ -1,5 +1,6 @@
 "use client";
 
+import { History, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -138,7 +139,7 @@ export function VendorImportCard({ initialLatest }: { initialLatest: VendorImpor
                         : "No vendor list loaded yet. Upload finance's supplier export to enable vendor search."
                 }
                 action={
-                    <>
+                    <div className="flex items-center gap-2">
                         <input
                             ref={inputRef}
                             type="file"
@@ -150,6 +151,7 @@ export function VendorImportCard({ initialLatest }: { initialLatest: VendorImpor
                             }}
                         />
                         <Button variant="outline" onClick={() => void openHistory()}>
+                            <History className="size-4" />
                             History
                         </Button>
                         <Button
@@ -157,9 +159,10 @@ export function VendorImportCard({ initialLatest }: { initialLatest: VendorImpor
                             disabled={busy !== null}
                             onClick={() => inputRef.current?.click()}
                         >
+                            <Upload className="size-4" />
                             {busy === "preview" ? "Reading..." : "Upload export"}
                         </Button>
-                    </>
+                    </div>
                 }
             />
 

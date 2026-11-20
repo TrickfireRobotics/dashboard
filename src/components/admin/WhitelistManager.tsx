@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { WhitelistStatusBadge } from "@/components/minecraft/WhitelistStatusBadge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
@@ -17,28 +16,22 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import type { WhitelistStatus } from "@/lib/db/schema";
 import { formatDate } from "@/lib/utils";
 
 export type AdminWhitelistRow = {
     id: number;
     username: string;
-    status: WhitelistStatus;
-    requesterName: string | null;
-    requestNote: string | null;
-    adminNote: string | null;
-    addedDirectly: boolean;
+    addedByName: string | null;
     createdAt: Date;
 };
 
-export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }) {
+export function WhitelistManager({ entries }: { entries: AdminWhitelistRow[] }) {
     const router = useRouter();
-    const [busy, setBusy] = useState<number | null>(null);
     const [removing, setRemoving] = useState<number | null>(null);
     const [username, setUsername] = useState("");
     const [adding, setAdding] = useState(false);
 
-    async function addDirect() {
+    async function add() {
         const trimmed = username.trim();
         if (!trimmed) return;
         setAdding(true);
@@ -59,27 +52,6 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
             toast.error(err instanceof Error ? err.message : "Something went wrong");
         } finally {
             setAdding(false);
-        }
-    }
-
-    async function act(id: number, action: "approve" | "reject") {
-        setBusy(id);
-        try {
-            const res = await fetch(`/api/admin/whitelist/${id}/action`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action }),
-            });
-            if (!res.ok) {
-                const data = await res.json().catch(() => null);
-                throw new Error(data?.error ?? "Action failed");
-            }
-            toast.success(`Request ${action}d`);
-            router.refresh();
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Something went wrong");
-        } finally {
-            setBusy(null);
         }
     }
 
@@ -107,18 +79,18 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     onKeyDown={(e) => {
-                        if (e.key === "Enter") addDirect();
+                        if (e.key === "Enter") add();
                     }}
                     placeholder="Minecraft username"
                     className="max-w-64 flex-1"
                 />
-                <Button size="sm" disabled={adding || !username.trim()} onClick={addDirect}>
+                <Button size="sm" disabled={adding || !username.trim()} onClick={add}>
                     <Plus className="size-4" />
                     {adding ? "Adding..." : "Add to whitelist"}
                 </Button>
             </div>
 
-            {requests.length === 0 ? (
+            {entries.length === 0 ? (
                 <EmptyState
                     icon={Gamepad2}
                     title="No one is whitelisted yet"
@@ -130,66 +102,32 @@ export function WhitelistManager({ requests }: { requests: AdminWhitelistRow[] }
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Username</TableHead>
-                                <TableHead className="hidden md:table-cell">Requested by</TableHead>
-                                <TableHead className="hidden md:table-cell">Source</TableHead>
-                                <TableHead className="hidden md:table-cell">Note</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="hidden md:table-cell">Submitted</TableHead>
+                                <TableHead className="hidden md:table-cell">Added by</TableHead>
+                                <TableHead className="hidden md:table-cell">Added on</TableHead>
                                 <TableHead className="text-right">Action</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {requests.map((r) => (
-                                <TableRow key={r.id}>
+                            {entries.map((e) => (
+                                <TableRow key={e.id}>
                                     <TableCell className="text-foreground font-medium">
-                                        {r.username}
+                                        {e.username}
                                     </TableCell>
                                     <TableCell className="text-muted-foreground hidden md:table-cell">
-                                        {r.requesterName ?? "-"}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground hidden md:table-cell">
-                                        {r.addedDirectly ? "Direct add" : "Member request"}
-                                    </TableCell>
-                                    <TableCell className="text-muted-foreground hidden max-w-40 whitespace-normal md:table-cell">
-                                        {r.requestNote ?? r.adminNote ?? "-"}
-                                    </TableCell>
-                                    <TableCell>
-                                        <WhitelistStatusBadge status={r.status} />
+                                        {e.addedByName ?? "-"}
                                     </TableCell>
                                     <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
-                                        {formatDate(r.createdAt)}
+                                        {formatDate(e.createdAt)}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        {r.status === "pending" ? (
-                                            <div className="flex justify-end gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    variant="destructive"
-                                                    disabled={busy === r.id}
-                                                    onClick={() => act(r.id, "reject")}
-                                                >
-                                                    Reject
-                                                </Button>
-                                                <Button
-                                                    size="sm"
-                                                    disabled={busy === r.id}
-                                                    onClick={() => act(r.id, "approve")}
-                                                >
-                                                    Approve
-                                                </Button>
-                                            </div>
-                                        ) : r.status === "approved" ? (
-                                            <Button
-                                                size="sm"
-                                                variant="destructive"
-                                                disabled={removing === r.id}
-                                                onClick={() => remove(r.id)}
-                                            >
-                                                {removing === r.id ? "Removing..." : "Remove"}
-                                            </Button>
-                                        ) : (
-                                            <span className="text-muted-foreground text-xs">-</span>
-                                        )}
+                                        <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            disabled={removing === e.id}
+                                            onClick={() => remove(e.id)}
+                                        >
+                                            {removing === e.id ? "Removing..." : "Remove"}
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

@@ -6,7 +6,7 @@ import { simAccessCode } from "@/lib/db/schema";
 
 // One 6-digit code, club-wide, is all the sim CLI needs to pull a model from
 // OnShape through the dashboard. It rotates on its own at 3am Pacific and can
-// be rotated early from the API Keys page. Stored rather than derived so that
+// be rotated early from the Vault page. Stored rather than derived so that
 // an early rotation really does invalidate the old code.
 
 const TIMEZONE = "America/Los_Angeles";

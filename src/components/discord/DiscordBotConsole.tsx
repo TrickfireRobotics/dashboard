@@ -4,7 +4,6 @@ import {
     Activity,
     BadgeAlert,
     Check,
-    ChevronRight,
     CircleAlert,
     ChevronDown,
     HeartPulse,
@@ -69,18 +68,51 @@ function levelClass(level: string) {
     return "text-primary";
 }
 
-function Signal({ good, label }: { good: boolean; label: string }) {
+type StatTone = "neutral" | "good" | "warn" | "bad";
+
+const TONE_DOT: Record<Exclude<StatTone, "neutral">, string> = {
+    good: "bg-emerald-500 shadow-emerald-500/15",
+    warn: "bg-amber-500 shadow-amber-500/15",
+    bad: "bg-destructive shadow-destructive/15",
+};
+
+// All four top cards share this shape: icon + label, one prominent value, one
+// muted detail line. The optional dot carries status without breaking the grid's
+// visual rhythm.
+function StatCard({
+    icon: Icon,
+    label,
+    value,
+    detail,
+    tone = "neutral",
+}: {
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    value: string;
+    detail: string;
+    tone?: StatTone;
+}) {
     return (
-        <span className="flex items-center gap-2 text-xs font-medium">
-            <span
-                className={
-                    good
-                        ? "size-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px] shadow-emerald-500/15"
-                        : "bg-destructive shadow-destructive/15 size-2 rounded-full shadow-[0_0_0_4px]"
-                }
-            />
-            {label}
-        </span>
+        <Card className="gap-3">
+            <CardHeader className="pb-0">
+                <CardDescription className="flex items-center gap-2">
+                    <Icon className="size-4" /> {label}
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <div className="flex items-center gap-2.5">
+                    {tone === "neutral" ? null : (
+                        <span
+                            className={`size-2 shrink-0 rounded-full shadow-[0_0_0_4px] ${TONE_DOT[tone]}`}
+                        />
+                    )}
+                    <p className="truncate text-3xl leading-none font-semibold tabular-nums">
+                        {value}
+                    </p>
+                </div>
+                <p className="text-muted-foreground mt-3 truncate text-xs">{detail}</p>
+            </CardContent>
+        </Card>
     );
 }
 
@@ -293,77 +325,42 @@ export function DiscordBotConsole() {
             </section>
 
             <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <Card className="gap-3 border-emerald-500/20 bg-emerald-500/[0.035]">
-                    <CardHeader className="pb-0">
-                        <CardDescription className="flex items-center gap-2">
-                            <Wifi className="size-4" /> Gateway
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Signal
-                            good={status.connected}
-                            label={status.connected ? "Connected" : "Disconnected"}
-                        />
-                        <p className="text-muted-foreground mt-3 text-xs">
-                            Uptime {formatDuration(status.uptimeSeconds)}
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-0">
-                        <CardDescription className="flex items-center gap-2">
-                            <Zap className="size-4" /> Sync pipeline
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex items-center gap-2 text-xs font-medium">
-                            <span className="text-primary">Notion</span>
-                            <ChevronRight className="text-muted-foreground size-3" />
-                            <span className={syncReady ? "text-primary" : "text-muted-foreground"}>
-                                Roles
-                            </span>
-                        </div>
-                        <p className="text-muted-foreground mt-3 text-xs">
-                            {syncReady
-                                ? `Last synced ${formatTime(status.health.lastRoleSyncAt)}`
-                                : `Webhook ${formatTime(status.health.lastNotionWebhookAt)}`}
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-0">
-                        <CardDescription className="flex items-center gap-2">
-                            <Users className="size-4" /> Guild
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-3xl leading-none font-semibold tabular-nums">
-                            {status.guild?.memberCount ?? "-"}
-                        </p>
-                        <p className="text-muted-foreground mt-3 text-xs">
-                            {status.guild
-                                ? `${status.guild.roleCount} roles configured`
-                                : "Guild not loaded"}
-                        </p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="pb-0">
-                        <CardDescription className="flex items-center gap-2">
-                            <HeartPulse className="size-4" /> Shop floor
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-3xl leading-none font-semibold tabular-nums">
-                            {status.checkedIn.length}
-                        </p>
-                        <p className="text-muted-foreground mt-3 text-xs">
-                            {status.checkedIn.length === 1
-                                ? "Member checked in"
-                                : "Members checked in"}
-                        </p>
-                    </CardContent>
-                </Card>
+                <StatCard
+                    icon={Wifi}
+                    label="Gateway"
+                    value={status.connected ? "Online" : "Offline"}
+                    detail={`Uptime ${formatDuration(status.uptimeSeconds)}`}
+                    tone={status.connected ? "good" : "bad"}
+                />
+                <StatCard
+                    icon={Zap}
+                    label="Sync pipeline"
+                    value={syncReady ? "Healthy" : "Waiting"}
+                    detail={
+                        syncReady
+                            ? `Notion → Roles, last synced ${formatTime(status.health.lastRoleSyncAt)}`
+                            : `Notion → Roles, webhook ${formatTime(status.health.lastNotionWebhookAt)}`
+                    }
+                    tone={syncReady ? "good" : "warn"}
+                />
+                <StatCard
+                    icon={Users}
+                    label="Guild"
+                    value={String(status.guild?.memberCount ?? "-")}
+                    detail={
+                        status.guild
+                            ? `${status.guild.roleCount} roles configured`
+                            : "Guild not loaded"
+                    }
+                />
+                <StatCard
+                    icon={HeartPulse}
+                    label="Shop floor"
+                    value={String(status.checkedIn.length)}
+                    detail={
+                        status.checkedIn.length === 1 ? "Member checked in" : "Members checked in"
+                    }
+                />
             </section>
 
             <section className="grid gap-6 xl:grid-cols-5">

@@ -1,21 +1,24 @@
 ---
-title: Security (Vault, API Keys, Rate Limiting)
-description: The API key vault's AES-256-GCM encryption, service API key hashing, and the in-memory rate limiter.
+title: Security (Vault, Sim Access Code, Rate Limiting)
+description: The secret vault's AES-256-GCM encryption and password re-check, the sim access code, and the in-memory rate limiter.
 ---
 
-Three distinct security mechanisms live under `src/lib/security/`, solving three different problems. It's worth not conflating them - they're often confused because they're all "keys":
+Four distinct security mechanisms live under `src/lib/security/`, solving four different problems. It's worth not conflating them - they're often confused because they're all "keys":
 
 | Mechanism        | File                 | Problem it solves                                                                                                                           |
 | ---------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| Vault encryption | `vault-crypto.ts`    | Store third-party credentials so an authorized human can read them back later                                                               |
+| Vault encryption | `vault-crypto.ts`    | Store third-party credentials so a member can read them back later                                                                          |
+| Vault unlock     | `vault-unlock.ts`    | Prove the person at the keyboard is the account owner before a secret is decrypted, even on a weeks-old session                             |
 | Sim access code  | `sim/access-code.ts` | Let the simulation CLI authenticate to this app's API with one short club-wide code, no accounts and nothing stored on the caller's machine |
 | Rate limiting    | `rate-limit.ts`      | Slow down abuse of unauthenticated/low-friction endpoints                                                                                   |
 
-## The API Key Vault
+## The secret vault
 
-The **API Keys** page is a shared credential store to keep track of third-party API keys and service logins (Resend, Tailscale, etc.) in one place instead of a shared password doc. Any logged-in member can open the page and see entry names/descriptions - reading a specific secret is the part that's gated: it requires a grant in the `vaultEntryAccess` table, set via that entry's "Manage access" action. There's no bypass - not even the entry's creator can read it back without an explicit grant for themselves (which the creation flow adds automatically).
+The **Vault** page is a shared credential store to keep track of third-party API keys and service logins (Resend, Tailscale, etc.) in one place instead of a shared password doc. Every approved member can open the page, see what entries exist, and reveal any of them - there are no per-person grants and no per-entry access levels.
 
-Each entry is either a `login` (username + password, revealed in the UI on demand) or an `api_key` (never rendered in the UI - only retrievable via the API endpoint below, e.g. for pasting into another tool's config).
+An entry is just a name, an optional username, the encrypted secret, and a note. Whether that secret is a password or an API key makes no difference to how it is stored or read back.
+
+What gates a reveal is **presence**, not permission: dashboard sessions last for weeks, so an open tab is no proof of who is sitting in front of it. Reading a secret therefore needs a fresh password check first.
 
 ### Encryption at rest - AES-256-GCM
 
@@ -49,23 +52,38 @@ Each encrypted value is stored as one string - `iv.tag.ciphertext`, all hex - so
     database, and rotate it only if you're prepared to re-enter every stored secret.
 </Callout>
 
-### Fetching a secret - the API endpoints
+### Unlocking the vault - `src/lib/security/vault-unlock.ts`
 
-```bash
-GET /api/vault/{id}/key      # api_key entries only - returns { name, key }
-GET /api/vault/{id}/reveal   # login entries only - returns { name, username, password }
+`POST /api/vault/unlock` takes the member's own dashboard password, verifies it against the stored credential hash through better-auth's own hasher, and mints a signed, HTTP-only `vault_unlock` cookie good for 10 minutes:
+
+```ts
+export function createUnlockToken(userId: string, now = Date.now()) {
+    const expiresAt = now + UNLOCK_WINDOW_MS;
+    const payload = `${userId}.${expiresAt}`;
+    return { value: `${payload}.${sign(payload)}`, expiresAt }; // [!code highlight]
+}
 ```
 
-Both endpoints are authenticated by the caller's dashboard session cookie (not a separate API key) and both:
+The payload is HMAC-SHA256-signed with `BETTER_AUTH_SECRET` and bound to one user id, so it can't be forged, lengthened, or handed to another account. `DELETE /api/vault/unlock` clears it ("Lock now"), and the UI re-locks itself when the window lapses.
 
-- Call `canReadVaultEntry(user, id)` (a matching `vaultEntryAccess` row - no other bypass).
-- Independently re-check `isActive`, because `/api/*` isn't covered by `middleware.ts` (see [Architecture Overview](/architecture/#how-a-page-request-is-authorized-three-layers)).
-- Set `Cache-Control: no-store` so a decrypted secret is never cached by a browser or intermediary.
+Wrong passwords spend from a 5-per-minute budget keyed by user **and** IP, so the prompt can't be used to brute-force an account password.
+
+### Fetching a secret - the API endpoint
 
 ```bash
-curl -s https://dashboard.trickfirerobotics.com/api/vault/12/key \
-  -H "Cookie: better-auth.session_token=<your-session-cookie>"
+GET /api/vault/{id}/reveal   # returns { username, secret, expiresAt }
 ```
+
+It is authenticated by the caller's dashboard session cookie (not a separate API key), and:
+
+- Requires a live `vault_unlock` cookie - without one it returns `403 { error: "Vault is locked", locked: true }`, which is what makes the lock a server-side rule rather than a UI state.
+- Independently re-checks `isActive`, because `/api/*` isn't covered by `middleware.ts` (see [Architecture Overview](/architecture/#how-a-page-request-is-authorized-three-layers)).
+- Sets `Cache-Control: no-store` so a decrypted secret is never cached by a browser or intermediary.
+
+<Callout type="info" title="No service API keys">
+    The dashboard has no issued-API-key system of its own. External callers (the simulation CLI)
+    authenticate with the sim access code below; everything else goes through a session cookie.
+</Callout>
 
 ## Sim access code (`src/lib/sim/access-code.ts`)
 
@@ -81,7 +99,7 @@ export function getAccessCode(now: Date = new Date()): AccessCode {
 }
 ```
 
-Rotation is lazy rather than scheduled: every read checks whether 3am Pacific has passed and issues a new code if so, which means no cron job and no way for a restart to leave a stale code in place. Any dashboard user can also rotate it immediately from the API Keys page, recorded in `rotatedBy`.
+Rotation is lazy rather than scheduled: every read checks whether 3am Pacific has passed and issues a new code if so, which means no cron job and no way for a restart to leave a stale code in place. Any dashboard user can also rotate it immediately from the Vault page, recorded in `rotatedBy`.
 
 The code is stored in plaintext on purpose - unlike a hashed API key, a lead has to be able to read it off the screen to share it. What limits the damage is its lifetime (a day at most) and the scope of what it unlocks (CAD exports the club already publishes doc IDs for). Guessing is handled by the rate limiter below: wrong codes spend from a 10-per-hour per-IP budget while correct ones never do.
 

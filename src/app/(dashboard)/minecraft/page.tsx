@@ -1,4 +1,4 @@
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 
 import { WhitelistManager, type AdminWhitelistRow } from "@/components/admin/WhitelistManager";
@@ -22,24 +22,17 @@ export default async function MinecraftPage() {
         .select({
             id: minecraftWhitelist.id,
             username: minecraftWhitelist.username,
-            status: minecraftWhitelist.status,
-            requesterName: user.name,
-            requestNote: minecraftWhitelist.requestNote,
-            adminNote: minecraftWhitelist.adminNote,
-            addedDirectly: minecraftWhitelist.addedDirectly,
+            addedByName: user.name,
             createdAt: minecraftWhitelist.createdAt,
         })
         .from(minecraftWhitelist)
         .leftJoin(user, eq(minecraftWhitelist.userId, user.id))
-        .orderBy(
-            asc(sql`case when ${minecraftWhitelist.status} = 'pending' then 0 else 1 end`),
-            desc(minecraftWhitelist.createdAt)
-        )
+        .orderBy(desc(minecraftWhitelist.createdAt))
         .all();
 
-    const whitelistRequests: AdminWhitelistRow[] = whitelistRows.map((r) => ({
+    const whitelistEntries: AdminWhitelistRow[] = whitelistRows.map((r) => ({
         ...r,
-        requesterName: r.requesterName ?? null,
+        addedByName: r.addedByName ?? null,
     }));
 
     const serverConfigured = isConfigured();
@@ -107,7 +100,7 @@ export default async function MinecraftPage() {
                         Add usernames and manage who can join the server.
                     </p>
                 </div>
-                <WhitelistManager requests={whitelistRequests} />
+                <WhitelistManager entries={whitelistEntries} />
             </section>
         </div>
     );

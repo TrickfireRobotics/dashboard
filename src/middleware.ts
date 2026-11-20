@@ -50,6 +50,7 @@ export const config = {
         "/dashboard/:path*",
         "/orders/:path*",
         "/api-keys/:path*",
+        "/vault/:path*",
         "/minecraft/:path*",
         "/network/:path*",
         "/team/:path*",

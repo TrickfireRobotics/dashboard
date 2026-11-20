@@ -1,11 +1,23 @@
 "use client";
 
+import { Boxes, Users } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import {
+    AddPersonBar,
+    LevelSelect,
+    LoadState,
+    ProviderHeader,
+    RemoveButton,
+    SubTabPanel,
+    SubTabs,
+    TeamsBrowser,
+    TeamsBrowserHint,
+    type TeamGroup,
+} from "@/components/team/team-ui";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -15,7 +27,6 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
     Table,
     TableBody,
@@ -33,8 +44,14 @@ import type {
 import { usePoll } from "@/lib/use-poll";
 import { formatDate } from "@/lib/utils";
 
-type Tab = "members" | "teams";
 type MemberRole = "member" | "admin" | "light" | "guest";
+
+const ROLE_OPTIONS: { value: MemberRole; label: string }[] = [
+    { value: "member", label: "Member" },
+    { value: "admin", label: "Admin" },
+    { value: "light", label: "Light user" },
+    { value: "guest", label: "Guest" },
+];
 
 function roleOf(m: { admin: boolean; guest: boolean; light: boolean }): MemberRole {
     if (m.admin) return "admin";
@@ -51,19 +68,13 @@ function roleToFlags(role: MemberRole): { admin: boolean; guest: boolean; light:
     };
 }
 
-function roleSelectClassName(role: MemberRole): string {
-    switch (role) {
-        case "admin":
-            return "border-primary/30 bg-primary/10 text-primary font-medium";
-        case "guest":
-        case "light":
-            return "bg-muted-foreground/10";
-        default:
-            return "";
-    }
+function roleTone(role: MemberRole): "default" | "elevated" | "muted" {
+    if (role === "admin") return "elevated";
+    if (role === "guest" || role === "light") return "muted";
+    return "default";
 }
 
-/** Admins first (alphabetically), then everyone else (alphabetically) - one table, two visual groups. */
+/** Admins first (alphabetically), then everyone else - one table, two groups. */
 function sortMembers(members: OnshapeMember[]): OnshapeMember[] {
     return [...members].sort((a, b) => {
         if (a.admin !== b.admin) return a.admin ? -1 : 1;
@@ -71,13 +82,13 @@ function sortMembers(members: OnshapeMember[]): OnshapeMember[] {
     });
 }
 
-function MembersTab() {
+function PeopleTab({ onCounts }: { onCounts: (counts: { members: number }) => void }) {
     const [members, setMembers] = useState<OnshapeMember[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [busy, setBusy] = useState<string | null>(null);
     const [email, setEmail] = useState("");
-    const [role, setRole] = useState<"member" | "admin" | "light" | "guest">("member");
+    const [role, setRole] = useState<MemberRole>("member");
     const [adding, setAdding] = useState(false);
 
     const load = useCallback(async () => {
@@ -90,12 +101,13 @@ function MembersTab() {
                 return;
             }
             setMembers(data?.members ?? []);
+            onCounts({ members: data?.members?.length ?? 0 });
         } catch {
             setError("Failed to load members");
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [onCounts]);
 
     usePoll(load);
 
@@ -109,12 +121,7 @@ function MembersTab() {
             const res = await fetch("/api/admin/onshape/members", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    email: email.trim(),
-                    admin: role === "admin",
-                    guest: role === "guest",
-                    light: role === "light",
-                }),
+                body: JSON.stringify({ email: email.trim(), ...roleToFlags(role) }),
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => null);
@@ -152,7 +159,7 @@ function MembersTab() {
         }
     }
 
-    async function changeRole(member: OnshapeMember, role: MemberRole) {
+    async function changeRole(member: OnshapeMember, next: MemberRole) {
         if (!member.userId || !member.email) {
             toast.error("Cannot resolve this member's id or email");
             return;
@@ -162,13 +169,13 @@ function MembersTab() {
             const res = await fetch(`/api/admin/onshape/members/${member.userId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: member.email, ...roleToFlags(role) }),
+                body: JSON.stringify({ email: member.email, ...roleToFlags(next) }),
             });
             if (!res.ok) {
                 const data = await res.json().catch(() => null);
                 throw new Error(data?.error ?? "Failed to update role");
             }
-            toast.success(`${member.name} is now ${role}`);
+            toast.success(`${member.name} is now ${next}`);
             load();
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to update role");
@@ -178,96 +185,81 @@ function MembersTab() {
     }
 
     return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Invite member</CardTitle>
-                    <CardDescription>
-                        Add a user to the Onshape company by email. They&apos;ll receive an
-                        invitation from Onshape.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-wrap items-end gap-3">
-                        <div className="min-w-56 flex-1 space-y-2">
-                            <Label htmlFor="onshape-email">Email</Label>
-                            <Input
-                                id="onshape-email"
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="member@example.com"
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") addMember();
-                                }}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="onshape-role">Type</Label>
-                            <Select value={role} onValueChange={(v) => setRole(v as MemberRole)}>
-                                <SelectTrigger id="onshape-role">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="member">Member</SelectItem>
-                                    <SelectItem value="admin">Admin</SelectItem>
-                                    <SelectItem value="light">Light user</SelectItem>
-                                    <SelectItem value="guest">Guest</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                        <Button onClick={addMember} disabled={adding}>
-                            {adding ? "Inviting…" : "Invite"}
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-
-            {loading ? (
-                <div className="space-y-3">
-                    <Skeleton className="h-10" />
-                    <Skeleton className="h-10" />
-                    <Skeleton className="h-10" />
+        <>
+            <AddPersonBar hint="Onshape emails the invitation. The access level can be changed at any time from the list below.">
+                <div className="min-w-56 flex-1 space-y-2">
+                    <Label htmlFor="onshape-email">Email</Label>
+                    <Input
+                        id="onshape-email"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="member@example.com"
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") addMember();
+                        }}
+                    />
                 </div>
-            ) : error ? (
-                <p className="text-destructive text-sm">{error}</p>
-            ) : !members || members.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No company members found.</p>
-            ) : (
+                <div className="space-y-2">
+                    <Label htmlFor="onshape-role">Access level</Label>
+                    <Select
+                        items={ROLE_OPTIONS}
+                        value={role}
+                        onValueChange={(v) => setRole(v as MemberRole)}
+                    >
+                        <SelectTrigger id="onshape-role" className="w-36">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {ROLE_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+                <Button onClick={addMember} disabled={adding}>
+                    {adding ? "Inviting…" : "Invite"}
+                </Button>
+            </AddPersonBar>
+
+            <LoadState
+                loading={loading}
+                error={error}
+                empty={(members?.length ?? 0) === 0}
+                emptyLabel="No company members found."
+            >
                 <div className="border-border rounded-lg border">
                     <Table>
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Name</TableHead>
-                                <TableHead>Type</TableHead>
+                                <TableHead>Access level</TableHead>
                                 <TableHead className="hidden md:table-cell">Added</TableHead>
                                 <TableHead className="hidden md:table-cell">Last login</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {sortMembers(members).map((m, i) => (
+                            {sortMembers(members ?? []).map((m, i) => (
                                 <TableRow key={m.userId ?? `${m.name}-${i}`}>
-                                    <TableCell className="font-medium">{m.name}</TableCell>
+                                    <TableCell className="font-medium">
+                                        {m.name}
+                                        {m.email ? (
+                                            <p className="text-muted-foreground text-xs font-normal">
+                                                {m.email}
+                                            </p>
+                                        ) : null}
+                                    </TableCell>
                                     <TableCell>
-                                        <Select
+                                        <LevelSelect
                                             value={roleOf(m)}
+                                            options={ROLE_OPTIONS}
                                             disabled={!m.userId || !m.email || busy === m.userId}
-                                            onValueChange={(v) => changeRole(m, v as MemberRole)}
-                                        >
-                                            <SelectTrigger
-                                                size="sm"
-                                                className={`w-32 ${roleSelectClassName(roleOf(m))}`}
-                                            >
-                                                <SelectValue />
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="member">Member</SelectItem>
-                                                <SelectItem value="admin">Admin</SelectItem>
-                                                <SelectItem value="light">Light user</SelectItem>
-                                                <SelectItem value="guest">Guest</SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                            tone={roleTone(roleOf(m))}
+                                            onChange={(next) => changeRole(m, next)}
+                                        />
                                     </TableCell>
                                     <TableCell className="text-muted-foreground hidden whitespace-nowrap md:table-cell">
                                         {m.dateAdded ? formatDate(new Date(m.dateAdded)) : "-"}
@@ -278,26 +270,22 @@ function MembersTab() {
                                             : "Never"}
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button
-                                            size="sm"
-                                            variant="destructive"
+                                        <RemoveButton
                                             disabled={!m.userId || busy === m.userId}
                                             onClick={() => removeMember(m)}
-                                        >
-                                            Remove
-                                        </Button>
+                                        />
                                     </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 </div>
-            )}
-        </div>
+            </LoadState>
+        </>
     );
 }
 
-function TeamsTab() {
+function TeamsTab({ onCounts }: { onCounts: (counts: { teams: number }) => void }) {
     const [teams, setTeams] = useState<OnshapeTeam[] | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -315,10 +303,11 @@ function TeamsTab() {
                     return;
                 }
                 setTeams(data?.teams ?? []);
+                onCounts({ teams: data?.teams?.length ?? 0 });
             })
             .catch(() => setError("Failed to load teams"))
             .finally(() => setLoading(false));
-    }, []);
+    }, [onCounts]);
 
     async function viewMembers(team: OnshapeTeam) {
         setSelected(team);
@@ -342,160 +331,104 @@ function TeamsTab() {
         }
     }
 
-    if (loading)
-        return (
-            <div className="space-y-3">
-                <Skeleton className="h-10" />
-                <Skeleton className="h-10" />
-            </div>
-        );
-    if (error) return <p className="text-destructive text-sm">{error}</p>;
-    if (!teams || teams.length === 0)
-        return <p className="text-muted-foreground text-sm">No teams found.</p>;
+    const groups: TeamGroup[] = (teams ?? []).map((t) => ({
+        key: t.id,
+        name: t.name,
+        description: t.description,
+    }));
 
     return (
-        <div className="grid gap-4 md:grid-cols-2">
-            <div className="border-border rounded-lg border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Team</TableHead>
-                            <TableHead className="text-right">Members</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {teams.map((t) => (
-                            <TableRow
-                                key={t.id}
-                                className={
-                                    selected?.id === t.id ? "bg-sidebar-accent/40" : undefined
-                                }
-                            >
-                                <TableCell>
-                                    <p className="font-medium">{t.name}</p>
-                                    {t.description && (
-                                        <p className="text-muted-foreground text-xs">
-                                            {t.description}
-                                        </p>
-                                    )}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => viewMembers(t)}
-                                    >
-                                        View
-                                    </Button>
-                                </TableCell>
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </div>
-
-            <div className="border-border rounded-lg border p-4">
-                {!selected ? (
-                    <p className="text-muted-foreground text-sm">
-                        Select a team to view its members.
-                    </p>
-                ) : membersLoading ? (
-                    <div className="space-y-3">
-                        <Skeleton className="h-8" />
-                        <Skeleton className="h-8" />
-                    </div>
-                ) : membersError ? (
-                    <p className="text-destructive text-sm">{membersError}</p>
-                ) : !teamMembers || teamMembers.length === 0 ? (
-                    <p className="text-muted-foreground text-sm">No members in {selected.name}.</p>
+        <TeamsBrowser
+            groups={groups}
+            loading={loading}
+            error={error}
+            selectedKey={selected?.id ?? null}
+            onSelect={(group) => {
+                const team = teams?.find((t) => t.id === group.key);
+                if (team) viewMembers(team);
+            }}
+            detail={
+                !selected ? (
+                    <TeamsBrowserHint>Pick a team to see who is in it.</TeamsBrowserHint>
                 ) : (
-                    <div className="space-y-3">
-                        <p className="text-sm font-medium">{selected.name}</p>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead className="text-right">Role</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {teamMembers.map((m, i) => (
-                                    <TableRow key={m.userId ?? `${m.name}-${i}`}>
-                                        <TableCell className="font-medium">{m.name}</TableCell>
-                                        <TableCell className="text-right">
-                                            <Badge variant={m.admin ? "default" : "secondary"}>
-                                                {m.admin ? "Team admin" : "Member"}
-                                            </Badge>
-                                        </TableCell>
-                                    </TableRow>
+                    <div className="p-4">
+                        <p className="mb-3 text-sm font-medium">{selected.name}</p>
+                        <LoadState
+                            loading={membersLoading}
+                            error={membersError}
+                            empty={(teamMembers?.length ?? 0) === 0}
+                            emptyLabel={`No members in ${selected.name}.`}
+                            rows={2}
+                        >
+                            <ul className="divide-border divide-y text-sm">
+                                {(teamMembers ?? []).map((m, i) => (
+                                    <li
+                                        key={m.userId ?? `${m.name}-${i}`}
+                                        className="flex items-center justify-between gap-3 py-2"
+                                    >
+                                        <span className="truncate font-medium">{m.name}</span>
+                                        <Badge variant={m.admin ? "default" : "secondary"}>
+                                            {m.admin ? "Team admin" : "Member"}
+                                        </Badge>
+                                    </li>
                                 ))}
-                            </TableBody>
-                        </Table>
+                            </ul>
+                        </LoadState>
                     </div>
-                )}
-            </div>
-        </div>
+                )
+            }
+        />
     );
 }
 
 export function AdminOnshapeManager({ company }: { company: OnshapeCompany | null }) {
-    const [tab, setTab] = useState<Tab>("members");
+    const [tab, setTab] = useState("people");
+    const [counts, setCounts] = useState<{ members?: number; teams?: number }>({});
+
+    const onPeopleCounts = useCallback(
+        (next: { members: number }) => setCounts((c) => ({ ...c, members: next.members })),
+        []
+    );
+    const onTeamCounts = useCallback(
+        (next: { teams: number }) => setCounts((c) => ({ ...c, teams: next.teams })),
+        []
+    );
 
     return (
         <div className="space-y-4">
-            {company && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>{company.name}</CardTitle>
-                        <CardDescription>
+            <ProviderHeader
+                icon={Boxes}
+                title={company?.name ?? "Onshape company"}
+                subtitle={
+                    company ? (
+                        <>
                             Company ID <span className="font-mono">{company.id}</span>
                             {company.admin ? " · API key has admin access" : ""}
-                        </CardDescription>
-                    </CardHeader>
-                </Card>
-            )}
+                        </>
+                    ) : undefined
+                }
+                stats={[
+                    { label: "Members", value: String(counts.members ?? "-") },
+                    { label: "Teams", value: String(counts.teams ?? "-") },
+                ]}
+                note="Global permissions, Enterprise project roles, and per-team admin status aren't exposed by Onshape's API - manage those in the Onshape admin console."
+            />
 
-            <p className="text-muted-foreground text-xs">
-                Member type (Admin/Guest/Light) can be changed here at any time. Individual global
-                permissions, Enterprise project roles, and per-team admin status for existing team
-                members aren&apos;t exposed by Onshape&apos;s API - manage those in the Onshape
-                admin console.
-            </p>
-
-            <div className="flex flex-wrap gap-1 border-b pb-3">
-                <TabButton active={tab === "members"} onClick={() => setTab("members")}>
-                    Members
-                </TabButton>
-                <TabButton active={tab === "teams"} onClick={() => setTab("teams")}>
-                    Teams
-                </TabButton>
-            </div>
-
-            {tab === "members" && <MembersTab />}
-            {tab === "teams" && <TeamsTab />}
+            <SubTabs
+                value={tab}
+                onValueChange={setTab}
+                tabs={[
+                    { value: "people", label: "People", icon: Users },
+                    { value: "teams", label: "Teams", icon: Boxes },
+                ]}
+            >
+                <SubTabPanel value="people">
+                    <PeopleTab onCounts={onPeopleCounts} />
+                </SubTabPanel>
+                <SubTabPanel value="teams">
+                    <TeamsTab onCounts={onTeamCounts} />
+                </SubTabPanel>
+            </SubTabs>
         </div>
-    );
-}
-
-function TabButton({
-    active,
-    onClick,
-    children,
-}: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-}) {
-    return (
-        <button
-            onClick={onClick}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-                active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-            }`}
-        >
-            {children}
-        </button>
     );
 }

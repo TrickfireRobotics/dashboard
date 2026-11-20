@@ -23,7 +23,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
         .where(eq(minecraftWhitelist.id, id))
         .get();
     if (!existing) {
-        return NextResponse.json({ error: "Request not found" }, { status: 404 });
+        return NextResponse.json({ error: "Not whitelisted" }, { status: 404 });
     }
 
     const rcon = await sendCommand(`whitelist remove ${existing.username}`);

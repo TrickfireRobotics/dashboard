@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { minecraftWhitelist } from "@/lib/db/schema";
 import { sendCommand } from "@/lib/integrations/azalea";
 import { getSessionUser } from "@/lib/auth/session";
-import { whitelistDirectAddSchema } from "@/lib/validation";
+import { whitelistAddSchema } from "@/lib/validation";
 
 export async function POST(req: NextRequest) {
     const admin = await getSessionUser();
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json().catch(() => null);
-    const parsed = whitelistDirectAddSchema.safeParse(body);
+    const parsed = whitelistAddSchema.safeParse(body);
     if (!parsed.success) {
         return NextResponse.json(
             { error: "Invalid input", issues: parsed.error.flatten() },
@@ -28,16 +28,9 @@ export async function POST(req: NextRequest) {
 
     const created = db
         .insert(minecraftWhitelist)
-        .values({
-            username: parsed.data.username,
-            status: "approved",
-            addedDirectly: true,
-            adminNote: parsed.data.adminNote ?? null,
-            reviewedBy: admin.id,
-            reviewedAt: new Date(),
-        })
+        .values({ username: parsed.data.username, userId: admin.id })
         .returning()
         .get();
 
-    return NextResponse.json({ request: created }, { status: 201 });
+    return NextResponse.json({ entry: created }, { status: 201 });
 }

@@ -10,7 +10,7 @@ type RouteMeta = { label: string; description?: string };
 const routeMeta: Record<string, RouteMeta> = {
     "/dashboard": { label: "Dashboard", description: "Your TrickFire club dashboard" },
     "/orders": { label: "Orders", description: "Track orders and manage the team queue" },
-    "/api-keys": { label: "API Keys", description: "Shared credentials vault" },
+    "/vault": { label: "Vault", description: "Shared club secrets and the sim access code" },
     "/minecraft": { label: "Minecraft", description: "Server status and whitelist" },
     "/network": { label: "Network", description: "TrickFire private network" },
     "/team": { label: "Team", description: "Approvals, accounts, and org access" },

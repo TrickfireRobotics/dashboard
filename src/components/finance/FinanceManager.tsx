@@ -63,6 +63,31 @@ export type FinanceData = {
     orderPricing: OrderPricing;
 };
 
+function QuarterStat({
+    label,
+    value,
+    highlight,
+}: {
+    label: string;
+    value: number;
+    highlight?: boolean;
+}) {
+    return (
+        <div className="px-5 first:pl-0 last:pr-0">
+            <dt className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                {label}
+            </dt>
+            <dd
+                className={`mt-1 text-xl font-semibold whitespace-nowrap tabular-nums ${
+                    highlight ? "text-primary" : "text-foreground"
+                }`}
+            >
+                {formatPriceCents(value)}
+            </dd>
+        </div>
+    );
+}
+
 export function FinanceManager({
     initial,
     children,
@@ -259,15 +284,40 @@ export function FinanceManager({
         }
     }
 
+    const bucketTotals = data.stfBuckets.reduce(
+        (acc, b) => ({
+            starting: acc.starting + b.startingBalanceCents,
+            spent: acc.spent + b.approvedSpendCents,
+            remaining: acc.remaining + b.remainingBalanceCents,
+        }),
+        { starting: 0, spent: 0, remaining: 0 }
+    );
+
     return (
         <div className="space-y-10">
-            <DataTableCard>
-                <DataTableCardHeader
-                    title="STF school year"
-                    description={`Active school year: ${activeQuarter?.name ?? "None"}`}
-                />
-                {!activeQuarter ? (
-                    <div className="flex flex-wrap items-end gap-3 p-4">
+            <section className="border-border bg-card flex flex-col gap-6 rounded-lg border p-5 lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
+                    <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                        Active STF school year
+                    </p>
+                    <p className="font-heading mt-1 text-3xl leading-none font-semibold">
+                        {activeQuarter?.name ?? "None yet"}
+                    </p>
+                    <p className="text-muted-foreground mt-2 text-sm">
+                        {activeQuarter
+                            ? `${data.stfBuckets.length} bucket${data.stfBuckets.length === 1 ? "" : "s"} · ${data.quarters.length - 1} archived year${data.quarters.length - 1 === 1 ? "" : "s"}`
+                            : "Create a school year before adding STF buckets."}
+                    </p>
+                </div>
+
+                {activeQuarter ? (
+                    <dl className="divide-border grid shrink-0 grid-cols-3 divide-x text-right">
+                        <QuarterStat label="Starting" value={bucketTotals.starting} />
+                        <QuarterStat label="Spent" value={bucketTotals.spent} />
+                        <QuarterStat label="Remaining" value={bucketTotals.remaining} highlight />
+                    </dl>
+                ) : (
+                    <div className="flex shrink-0 flex-wrap items-end gap-3">
                         <div className="space-y-1">
                             <Label htmlFor="new-quarter">School year</Label>
                             <Input
@@ -281,8 +331,8 @@ export function FinanceManager({
                             Create school year
                         </Button>
                     </div>
-                ) : null}
-            </DataTableCard>
+                )}
+            </section>
 
             <section className="space-y-5">
                 <DataTableCard>

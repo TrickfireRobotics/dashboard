@@ -3,12 +3,12 @@
  *
  * Auth: a token sent as `Authorization: Bearer <token>`. Use a fine-grained
  * personal access token (or GitHub App installation token) scoped to the single
- * TrickFire organization. Membership management below only needs
- * **Organization → Members: Read and write** - enough to list members, invite
- * people, and remove them. The token deliberately needs no org-administration
- * permission, and this client never grants org-owner ("admin") access:
- * invitations are always sent as `direct_member` and there is no role-promotion
- * call. Configure via GITHUB_TOKEN and GITHUB_ORG.
+ * TrickFire organization, with **Organization → Members: Read and write** -
+ * enough to list members, invite people, remove them, and change whether
+ * someone is an owner. Invitations are always sent as `direct_member`; owner
+ * access is only ever granted through an explicit role change, and GitHub
+ * itself refuses that unless the token's own account owns the org. Configure
+ * via GITHUB_TOKEN and GITHUB_ORG.
  *
  * The issue helpers at the bottom (used by the Task Sync tab to mirror Notion
  * tasks) need the token to additionally carry **Repository → Issues: Read and
@@ -37,7 +37,6 @@ export type GithubMember = {
     login: string;
     avatarUrl: string;
     htmlUrl: string;
-    /** Org role, surfaced read-only - this client never changes it. */
     role: GithubRole;
 };
 
@@ -263,6 +262,20 @@ export async function inviteMember(params: { username?: string; email?: string }
     await githubJson(`/orgs/${o}/invitations`, {
         method: "POST",
         body: JSON.stringify(body),
+    });
+}
+
+/**
+ * Promote a member to org owner, or demote an owner back to a regular member.
+ * Owners can do anything in the organization, including deleting it, so this is
+ * deliberately an explicit action rather than a side effect of inviting.
+ */
+export async function setMemberRole(username: string, role: GithubRole): Promise<void> {
+    const o = org();
+    if (!o) throw new GithubError("GitHub organization is not configured", 503);
+    await githubJson(`/orgs/${o}/memberships/${encodeURIComponent(username)}`, {
+        method: "PUT",
+        body: JSON.stringify({ role: role === "admin" ? "admin" : "member" }),
     });
 }
 
