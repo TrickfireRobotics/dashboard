@@ -51,7 +51,7 @@ export function NetworkStatusCard() {
                         : !status?.configured
                           ? "Tailscale not configured"
                           : isOnline
-                            ? "Network online"
+                            ? "Tailscale online"
                             : "Tailscale API unreachable"}
                 </p>
             </div>

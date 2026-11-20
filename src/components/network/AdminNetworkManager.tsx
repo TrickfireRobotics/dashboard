@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import { OsIcon } from "@/components/network/OsIcon";
 import { Button } from "@/components/ui/button";
-import { DataTableCard, DataTableCardHeader } from "@/components/ui/data-table-card";
+import { DataTableCard } from "@/components/ui/data-table-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -61,7 +61,6 @@ export function AdminNetworkManager() {
 
     return (
         <DataTableCard>
-            <DataTableCardHeader title="Devices" description="Manage Tailscale devices." />
             {loading ? (
                 <div className="space-y-3 p-4">
                     <Skeleton className="h-10" />

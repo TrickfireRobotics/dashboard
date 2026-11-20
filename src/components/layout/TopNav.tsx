@@ -12,7 +12,7 @@ const routeMeta: Record<string, RouteMeta> = {
     "/orders": { label: "Orders", description: "Track orders and manage the team queue" },
     "/vault": { label: "Vault", description: "Shared club secrets and the sim access code" },
     "/minecraft": { label: "Minecraft", description: "Server status and whitelist" },
-    "/network": { label: "Network", description: "TrickFire private network" },
+    "/network": { label: "Tailscale", description: "Network management" },
     "/team": { label: "Team", description: "Approvals, accounts, and org access" },
     "/finance": { label: "Finance", description: "Budgets, gift fund, and pricing" },
     "/discord": { label: "Discord Bot", description: "Bot health, syncs, and activity" },

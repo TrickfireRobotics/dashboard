@@ -5,7 +5,6 @@ import {
     Bot,
     DollarSign,
     Lock,
-    Network,
     Package,
     Radio,
     ShoppingCart,
@@ -15,6 +14,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { LiveClock } from "@/components/dashboard/LiveClock";
+import { TailscaleIcon } from "@/components/icons/brand-icons";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { db } from "@/lib/db";
@@ -64,9 +64,9 @@ const quickLinks = [
     },
     {
         href: "/network",
-        label: "Network",
-        description: "Tailscale network for server maintnance.",
-        icon: Network,
+        label: "Tailscale",
+        description: "Private network for server maintenance.",
+        icon: TailscaleIcon,
     },
 ];
 

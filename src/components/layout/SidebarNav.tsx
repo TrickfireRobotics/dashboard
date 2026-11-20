@@ -1,19 +1,10 @@
 "use client";
 
-import {
-    DollarSign,
-    Bot,
-    Gamepad2,
-    Lock,
-    LayoutDashboard,
-    Network,
-    Package,
-    Users,
-} from "lucide-react";
+import { DollarSign, Bot, Gamepad2, Lock, LayoutDashboard, Package, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { NotionIcon } from "@/components/icons/brand-icons";
+import { NotionIcon, TailscaleIcon } from "@/components/icons/brand-icons";
 import { cn } from "@/lib/utils";
 
 type NavItem = {
@@ -29,7 +20,7 @@ export const mainNav: NavItem[] = [
     { href: "/team", label: "Team", icon: Users },
     { href: "/discord", label: "Discord Bot", icon: Bot },
     { href: "/vault", label: "Vault", icon: Lock },
-    { href: "/network", label: "Network", icon: Network },
+    { href: "/network", label: "Tailscale", icon: TailscaleIcon },
     { href: "/minecraft", label: "Minecraft", icon: Gamepad2 },
     { href: "/task-sync", label: "Task Sync", icon: NotionIcon },
 ];
